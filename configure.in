@@ -40,7 +40,7 @@ dnl check for compiler module
 dnl usage:
 dnl library name, modules to open,
 dnl 1st dir <space> 2nd dir <space> etc.
-AC_CHECK_OCAML_MODULE(graph, Flow)
+AC_CHECK_OCAML_MODULE(ocamlgraph, Flow)
 dnl more module checks
 dnl AC_CHECK_OCAML_MODULE(libname, Module1 Module2, ../libdir)
 dnl use empty check just for @MODULE_INCLUDES@ substitution
