@@ -23,70 +23,66 @@ module type SIG =
 sig
 
   type t
-   (** Type of tree node *)
+  (** Type of tree node *)
 
-   (** Hashtalbe with type of key [t] *)
+  (** Hashtalbe with type of key [t] *)
   module HSHT:Hashtbl.S with type key = t
 
+  (** Type of constructed tree *)
   type info_out = 
   {
-
     get_childs : t -> t list;
-   (** Gets list of childs of node specified *)
+    (** Gets list of childs of the specified node *)
 
     get_parent : t -> t option;
-   (** Gets parent of node specified. [None] is returned for root *)
+    (** Gets parent of node specified. [None] is returned for root *)
 
     is_child : t -> t -> bool;
-   (** Returns [true] if [second node] is ansettor of [fist node] in tree *)
+    (** Returns [true] if the [second node] is ancestor of the [fist node] in tree *)
 
     get_root : t
-   (** Returns root of tree *)
-
+    (** Returns root of tree *)
   }
-   (** Type of tree constructed *)
 
+  (** Type of information that has to be provided for tree construction *)
   type info_in = 
   {
-
     iter : (t -> t -> unit) -> unit;
-   (** Function iterates [nodes] of tree and applies it's first argument (of type [t -> t -> ()] to the iterated node and it's parent.) *)
+   (** Function iterates [nodes] of tree and applies it's first argument (of type [t -> t -> ()]) 
+       to the iterated node and it's parent.) 
+   *)
 
     root : t;
-   (** Root of tree *)
+    (** Root of tree *)
 
     size : int;
-   (** Size of tree. Exact value is not nessary *)
-
+    (** Size of tree. Exact value is not nessary *)
   }
-   (** Type of information that should be provided for tree construction *)
 
   val create : info_in -> info_out
-   (** Creates tree using [info_in] *)
+  (** Creates tree using [info_in] *)
 
 end
 (** Tree builder module signature *)
 
 (** {1 Tree builder instantiation} *)
 
+(** Type of the tree node *)
 module type TYPE =
 sig 
 
   type t
 
-  val equal : t -> t -> bool
-
-  val hash : t -> int
-
+  val equal    : t -> t -> bool
+  val hash     : t -> int
   val toString : t -> string 
 
 end
-(** Type of tree node *)
 
+(** Wrapper for int tree node *)
 module TYPE_INT : TYPE with type t = int
-(** Type of tree node [int] *)
 
-module Make (T:TYPE):SIG with type t = T.t
-(** Tree builder instance *)
+(** Tree builder constructor *)
+module Make (T : TYPE) : SIG with type t = T.t
 
 

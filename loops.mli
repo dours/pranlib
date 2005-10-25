@@ -20,44 +20,33 @@
 open Treebuilder
 
 (** Loops *)
-
-module LOOP (G: Digraph.Sig) 
-            (UFS:Unionfind.S with type elt=G.Node.t)  
-            (UFSI:Unionfind.S with type elt=int) :
-
+module LOOP (G    : Digraph.Sig) 
+           (UFS  : Unionfind.S with type elt=G.Node.t)  
+           (UFSI : Unionfind.S with type elt=int) :
 sig
 
   module NODE_TREE_BUILDER:(Treebuilder.SIG with type t = G.Node.t)
-
-    (**		Nested loops tree construction. [Node] representation. *)
+  (** Nested loops tree construction. [Node] representation. *)
 
   module INT_TREE_BUILDER:(Treebuilder.SIG with type t = int)
-
-    (**		Nested loops tree construction. [int] representation. *)
+  (** Nested loops tree construction. [int] representation. *)
 
   type dfst = Cfa.DFST(G).info 
-
-    (**		Deep first search tree of a graph *)
+  (** Depth first search tree of a graph *)
 
   type info = NODE_TREE_BUILDER.info_out
-
-    (**		Loops tree type. [Node] representation *)
+  (** Loops tree type. [Node] representation *)
 
   type info_i = INT_TREE_BUILDER.info_out
+  (** Loops tree type. [int] representation *)
 
-    (**		Loops tree type. [int] representation *)
-
-  val loops_halvak: G.t -> dfst -> info              
-
-    (**		[Havlak] loops finding algorithm *)
+  val loops_havlak: G.t -> dfst -> info
+  (** [Havlak] loops finding algorithm *)
    
-  val loops_halvak_i: G.t -> dfst -> info
-
-    (**		Improved [Havlak] loops finding algorithm *)
+  val loops_havlak_i: G.t -> dfst -> info
+  (** Improved [Havlak] loops finding algorithm *)
    
   val loops_gao_lee : G.t -> dfst -> info_i
-
-    (**		[Sreedhar-Gao-Lee] loops finding algorithm *)
-   
+  (** [Sreedhar-Gao-Lee] loops finding algorithm *)   
 
 end
