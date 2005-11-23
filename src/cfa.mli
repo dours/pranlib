@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * 
  * See the GNU Library General Public License version 2 for more details
- * (enclosed in the file LGPL).
+ * (enclosed in the file COPYING).
  *)
 
 (** Control flow analysis facilities *)
