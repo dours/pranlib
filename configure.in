@@ -9,6 +9,9 @@ AC_CANONICAL_SYSTEM
 dnl project name and version
 AM_INIT_AUTOMAKE(pranlib, 0.1, nodefine)
 
+dnl add custom m4 functions
+m4_sinclude(m4/acinclude.m4)
+
 dnl check for install program
 AC_PROG_INSTALL
 dnl ... for ocaml
