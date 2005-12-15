@@ -5,7 +5,7 @@ if test $# = 0; then
     exit 1
 fi
 
-TEST=$1
+TEST=`basename $1`
 ERROR=0
 
 # List of program to run
@@ -41,7 +41,7 @@ PATH=${OLDPATH}
 
 # Compare check outputs to saved samples
 for i in ${CHECKS}; do
-    if ! diff -u orig/${i} ${i} > ${i}.diff; then
+    if ! diff -ubB orig/${i} ${i} > ${i}.diff; then
 	echo "${TEST}: FAILED (see ${i}.diff)"
 	ERROR=$((${ERROR} + 1))
     else

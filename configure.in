@@ -6,6 +6,10 @@ dnl create supplementary scripts in subdirectory
 AC_CONFIG_AUX_DIR(config)
 dnl determine system type
 AC_CANONICAL_SYSTEM
+
+dnl check for MinGW
+AM_CONDITIONAL(MINGW32, [test x"$build_os" = xmingw32])
+
 dnl project name and version
 AM_INIT_AUTOMAKE(pranlib, 0.1, nodefine)
 
