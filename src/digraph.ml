@@ -1,35 +1,24 @@
 open List
 
+module type Item =
+  sig
+
+    type t
+    type info
+
+    val toString : t -> string
+    val hash     : t -> int
+    val equal    : t -> t -> bool
+    val info     : t -> info
+    val compare  : t -> t -> int
+
+  end
+
 module type Sig =
   sig
 
-    module Node :
-      sig
-
-	type t    
-	type info 
-
-	val toString : t -> string
-	val hash     : t -> int
-	val equal    : t -> t -> bool
-	val info     : t -> info
-	val compare  : t -> t -> int
-
-      end
-
-    module Edge :
-      sig
-
-	type t    
-	type info 
-
-	val toString : t -> string
-	val hash     : t -> int
-	val equal    : t -> t -> bool
-	val info     : t -> info
-	val compare  : t -> t -> int
-
-      end
+    module Node : Item
+    module Edge : Item
 	
     type t
 	
@@ -38,6 +27,9 @@ module type Sig =
 
     val ins  : Node.t -> Edge.t list
     val outs : Node.t -> Edge.t list
+
+    val pred : Node.t -> Node.t list
+    val succ : Node.t -> Node.t list
 	
     val nnodes : t -> int
     val nedges : t -> int
@@ -133,6 +125,22 @@ module Make (NodeInfo : Info) (EdgeInfo : Info) =
     let ins  (Node (x, _), _, _) = !x
     let outs (Node (_, x), _, _) = !x
 
+    let collect list getOf =
+      let module S = Set.Make (Node) in
+      snd (
+        fold_left 
+	  (fun (s, l) e -> 
+	    let n = getOf e in
+	    if S.mem n s then s, l
+	    else S.add n s, n :: l
+	  )
+	  (S.empty, [])
+	  list
+      )
+
+    let pred node = collect (ins node) src
+    let succ node = collect (outs node) dst
+      
     let nnodes (nodes, _) = length nodes
     let nedges (_, edges) = length edges
 	

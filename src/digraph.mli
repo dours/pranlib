@@ -17,63 +17,39 @@
 
 (** Common signature and implementation functor of directed graphs *)
 
+(** {1 Item module type; item contains some info and can be printed, hashed and compared} *)
+module type Item =
+  sig
+
+    type t
+      (** Type of the node *)
+
+    type info
+      (** Type of the node label *)
+
+    val toString : t -> string
+      (** [toString node] returns string representation of the [node] *)
+
+    val hash     : t -> int
+      (** [hash node] returns hash value of the [node] *)
+
+    val equal    : t -> t -> bool
+      (** [equal node node'] returns [true] iff [node] is the same as [node'] *)
+
+    val info     : t -> info
+      (** [info node] returns label of the [node] *)
+
+    val compare  : t -> t -> int
+      (** [compare node node'] compares [node] to [node'] *)
+
+  end
+
 (** {1 Directed graph signature} *)
 module type Sig =
   sig
 
-    (** Module to denote graph nodes *)
-    module Node :
-      sig
-
-        type t
-           (** Type of the node *)
-
-        type info
-           (** Type of the node label *)
-
-        val toString : t -> string
-           (** [toString node] returns string representation of the [node] *)
-
-        val hash     : t -> int
-           (** [hash node] returns hash value of the [node] *)
-
-        val equal    : t -> t -> bool
-           (** [equal node node'] returns [true] iff [node] is the same as [node'] *)
-
-        val info     : t -> info
-           (** [info node] returns label of the [node] *)
-
-        val compare  : t -> t -> int
-           (** [compare node node'] compares [node] to [node'] *)
-
-      end
-
-    (** Module to denote graph edges *)
-    module Edge :
-      sig
-
-        type t
-           (** Type of the edge *)
-
-        type info
-           (** Type of the edge label *)
-
-        val toString : t -> string
-           (** [toString edge] returns string representation of the [edge] *)
-
-        val hash     : t -> int
-           (** [hash edge] returns hash value of the [edge] *)
-
-        val equal    : t -> t -> bool
-           (** [equal edge edge'] returns [true] iff [edge] is the same as [edge'] *)
-
-        val info     : t -> info
-           (** [info edge] returns label of the [edge] *)
-
-        val compare  : t -> t -> int
-           (** [compare edge edge'] compares [edge] to [edge'] *)
-
-      end
+    module Node : Item (** Module to denote graph nodes *)
+    module Edge : Item (** Module to denote graph edges *)
 
     type t
        (** Type of the graph *)
@@ -91,6 +67,12 @@ module type Sig =
 
     val outs : Node.t -> Edge.t list
        (** [outs node] returns list of outgoing edges of the [node] *)
+
+    val pred : Node.t -> Node.t list
+       (** [pred node] returns list of predecessors for [node] *)
+
+    val succ : Node.t -> Node.t list
+       (** [succ node] returns list of successors for [node] *)
 
     val nnodes : t -> int
        (** [nnodes graph] returns number of nodes in the [graph]*)
@@ -174,7 +156,7 @@ module type Info =
 
   end
 
-(** Instantiation functor fro directed graph *)
+(** Instantiation functor for directed graph *)
 module Make (NodeInfo : Info) (EdgeInfo : Info): Sig with type Node.info = NodeInfo.t and type Edge.info = EdgeInfo.t
 (** [Make(NodeLabel)(EdgeLabel)] creates {b mutable} implementation of directed graph with nodes and edges labeled
     with values of types [NodeLabel] and [EdgeLabel] correspondingly *)
