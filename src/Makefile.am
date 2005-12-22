@@ -11,8 +11,8 @@ else
 endif
 
 # type in sources here
-SOURCES = util.ml treebuilder.ml digraph.ml cfa.ml doms.ml loops.ml
-MLI = util.mli treebuilder.mli digraph.mli cfa.mli doms.mli loops.mli
+SOURCES = util.ml treebuilder.ml digraph.ml cfa.ml doms.ml loops.ml alts.ml
+MLI = util.mli treebuilder.mli digraph.mli cfa.mli doms.mli loops.mli alts.mli
 
 # sort sources before use
 # (sorting is required for correct link order)
@@ -173,7 +173,7 @@ META: $(top_srcdir)/VERSION
 	revision=`grep "\\$$Revision:" $< | sed -e 's,^\\$$,,' -e 's, \\$$$$,,'`; \
 	date=`LC_TIME=C date`; \
 	echo "version = \"$$revision\"" > $@; \
-	echo "description = \"Generic Graph Library\"" >> $@; \
+	echo "description = \"PRogram ANalysis LIBrary\"" >> $@; \
 	echo "requires = \"\"" >> $@; \
 	echo "archive(byte) = \"$(PACKAGE).cma\"" >> $@; \
 	echo "archive(native) = \"$(PACKAGE).cmxa\"" >> $@
