@@ -64,7 +64,7 @@ YARD := ocamlrun saved/yard
 # bytecode compiling flags
 AM_BFLAGS = -w p $(MODULE_INCLUDES) $(DEBUG)
 # native (optimized) compiling flags
-AM_OFLAGS = -w p $(MODULE_INCLUDES) $(DEBUG)
+AM_OFLAGS = -w p $(MODULE_INCLUDES)
 
 # extra .cmi to delete those are generated from .ml
 #CLEAN_CMI := $(CMO:.cmo=.cmi)
