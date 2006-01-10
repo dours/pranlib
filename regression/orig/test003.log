@@ -1,0 +1,50 @@
+digraph X {  
+ 
+  node0 [label="M=0, N=0\n0", shape="ellipse"];
+  node0 -> node2;
+  
+  node2 [label="M=1, N=1\n2", shape="box"];
+  node2 -> node7;
+  node2 -> node8;
+  node2 -> node10;
+  
+  node7 [label="M=15, N=2\n5", shape="box"];
+  
+  node8 [label="M=9, N=3\n6", shape="box"];
+  node8 -> node9;
+  
+  node9 [label="M=10, N=4\n6'", shape="box"];
+  node9 -> node12;
+  node9 -> node3;
+  
+  node12 [label="M=13, N=5\n8", shape="box"];
+  node12 -> node13;
+  
+  node13 [label="M=14, N=6\n8'", shape="box"];
+  
+  node3 [label="M=11, N=7\n3", shape="box"];
+  node3 -> node4;
+  
+  node4 [label="M=12, N=8\n3'", shape="box"];
+  
+  node10 [label="M=2, N=9\n7", shape="box"];
+  node10 -> node11;
+  
+  node11 [label="M=3, N=10\n7'", shape="box"];
+  node11 -> node5;
+  node11 -> node14;
+  
+  node5 [label="M=6, N=13\n4", shape="box"];
+  node5 -> node6;
+  
+  node6 [label="M=7, N=14\n4'", shape="box"];
+  node6 -> node1;
+  
+  node1 [label="M=8, N=15\n1", shape="box"];
+  
+  node14 [label="M=4, N=11\n9", shape="box"];
+  node14 -> node15;
+  
+  node15 [label="M=5, N=12\n9'", shape="box"];
+   
+}

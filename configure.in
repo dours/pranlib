@@ -48,6 +48,7 @@ dnl usage:
 dnl library name, modules to open,
 dnl 1st dir <space> 2nd dir <space> etc., library homepage.
 AC_CHECK_OCAML_MODULE(ocamlgraph, Flow, , http://www.lri.fr/~filliatr/ocamlgraph/)
+AC_CHECK_OCAML_MODULE(typeutil, View, , http://oops.tepkom.ru/projects/typeutil/)
 dnl more module checks
 dnl AC_CHECK_OCAML_MODULE(libname, Module1 Module2, ../libdir, http://www.example.com/libname)
 AC_SUBST(MODULE_INCLUDES)

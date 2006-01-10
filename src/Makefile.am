@@ -11,8 +11,8 @@ else
 endif
 
 # type in sources here
-SOURCES = treebuilder.ml digraph.ml cfa.ml doms.ml loops.ml alts.ml
-MLI = treebuilder.mli digraph.mli cfa.mli doms.mli loops.mli alts.mli
+SOURCES = dOT.ml tree.ml digraph.ml generate.ml dFST.ml pathCovering.ml cFO.ml dominance.ml loops.ml alts.ml
+MLI = dOT.mli tree.mli digraph.mli generate.mli dFST.mli pathCovering.mli cFO.mli dominance.mli loops.mli alts.mli
 
 # sort sources before use
 # (sorting is required for correct link order)

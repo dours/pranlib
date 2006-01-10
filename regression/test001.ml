@@ -1,86 +1,98 @@
-module NODE_INFO = 
-struct 
-  type t = int
-  let toString x = string_of_int x
-end
+(*
+ * Test001: testing basic graph operations.
+ * Copyright (C) 2006
+ * Dmitri Boulytchev, St.Petersburg State University
+ * 
+ * This software is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License version 2, as published by the Free Software Foundation.
+ * 
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * 
+ * See the GNU Library General Public License version 2 for more details
+ * (enclosed in the file COPYING).
+ *)
 
 open Printf
 
-module G = Digraph.Make (NODE_INFO) (NODE_INFO)
+let _ =
+  let module X = struct type t = string let toString x = x end in
+  let module G = Digraph.Make (X) (X) in
+  let g    = G.create () in
+  let g, x = G.insertNode g "x" in
+  let g, y = G.insertNode g "y" in
+  let g, z = G.insertNode g "z" in
+  let g, t = G.insertNode g "t" in
 
-let g = G.create ();;
-(* Graph nodes *)
-let (g, n1) = G.insertNode g 1;;
-let (g, n2) = G.insertNode g 2;;
-let (g, n3) = G.insertNode g 3;;
-let (g, n4) = G.insertNode g 4;;
-let (g, n5) = G.insertNode g 5;;
-let (g, n6) = G.insertNode g 6;;
-(* Graph edges *)
-let (g, e1) = G.insertEdge g n6 n1 (6);;         (*                      *)
-let (g, e6) = G.insertEdge g n2 n6 (6);;         (*                      *)
-let (g, e7) = G.insertEdge g n3 n2 (7);;         (*                      *)
-let (g, e8) = G.insertEdge g n4 n3 (8);;         (*                      *)
-let (g, e10) = G.insertEdge g n5 n4 (10);;       (*                      *)
-(* tree *)                                               
-let (g, e11) = G.insertEdge g n4 n5 (11);;       (*                      *)
-let (g, e12) = G.insertEdge g n3 n4 (12);;       (*                      *)
-let (g, e13) = G.insertEdge g n2 n3 (13);;       (*                      *)
-let (g, e14) = G.insertEdge g n1 n2 (14);;       (*                      *)
-let (g, e15) = G.insertEdge g n1 n6 (15);;       (*                      *)
+  printf "Graph:\n\n%s\n" (G.toDOT g);
+  printf "Number of edges: %d\n" (G.nedges g);
+  printf "Number of nodes: %d\n" (G.nnodes g);
+  printf "lastNode: %d\n" (G.lastNode g);
+  printf "lastEdge: %d\n" (G.lastEdge g);
+  printf "Copy:\n\n%s\n" (G.toDOT (G.copy g));
 
-module Df = Cfa.DFST(G)
+  let g, a = G.insertEdge g x y "a" in
+  let g, b = G.insertEdge g y z "b" in
+  let g, c = G.insertEdge g z t "c" in
+  let g, d = G.insertEdge g t x "d" in
 
-let dfs = Df.create (g,n1);;
+  printf "Graph:\n\n%s\n" (G.toDOT g);
+  printf "Number of edges: %d\n" (G.nedges g);
+  printf "Number of nodes: %d\n" (G.nnodes g);
+  printf "lastNode: %d\n" (G.lastNode g);
+  printf "lastEdge: %d\n" (G.lastEdge g);
 
-module Uf = Unionfind.Make(G.Node)
+  let g'  = G.copy g  in
+  let g'' = G.copy g' in
 
-module Ufi = Unionfind.Make(Util.INTEGER)
+  printf "Copy:\n\n%s\n" (G.toDOT g');
 
-module Loop = Loops.LOOP (G) (Uf) (Ufi)
+  let g = G.deleteEdge g a in
 
-module Dm = Doms.DOM (G)
+  printf "Deleted edge \"a\":\n\n%s\n" (G.toDOT g);
 
-let info = Loop.loops_gao_lee g dfs;;
+  let g = G.deleteEdge g a in
 
-let info1 = Loop.loops_halvak_i g dfs;;
+  printf "Deleted edge \"a\" again:\n\n%s\n" (G.toDOT g);
 
-let rec output_info nd pref = 
-  let childs = info.Loop.INT_TREE_BUILDER.get_childs nd in
-  if childs <> [] then (
-    printf "%sNode %i\n" pref nd
-  )
-  else (
-    printf "%s%i\n" pref nd
-  );
-  List.iter (fun x -> output_info x ((pref^" "))) childs in
-output_info info.Loop.INT_TREE_BUILDER.get_root "";;
+  let x :: _ = G.nodes g' in
+  let g' = G.deleteNode g' x in
 
-let rec output_info nd pref = 
-  let childs = info1.Loop.NODE_TREE_BUILDER.get_childs nd in
-  if childs <> [] then (
-    printf "%sNode %s\n" pref (G.Node.toString nd)
-  )
-  else (
-    printf "%s%s\n" pref (G.Node.toString nd)
-  );
-  List.iter (fun x -> output_info x ((pref^" "))) childs in
-output_info info1.Loop.NODE_TREE_BUILDER.get_root "";;
+  printf "Deleted node %s:\n\n%s\n" (G.Node.toString x) (G.toDOT g');
+
+  let g' = G.deleteNode g' x in
+
+  printf "Deleted node %s again:\n\n%s\n" (G.Node.toString x) (G.toDOT g');
+
+  let g = g'' in
+  let x :: _ = G.nodes g in
+
+  let g, _ = G.replaceNode g x "replaced" in
   
+  printf "Replaced node %s:\n\n%s\n" (G.Node.toString x) (G.toDOT g);
 
+  begin try
+    let g, _ = G.replaceNode g x "replaced again" in
+    printf "Oops, replaced node %s replaced again:\n\n%s\n" (G.Node.toString x) (G.toDOT g)
+  with
+  | Failure "node does not belong to the graph" -> printf "Exception raised on trying to replace detached node.\n"
+  end;
 
+  let e :: _ = G.edges g in
 
+  let g, _ = G.replaceEdge g e "replaced" in
+  
+  printf "Replaced edge %s:\n\n%s\n" (G.Edge.toString e) (G.toDOT g);
 
+  begin try
+    let g, _ = G.replaceEdge g e "replaced again" in
+    printf "Oops, replaced edge %s replaced again:\n\n%s\n" (G.Edge.toString e) (G.toDOT g)
+  with
+  | Failure "edge does not belong to the graph" -> printf "Exception raised on trying to replace detached edge.\n"
+  end
 
-
-
-
-
-
-
-
-
-
-
+  
 
 

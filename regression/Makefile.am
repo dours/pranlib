@@ -1,4 +1,4 @@
-TESTS = test001
+TESTS = test001 test002 test003 test004 test005 test006 test007
 
 TESTS_ENVIRONMENT = $(srcdir)/test.sh
 
@@ -20,4 +20,22 @@ clean-am:
 	rm -f *.diff *.log
 
 test001: test001.ml
-	$(OCAMLC) $(BFLAGS) $(P4FLAGS) -o $@$(EXEEXT) $< 
+	$(OCAMLC) ocamlgraph.cma typeutil.cma pranlib.cma $(BFLAGS) $(P4FLAGS) -o $@$(EXEEXT) $< 
+
+test002: test002.ml
+	$(OCAMLC) ocamlgraph.cma typeutil.cma pranlib.cma $(BFLAGS) $(P4FLAGS) -o $@$(EXEEXT) $< 
+
+test003: test003.ml
+	$(OCAMLC) ocamlgraph.cma typeutil.cma pranlib.cma $(BFLAGS) $(P4FLAGS) -o $@$(EXEEXT) $< 
+
+test004: test004.ml
+	$(OCAMLC) ocamlgraph.cma typeutil.cma pranlib.cma $(BFLAGS) $(P4FLAGS) -o $@$(EXEEXT) $< 
+
+test005: test005.ml
+	$(OCAMLC) ocamlgraph.cma typeutil.cma pranlib.cma $(BFLAGS) $(P4FLAGS) -o $@$(EXEEXT) $< 
+
+test006: test006.ml
+	$(OCAMLC) ocamlgraph.cma typeutil.cma pranlib.cma $(BFLAGS) $(P4FLAGS) -o $@$(EXEEXT) $< 
+
+test007: test007.ml
+	$(OCAMLC) ocamlgraph.cma typeutil.cma pranlib.cma $(BFLAGS) $(P4FLAGS) -o $@$(EXEEXT) $< 

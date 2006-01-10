@@ -1,5 +1,5 @@
 (*
- * Alts: alts formation algorithms.
+ * Alts: alt finding algorithms.
  * Copyright (C) 2005
  * Sergey Galanov, St.Petersburg State University
  * 
@@ -15,52 +15,31 @@
  * (enclosed in the file LGPL).
  *)
 
-(** Alts finding algorithms *)
+(** {1 Alt (single-entry region) construction and manipulation} *)
 
-(** Maximal alt (single-entry subgraph) finding *)
-module Alt (G: Digraph.Sig) : sig
+(** Alt finding constructor *)
+module Make (D: DFST.Sig) : 
+  sig
 
-    type info = G.Node.t * G.Node.t list
-        (** Alt info - entry node and list of nodes *)
+    (** The DFST module *)
+    module T : DFST.Sig with module G = D.G
 
-    type dfst = Cfa.DFST(G).info
-        (** Depth-first search tree type *)
+    (** The graph module *)
+    module G : Digraph.Sig with type t = D.G.t and module Node = D.G.Node and module Edge = D.G.Edge
 
-    val create : dfst -> G.Node.t -> info
-        (** [create dfst entry] returns maximal alt info built for
-         * graph with [dfst] built for it with entry node [entry] *)
-end
+    (** The graph data *)
+    val graph : G.t
 
-(** Maximal alts hierarchy building module *)
-open Treebuilder
+    (** The starting node *)
+    val start : G.Node.t
 
-module Hierarchy (G: Digraph.Sig) : sig
+    (** Maximal alt finding module *)
+    module MA :
+      sig
 
-    module TREE_BUILDER:(Treebuilder.SIG with type t = Alt(G).info)
-        (** Tree builder module for alts *)
+        (** [get node] gets maximal alt with header [node] *)
+	val get : G.Node.t -> G.Node.t list
 
-    type dfst = Cfa.DFST(G).info
-        (** Depth-first search tree type *)
+      end
 
-    type info = 
-        (** Maximal alts hierarchy structure *)
-    { 
-        dfst: dfst;
-            (** Depth-first search tree for graph *)
-        alts: TREE_BUILDER.info_out 
-            (** Hierarchy itself *)
-    }
-
-    val create : dfst -> info
-        (** [create dfst] returns maximal alts hierarchy built for 
-          * graph which has [dfst] built for it *)
-
-    val toString : info -> string
-        (** [toString info] returns textual representation of the 
-          * maximal alts hierarchy passed in [hinfo] *)
-
-    val test : info -> bool
-        (** [test info] tests whether maximal alts hierarchy [info] is 
-          * correct *)
-
-end
+  end

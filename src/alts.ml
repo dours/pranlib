@@ -1,5 +1,5 @@
 (*
- * Alts: alts formation algorithms.
+ * Alts: alt finding algorithms.
  * Copyright (C) 2005
  * Sergey Galanov, St.Petersburg State University
  * 
@@ -15,132 +15,127 @@
  * (enclosed in the file LGPL).
  *)
 
-(* Maximal alt formation algorithm implementation *)
 open List
 
-module Alt (G: Digraph.Sig) = struct
+module Make (D: DFST.Sig) = 
+  struct
 
-    type info = G.Node.t * G.Node.t list
-    module DFST = Cfa.DFST(G)
-    type dfst = Cfa.DFST(G).info
+    module T = D
+    module G = D.G
 
-    module NodeSet = Set.Make(G.Node)
+    let graph = D.graph
+    let start = D.start
 
-    (* Frontier, back-door and maximal alt sets management module *)
-    module Sets = struct
-        type t = NodeSet.t * NodeSet.t * NodeSet.t
+    module INS =
+      struct
 
-        let create fr bd ma = (fr, bd, ma)
+	let incoming = 
+	  lazy (
+            Array.init (G.nnodes graph) 
+	      (fun i -> 
+		if D.isValid i 
+		then 
+		  let n = length (G.ins (D.post'1 i)) in 
+		  LOG (Printf.printf "%d -> %d\n" i n);
+		  (n, 0)
+		else (0, 0)
+	      )
+	  )
 
-        module type G_CHOOSE_SET = sig
-            val extract : t -> NodeSet.t
-            val save : t -> NodeSet.t -> t
-        end
+	let get i = fst (Lazy.force incoming).(i)
+	let dec i = 
+	  let x, y = (Lazy.force incoming).(i) in
+	  LOG (Printf.printf "dec %d: (outer=%d, inner=%d)\n" i x y);
+	  (Lazy.force incoming).(i) <- (x - 1, y + 1)
+	      
+	let inc i = 
+	  let x, y = (Lazy.force incoming).(i) in
+	  LOG (Printf.printf "inc %d: (outer=%d, inner=%d)\n" i x y);
+	  if y > 0 then (Lazy.force incoming).(i) <- (x + 1, y - 1)
 
-        (* Base module for others *)
-        module Base (CS: G_CHOOSE_SET) = struct
-            let value sets = CS.extract sets
-            let add v sets = 
-                let set = CS.extract sets in
-                    CS.save sets (NodeSet.add v set)
-            let get sets =
-                let set = CS.extract sets in
-                let v = NodeSet.choose set in
-                let set' = NodeSet.remove v set in (v, CS.save sets set')
-            let rem v sets = 
-                let set = CS.extract sets in
-                let set' = NodeSet.remove v set in CS.save sets set'
-            let isEmpty sets = 
-                NodeSet.is_empty (CS.extract sets)
-            let isMem v sets = 
-                NodeSet.mem v (CS.extract sets)
-        end
+      end
 
-        (* Frontier, back-door and maximal alts support modules *)
-        module Fr = Base (struct 
-                              let extract (fr, _, _) = fr
-                              let save (fr, bd, ma) fr' = (fr', bd, ma)
-                          end)
-        module BD = Base (struct 
-                              let extract (_, bd, _) = bd
-                              let save (fr, bd, ma) bd' = (fr, bd', ma)
-                          end)
-        module MA = Base (struct 
-                              let extract (_, _, ma) = ma
-                              let save (fr, bd, ma) ma' = (fr, bd, ma')
-                          end)
+    module MA =
+      struct
 
-    end
+	let all = 
+	  lazy (
+	    Array.init (G.nnodes graph)
+	      (fun i ->
+		if D.isValid i
+		then
+		  lazy (
+		    let node = D.post'1 i in
+		    let module NS = Set.Make (G.Node) in
+		    let key       = D.post node in
+		    let rec forward ((frontier, backdoor, alt) as current) = 
+		      match frontier with
+		      | [] -> current
+		      | v :: frontier' ->
+			  forward 
+			    (fold_left 
+			       (fun ((frontier, backdoor, alt) as current) e -> 
+				 LOG (Printf.printf "Forward: processing edge %s\n" (G.Edge.toString e));
+				 let w = G.dst e in
+				 let n = D.post w in
+				 INS.dec n;
+				 if not (NS.mem w alt) 
+				 then
+				   if (D.post w < key) || (INS.get n) > 0
+				   then (frontier, NS.add w backdoor, alt)
+				   else (w :: frontier, backdoor, NS.add w alt)
+				 else 
+				   if (INS.get n) = 0 
+				   then (frontier, NS.remove w backdoor, alt)
+				   else current
+			       ) 
+			       (frontier', backdoor, alt)
+			       (G.outs v) 
+			    )
+		    in
+		    let rec backward ((backdoor, alt) as current) = 
+		      if NS.is_empty backdoor 
+		      then current
+		      else 
+			let v = NS.choose backdoor in
+			let f = NS.mem  v alt      in
+			
+			backward
+			  (fold_left 
+			     (fun ((backdoor, alt) as current) e ->
+			       LOG (Printf.printf "Backward: processing edge %s\n" (G.Edge.toString e));
+			       let w = G.dst e in
+			       if f then INS.inc (T.post w);
+			       if (NS.mem w alt) && ((G.Node.compare w node) <> 0) 
+			       then (NS.add w backdoor), alt
+			       else current
+			     ) 
+			     (NS.remove v backdoor, if f then NS.remove v alt else alt)
+			     (G.outs v) 
+			  )
+		    in 
+		    let _, backdoor, alt = forward ([node], NS.empty, (NS.singleton node)) in
+		    let _, alt = backward (backdoor, alt) in
+		    LOG (
+		      Printf.printf "incomings after MA construction:\n";
+		      Array.iteri 
+		        (fun i (n, m) -> Printf.printf "  %d: (outer=%d, inner=%d)\n" i n m) 
+		        (Lazy.force INS.incoming);
+		      Printf.printf "end incomings\n"
+                    );
+		    NS.elements alt
+		  )
+		else lazy []
+	      )
+	  )
 
-    (* Build node immediate descendants set *)
-    let desc node = fold_left 
-        (fun s e -> NodeSet.add (G.dst e) s) NodeSet.empty 
-        (G.outs node)
-    let printSet set label = Printf.printf "set %s is:\n" label;
-        NodeSet.iter (fun n -> Printf.printf "node: %s\n" (G.Node.toString n)) set
-    let applyIf cond fn arg = if cond then fn arg else arg 
+	let get node = Lazy.force (Lazy.force all).(D.post node)
 
-    type nodeState = { mutable incoming: int }
+      end
 
-    open Sets
-    let create dfst entry = 
+  end
 
-        (* Array with nodes states *)
-        let graph = dfst.DFST.graph in
-        let states = Array.make (G.nnodes graph) { incoming = 0 } in
-        let setState nd st = states.(dfst.DFST.post nd) <- st in
-        let getState nd = states.(dfst.DFST.post nd) in
-        
-        (* Initial values *)
-        let sets = Sets.create (NodeSet.singleton entry)    (* frontier *)
-                               (NodeSet.empty)              (* backdoor *)
-                               (NodeSet.singleton entry)    (* maximal alt *)
-        in
-        iter (fun n -> setState n { incoming = length (G.ins n) })
-            (G.nodes graph);
-
-        (* Part one: visit descendants *)
-        let rec partOne sets = 
-            if Fr.isEmpty sets then sets
-            else begin
-                let (v, sets) = Fr.get sets in
-                let vNum = dfst.DFST.post v in
-                partOne (NodeSet.fold (fun w sets -> 
-                    let st = getState w in
-                    st.incoming <- st.incoming - 1;
-
-                    if not (MA.isMem w sets) then begin
-                        if dfst.DFST.post w > vNum then
-                            applyIf (st.incoming > 0) (Sets.BD.add w) 
-                                        (Sets.MA.add w (Sets.Fr.add w sets))
-                        else sets
-                    end
-                    else if st.incoming == 0 then BD.rem w sets
-                    else sets
-                ) (desc v) sets)
-            end
-        in
-        let sets = partOne sets in
-
-        (* Part two: exclude backdoors *)
-        let rec partTwo sets = 
-            if BD.isEmpty sets then sets 
-            else begin
-                let (v, sets) = BD.get sets in
-                let sets = MA.rem v sets in
-
-                partTwo (NodeSet.fold (fun w sets ->
-                    if (MA.isMem w sets) && (w != entry) then 
-                        BD.add w sets
-                    else sets) (desc v) sets)
-            end
-        in 
-        let sets = partTwo sets in
-
-        (entry, NodeSet.elements (MA.value sets))
-
-end
-
+(*    
 (* Maximal alts hierarchy building *)
 open Treebuilder
 
@@ -266,4 +261,7 @@ module Hierarchy (G: Digraph.Sig) =
              else fold_left2 (fun res a d -> res && (cmp a d)) true ach dch)
         in
         cmp info.alts.get_root doms.DTB.get_root
+
+
 end
+*)

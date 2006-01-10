@@ -1,0 +1,36 @@
+digraph X {  
+  node13 [label="M=7, N=13\nm", shape="box"];
+  node12 [label="M=2, N=8\nl", shape="box"];
+  node11 [label="M=3, N=9\nk", shape="box"];
+  node10 [label="M=4, N=10\nj", shape="box"];
+  node9 [label="M=5, N=11\ni", shape="box"];
+  node8 [label="M=6, N=12\nh", shape="box"];
+  node7 [label="M=11, N=7\ng", shape="box"];
+  node6 [label="M=10, N=4\nf", shape="box"];
+  node5 [label="M=9, N=3\ne", shape="box"];
+  node4 [label="M=13, N=6\nd", shape="box"];
+  node3 [label="M=12, N=5\nc", shape="box"];
+  node2 [label="M=8, N=2\nb", shape="box"];
+  node1 [label="M=1, N=1\na", shape="box"];
+  node0 [label="M=0, N=0\nstart", shape="ellipse"];
+  node8 -> node13 [label="Tree\n", color="magenta", style="bold"];
+  node10 -> node12 [label="Back\n", color="red"];
+  node12 -> node11 [label="Tree\n", color="magenta", style="bold"];
+  node10 -> node9 [label="Tree\n", color="magenta", style="bold"];
+  node11 -> node10 [label="Tree\n", color="magenta", style="bold"];
+  node9 -> node11 [label="Back\n", color="red"];
+  node9 -> node8 [label="Tree\n", color="black", style="bold"];
+  node7 -> node9 [label="Cross\n", color="blue"];
+  node7 -> node8 [label="Cross\n", color="magenta"];
+  node6 -> node7 [label="Tree\n", color="black", style="bold"];
+  node4 -> node7 [label="Cross\n", color="magenta"];
+  node6 -> node3 [label="Tree\n", color="magenta", style="bold"];
+  node6 -> node5 [label="Back\n", color="red"];
+  node5 -> node6 [label="Tree\n", color="magenta", style="bold"];
+  node3 -> node4 [label="Tree\n", color="magenta", style="bold"];
+  node2 -> node5 [label="Tree\n", color="magenta", style="bold"];
+  node2 -> node3 [label="Forward\n", color="green"];
+  node1 -> node12 [label="Tree\n", color="black", style="bold"];
+  node1 -> node2 [label="Tree\n", color="magenta", style="bold"];
+  node0 -> node1 [label="Tree\n", color="magenta", style="bold"];
+}
