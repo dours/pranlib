@@ -37,7 +37,7 @@ module MakeSimple (D : DFST.Sig) =
        end
       )
 
-    module MaxFlow = Flow.Ford_Fulkerson 
+    module MaxFlow = Graph.Flow.Ford_Fulkerson 
       (
        struct 
 	   
