@@ -1,0 +1,126 @@
+Graph:
+
+digraph X {  
+  node3 [label="index=3, info=t"];
+  node2 [label="index=2, info=z"];
+  node1 [label="index=1, info=y"];
+  node0 [label="index=0, info=x"];
+  
+}
+
+Number of edges: 0
+Number of nodes: 4
+lastNode: 4
+lastEdge: 0
+Copy:
+
+digraph X {  
+  node3 [label="index=3, info=x"];
+  node2 [label="index=2, info=y"];
+  node1 [label="index=1, info=z"];
+  node0 [label="index=0, info=t"];
+  
+}
+
+Graph:
+
+digraph X {  
+  node3 [label="index=3, info=t"];
+  node2 [label="index=2, info=z"];
+  node1 [label="index=1, info=y"];
+  node0 [label="index=0, info=x"];
+  node3 -> node0 [label="info=d"];
+  node2 -> node3 [label="info=c"];
+  node1 -> node2 [label="info=b"];
+  node0 -> node1 [label="info=a"];
+}
+
+Number of edges: 4
+Number of nodes: 4
+lastNode: 4
+lastEdge: 4
+Copy:
+
+digraph X {  
+  node3 [label="index=3, info=x"];
+  node2 [label="index=2, info=y"];
+  node1 [label="index=1, info=z"];
+  node0 [label="index=0, info=t"];
+  node3 -> node2 [label="info=a"];
+  node2 -> node1 [label="info=b"];
+  node1 -> node0 [label="info=c"];
+  node0 -> node3 [label="info=d"];
+}
+
+Deleted edge "a":
+
+digraph X {  
+  node3 [label="index=3, info=t"];
+  node2 [label="index=2, info=z"];
+  node1 [label="index=1, info=y"];
+  node0 [label="index=0, info=x"];
+  node3 -> node0 [label="info=d"];
+  node2 -> node3 [label="info=c"];
+  node1 -> node2 [label="info=b"];
+}
+
+Deleted edge "a" again:
+
+digraph X {  
+  node3 [label="index=3, info=t"];
+  node2 [label="index=2, info=z"];
+  node1 [label="index=1, info=y"];
+  node0 [label="index=0, info=x"];
+  node3 -> node0 [label="info=d"];
+  node2 -> node3 [label="info=c"];
+  node1 -> node2 [label="info=b"];
+}
+
+Deleted node x:
+
+digraph X {  
+  node2 [label="index=2, info=y"];
+  node1 [label="index=1, info=z"];
+  node0 [label="index=0, info=t"];
+  node2 -> node1 [label="info=b"];
+  node1 -> node0 [label="info=c"];
+}
+
+Deleted node x again:
+
+digraph X {  
+  node2 [label="index=2, info=y"];
+  node1 [label="index=1, info=z"];
+  node0 [label="index=0, info=t"];
+  node2 -> node1 [label="info=b"];
+  node1 -> node0 [label="info=c"];
+}
+
+Replaced node t:
+
+digraph X {  
+  node3 [label="index=3, info=replaced"];
+  node2 [label="index=2, info=z"];
+  node1 [label="index=1, info=y"];
+  node0 [label="index=0, info=x"];
+  node3 -> node0 [label="info=d"];
+  node2 -> node3 [label="info=c"];
+  node1 -> node2 [label="info=b"];
+  node0 -> node1 [label="info=a"];
+}
+
+Exception raised on trying to replace detached node.
+Replaced edge d:
+
+digraph X {  
+  node3 [label="index=3, info=replaced"];
+  node2 [label="index=2, info=z"];
+  node1 [label="index=1, info=y"];
+  node0 [label="index=0, info=x"];
+  node3 -> node0 [label="info=replaced"];
+  node2 -> node3 [label="info=c"];
+  node1 -> node2 [label="info=b"];
+  node0 -> node1 [label="info=a"];
+}
+
+Exception raised on trying to replace detached edge.
