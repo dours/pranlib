@@ -21,8 +21,35 @@
 module MakeSimple (D : DFST.Sig) :
   sig
 
-    (** A path representer: either a single node or a list of nodes with attached outgoing edge *)
-    type path = Single of D.G.Node.t | Path of (D.G.Node.t * D.G.Edge.t) list
+    (** A path representer: either a single node or a list of nodes (except the last) with attached outgoing edge and the last node *)
+    type path = Single of D.G.Node.t | Path of (D.G.Node.t * D.G.Edge.t) list * D.G.Node.t
+
+    (** A list of edges in the covering *)
+    val edges : unit -> D.G.Edge.t list 
+
+    (** A list of separetedly selected nodes *)
+    val nodes : unit -> D.G.Node.t list
+
+    (** A list of all paths in the covering *)
+    val paths : unit -> path list 
+	
+    (** Visualizes graph + its minimal covering *)
+    val toDOT : unit -> string
+	
+  end
+
+(** This signature carries a weight function for the graph edges. Used in a MakeWeighted functor. *)
+module type CarriesWeight = sig
+    type t
+    val w : t -> int
+end
+	
+(** Weighted version: a minimal path covering in a weighted graph. Doesn't give a precise solution. *)
+module MakeWeighted (D : DFST.Sig)(Freqs : CarriesWeight with type t = D.G.Edge.info) :
+  sig
+
+    (** A path representer: either a single node or a list of nodes (except the last) with attached outgoing edge and the last node *)
+    type path = Single of D.G.Node.t | Path of (D.G.Node.t * D.G.Edge.t) list * D.G.Node.t
 
     (** A list of edges in the covering *)
     val edges : unit -> D.G.Edge.t list 
