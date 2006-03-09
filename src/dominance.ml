@@ -91,15 +91,13 @@ module Make (D: DFST.Sig) =
 	    if ancestor.(anc_v) <> 0 
 	    then begin
               compress anc_v;
-              if semi.(label.(anc_v)) < semi.(label.(v)) then label.(v) <- (label.(anc_v));
+              if semi.(label.(anc_v)) < semi.(label.(v)) then 
+                label.(v) <- (label.(anc_v));
               ancestor.(v) <- (ancestor.(anc_v))
 	    end
 	  in
 	  
 	  let link v w =               
-	    size .(0) <- 0; 
-	    label.(0) <- 0; 
-	    semi .(0) <- 0;
 	    let rec iter s =
               let child_s = child.(s) in
               if semi.(label.(w)) < semi.(label.(child_s)) 
@@ -130,18 +128,22 @@ module Make (D: DFST.Sig) =
 	       ) 
 	      else s 
 	    in 
-	    let rec iter1 s = if s <> 0 then (ancestor.(s) <- v; iter1 child.(s)) in
+	    let rec iter1 s = if s <> 0 then (
+              ancestor.(s) <- v;
+              iter1 child.(s)
+            ) in
 	    iter1 s 
 	  in
 	  
 	  let eval v =                   
-	    let anc_v_n = ancestor.(v) in
-	    if anc_v_n = 0  
-	    then label.(v)   
+            if ancestor.(v) = 0 then label.(v)   
 	    else
-              let l_anc_v = label.(anc_v_n) in
+            (
+              compress v;
+              let l_anc_v = label.(ancestor.(v)) in
               let label_v = label.(v) in
               if semi.(l_anc_v) >= semi.(label_v) then label_v else l_anc_v 
+            )
 	  in
 	  
 	  for i = g_size downto 2 do 
