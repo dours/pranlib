@@ -318,7 +318,7 @@ module MakeBuildWeighted (T : DFST.Sig)(Freqs : CarriesWeight with type t = T.G.
 	    edges
 	in
 	let wg = n, n, (Array.of_list bipartEdges) in
-	let module P = Pm.Make(WeightedGraph) in
+	let module P = PM.Make(WeightedGraph) in
 	let matching = P.search wg in
 (*	let matching = Weighted_fast1.compute_matching g in
 	if not (Weighted_fast1.checkMatching g matching) then raise (UUPS "incorrect matching") else*)

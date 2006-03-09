@@ -51,7 +51,7 @@ AC_CHECK_OCAML_MODULE(ocamlgraph, Graph.Flow, ../ocamlgraph, http://www.lri.fr/~
 AC_CHECK_OCAML_MODULE(typeutil, View, ../typeutil/src, http://oops.tepkom.ru/projects/typeutil/)
 dnl more module checks
 dnl AC_CHECK_OCAML_MODULE(libname, Module1 Module2, ../libdir, http://www.example.com/libname)
-AC_CHECK_OCAML_MODULE(pm, Pm, ../pm, http://oops.tepkom.ru/projects/pm/)
+AC_CHECK_OCAML_MODULE(PM, PM, ../PairMatching/src, http://oops.tepkom.ru/projects/PairMatching/)
 AC_SUBST(MODULE_INCLUDES)
 AC_SUBST(EXTRA_CMA)
 
