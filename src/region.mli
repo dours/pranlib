@@ -25,12 +25,8 @@ module type Sig =
 
         (** A numeration of the graph *)
         module F : Order.Sig
-
-        (** Type of the region 
-        type t
-	*)
         
-        (** [build node] builds and returns a region in F numeration for [node] *)
+        (** [build node] returns a region in F numeration for [node] and [node] *)
         val build : G.Node.t -> G.Node.t * G.Node.t list
     end
 

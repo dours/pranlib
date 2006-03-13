@@ -11,8 +11,8 @@ else
 endif
 
 # type in sources here
-SOURCES = dOT.ml tree.ml digraph.ml generate.ml dFST.ml pathCovering.ml cFO.ml dominance.ml loops.ml alts.ml order.ml region.ml
-MLI = dOT.mli tree.mli digraph.mli generate.mli dFST.mli pathCovering.mli cFO.mli dominance.mli loops.mli alts.mli order.mli region.mli
+SOURCES = dOT.ml tree.ml digraph.ml order.ml generate.ml dFST.ml pathCovering.ml cFO.ml dominance.ml region.ml loops.ml alts.ml
+MLI = dOT.mli tree.mli digraph.mli order.mli generate.mli dFST.mli pathCovering.mli cFO.mli dominance.mli region.mli loops.mli alts.mli
 
 # sort sources before use
 # (sorting is required for correct link order)

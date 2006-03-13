@@ -27,14 +27,6 @@ module type Sig =
     (** A graph module the DFST is built for *)
     module G : Digraph.Sig
 
-    (** Exception raised when the DFST properties are queried for the unreachable 
-        node/edge *)
-    exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
- 
-    (** Exception raised when parameter for the [pre'1] or [post'1] goes out of
-        the valid range *)
-    exception RangeError of int
-
     (** [reachedNode node] tests whether [node] is reached after DFST is built *)
     val reachedNode : G.Node.t -> bool
 
@@ -45,22 +37,12 @@ module type Sig =
         for [pre'1] or [post'1] *)
     val isValid : int -> bool
 
-    (** [pre node] returns preorder number of the [node] or raises [Unreachable] exception 
-        if [node] is unreachable *)
-    val pre : G.Node.t -> int  
+    (** A preorder numeration module  *)
+    module Pre : Order.Sig with module G = G
 
-    (** [post node] returns postorder number of the [node] or raises [Unreachable] exception 
-        if [node] is unreachable *) 
-    val post : G.Node.t -> int  
-
-    (** [pre'1 num] returns node whose preorder number is [num]. Raises [RangeError] if
-        no such node exists *)
-    val pre'1 : int -> G.Node.t  
-
-    (** [post'1 num] returns node whose postorder number is [num]. Raises [RangeError] if
-        no such node exists *)
-    val post'1 : int -> G.Node.t  
-
+    (** A postorder numeration module *)
+    module Post : Order.Sig with module G = G
+    
     (** [sort edge] returns DFST sort of the [edge] or raises [Unreachable] exception 
         if [edge] is unreachable*) 
     val sort : G.Edge.t -> sort 
@@ -88,12 +70,12 @@ module type Sig =
       sig
 
         (** Node wrapper *)
-	module Node : DOT.Node with type t = G.Node.t
+    module Node : DOT.Node with type t = G.Node.t
 
         (** Edge wrapper *)
-	module Edge : Digraph.DOT.Edge with type t = G.Edge.t
+    module Edge : Digraph.DOT.Edge with type t = G.Edge.t
 
-	include Digraph.DOT.S with type graph = G.t and type node = G.Node.t and type edge = G.Edge.t and type parm = unit
+    include Digraph.DOT.S with type graph = G.t and type node = G.Node.t and type edge = G.Edge.t and type parm = unit
 
       end
 

@@ -32,11 +32,11 @@ module type Sig =
         exception RangeError of int
 
 
-        (** The direct mapping of the numeration. [direct node] returns number 
-            of the [node] in the order. *)
-        val direct  : G.Node.t -> int
+        (** The direct mapping of the numeration. [number node] returns number 
+            of the [node] in the numeration. *)
+        val number  : G.Node.t -> int
 
-        (** The inverse mapping of the numeration. [inverse num] returns node
+        (** The inverse mapping of the numeration. [node num] returns node
             whose number is [num] in the numeration. *)
-        val inverse : int -> G.Node.t
+        val node : int -> G.Node.t
     end

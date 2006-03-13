@@ -23,7 +23,7 @@ module type Sig =
 
         exception RangeError of int
 
-        val direct  : G.Node.t -> int
+        val number  : G.Node.t -> int
 
-        val inverse : int -> G.Node.t
+        val node : int -> G.Node.t
     end

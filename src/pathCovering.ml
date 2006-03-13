@@ -22,59 +22,59 @@ module MakeBuildSimple (D : DFST.Sig) = struct
     module Aux = Digraph.Make
       (struct 
 
-	type t = D.G.Node.t option 
-	let toString = function Some node -> D.G.Node.toString node | _ -> "<none>"
+    type t = D.G.Node.t option 
+    let toString = function Some node -> D.G.Node.toString node | _ -> "<none>"
 
        end
       )
       (
        struct 
 
-	 type t = D.G.Edge.t option * int
-	 let toString = function (Some edge), _ -> D.G.Edge.toString edge | _ -> "<none>"
-	     
+     type t = D.G.Edge.t option * int
+     let toString = function (Some edge), _ -> D.G.Edge.toString edge | _ -> "<none>"
+         
        end
       )
 
     module MaxFlow = Graph.Flow.Ford_Fulkerson 
       (
        struct 
-	   
-	 type t = Aux.t
+       
+     type t = Aux.t
 
-	 module V = Aux.Node
-	 module E = 
-	   struct
+     module V = Aux.Node
+     module E = 
+       struct
 
-	     type t     = Aux.Edge.t
-	     type label = Aux.Edge.info
+         type t     = Aux.Edge.t
+         type label = Aux.Edge.info
 
-	     let src   = Aux.src
-	     let dst   = Aux.dst
-	     let label = Aux.Edge.info
-		 
-	   end
+         let src   = Aux.src
+         let dst   = Aux.dst
+         let label = Aux.Edge.info
+         
+       end
 
-	 let iter_succ_e func graph node = iter func (Aux.outs node)
-	 let iter_pred_e func graph node = iter func (Aux.ins  node)
+     let iter_succ_e func graph node = iter func (Aux.outs node)
+     let iter_pred_e func graph node = iter func (Aux.ins  node)
 
        end
       ) 
       (
        struct
 
-	 type label = Aux.Edge.info
-	 type t = int
-	       
-	 let max_capacity l = snd l
-	 let min_capacity l = 0
-	     
-	 let flow l = 0
-	 let add = (+)
-	 let sub = (-)
-	 let zero = 0
-	 let compare = compare
-	     
+     type label = Aux.Edge.info
+     type t = int
+           
+     let max_capacity l = snd l
+     let min_capacity l = 0
+         
+     let flow l = 0
+     let add = (+)
+     let sub = (-)
+     let zero = 0
+     let compare = compare
+         
        end
       )
 
@@ -90,52 +90,52 @@ module MakeBuildSimple (D : DFST.Sig) = struct
       let aux, sink   = Aux.insertNode aux None in
       let hash        = NodeHash.create (D.G.nnodes graph) in
       let aux         = 
-	fold_left 
-	  (fun aux node -> 
-	    let aux, n  = Aux.insertNode aux (Some node) in
-	    let aux, n' = Aux.insertNode aux (Some node) in
-	    NodeHash.add hash node (n, n');
-	    let aux, _ = Aux.insertEdge aux source n    (None, 1) in
-	    let aux, _ = Aux.insertEdge aux n'     sink (None, 1) in
-	    aux
-	  ) 
-	  aux 
-	  (D.G.nodes graph) 
+    fold_left 
+      (fun aux node -> 
+        let aux, n  = Aux.insertNode aux (Some node) in
+        let aux, n' = Aux.insertNode aux (Some node) in
+        NodeHash.add hash node (n, n');
+        let aux, _ = Aux.insertEdge aux source n    (None, 1) in
+        let aux, _ = Aux.insertEdge aux n'     sink (None, 1) in
+        aux
+      ) 
+      aux 
+      (D.G.nodes graph) 
       in
       let module P = Set.Make (Compare.Pair (Aux.Node) (Aux.Node)) in
       let aux, p = 
-	fold_left
-	  (fun (aux, p) edge ->
-	    match D.sort edge with
-	    | DFST.Back -> aux, p
-	    | _ ->
-		let n, _ = NodeHash.find hash (D.G.src edge) in
-		let _, k = NodeHash.find hash (D.G.dst edge) in
-		let aux = 
-		  if P.mem (n, k) p 
-		  then aux
-		  else fst (Aux.insertEdge aux n k (Some edge, 1))
-		in
-		aux, P.add (n, k) p
-	  )
-	  (aux, P.empty)
-	  (D.G.edges graph)
+    fold_left
+      (fun (aux, p) edge ->
+        match D.sort edge with
+        | DFST.Back -> aux, p
+        | _ ->
+        let n, _ = NodeHash.find hash (D.G.src edge) in
+        let _, k = NodeHash.find hash (D.G.dst edge) in
+        let aux = 
+          if P.mem (n, k) p 
+          then aux
+          else fst (Aux.insertEdge aux n k (Some edge, 1))
+        in
+        aux, P.add (n, k) p
+      )
+      (aux, P.empty)
+      (D.G.edges graph)
       in
 
       LOG (Printf.fprintf stderr "Flow Graph:\n%s\n" (Aux.toDOT aux));
 
       let flows, _ = MaxFlow.maxflow aux source sink in
       List.fold_left 
-	  (fun list edge -> 
-	    if flows edge > 0 then 
-	      begin
-		LOG (Printf.fprintf stderr " Adding edge to maximal flow: %s\n" (Aux.Edge.toString edge));
-		match Aux.Edge.info edge with
-		| None, _   -> list
-		| Some e, _ -> e :: list
-	      end
-	    else list
-	  ) [] (Aux.edges aux)
+      (fun list edge -> 
+        if flows edge > 0 then 
+          begin
+        LOG (Printf.fprintf stderr " Adding edge to maximal flow: %s\n" (Aux.Edge.toString edge));
+        match Aux.Edge.info edge with
+        | None, _   -> list
+        | Some e, _ -> e :: list
+          end
+        else list
+      ) [] (Aux.edges aux)
 
 end
 
@@ -144,12 +144,12 @@ module Make (D : DFST.Sig)(B : sig type tEdge val build : unit -> (tEdge list) e
 
     open List
 
-	
+    
 (*    let data = lazy (B.build ())  !!!! WHY THIS LAZYNESS?
 
     let edges = (fun () -> fst (Lazy.force data))
     let nodes = (fun () -> snd (Lazy.force data)) *)
-	
+    
     let edges = B.build ()
     
     let nodes = 
@@ -161,11 +161,11 @@ module Make (D : DFST.Sig)(B : sig type tEdge val build : unit -> (tEdge list) e
         Printf.fprintf stderr "\n";
       );
       List.filter 
-	  (fun node -> 
-	    LOG (Printf.fprintf stderr "Checking node %s\n" (D.G.Node.toString node)); 
-	    not (NodeSet.mem node covered)
-	  ) 
-	  (D.G.nodes D.graph) 
+      (fun node -> 
+        LOG (Printf.fprintf stderr "Checking node %s\n" (D.G.Node.toString node)); 
+        not (NodeSet.mem node covered)
+      ) 
+      (D.G.nodes D.graph) 
 
     let _ = 
       LOG (
@@ -186,28 +186,28 @@ module Make (D : DFST.Sig)(B : sig type tEdge val build : unit -> (tEdge list) e
       let nodes = fold_left (fun set node -> NodeSet.add node set) NodeSet.empty (nodes ()) in
 
       let module P = Digraph.DOT.Printer (D.G) 
-	  (struct
+      (struct
 
-	    include D.DOT.Node
+        include D.DOT.Node
 
-	    let attrs node = 
-	      if NodeSet.mem node nodes 
-	      then ("color", "magenta") :: (attrs node)
-	      else attrs node
+        let attrs node = 
+          if NodeSet.mem node nodes 
+          then ("color", "magenta") :: (attrs node)
+          else attrs node
 
-	   end
-	  )
-	  (struct
+       end
+      )
+      (struct
 
-	    include D.DOT.Edge
+        include D.DOT.Edge
 
-	    let attrs edge = 
-	      if EdgeSet.mem edge edges 
-	      then map (function ("color", _) -> "color", "magenta" | x -> x ) (attrs edge)
-	      else attrs edge
+        let attrs edge = 
+          if EdgeSet.mem edge edges 
+          then map (function ("color", _) -> "color", "magenta" | x -> x ) (attrs edge)
+          else attrs edge
 
-	   end
-	  )
+       end
+      )
       in
       P.toDOT D.graph
 
@@ -222,34 +222,34 @@ module Make (D : DFST.Sig)(B : sig type tEdge val build : unit -> (tEdge list) e
       let edges = edges () in
       let check set elt num = if NodeSet.mem elt set then num else 0 in
       let heads, tails, path = 
-	fold_left 
-	  (fun (heads, tails, path) edge ->
-	    let src, dst = D.G.src edge, D.G.dst edge in
-	    let path = NodeMap.add src edge path in
-	    match (check tails src 1) + (check heads dst 2) with
-	    | 0 (* not tail, not head *) -> NodeSet.add src heads, NodeSet.add dst tails, path
-	    | 1 (* src is tail *)        -> heads, NodeSet.add dst (NodeSet.remove src tails), path
-(*!!!BUG:	    | 2 (* dst is head *)        -> NodeSet.add dst (NodeSet.remove src heads), tails, path *)
-	    | 2 (* dst is head *)        -> NodeSet.add src (NodeSet.remove dst heads), tails, path
-	    | 3 (* both        *)        -> NodeSet.remove dst heads, NodeSet.remove src tails, path
-	  )	  
-	  (NodeSet.empty, NodeSet.empty, NodeMap.empty)
+    fold_left 
+      (fun (heads, tails, path) edge ->
+        let src, dst = D.G.src edge, D.G.dst edge in
+        let path = NodeMap.add src edge path in
+        match (check tails src 1) + (check heads dst 2) with
+        | 0 (* not tail, not head *) -> NodeSet.add src heads, NodeSet.add dst tails, path
+        | 1 (* src is tail *)        -> heads, NodeSet.add dst (NodeSet.remove src tails), path
+(*!!!BUG:       | 2 (* dst is head *)        -> NodeSet.add dst (NodeSet.remove src heads), tails, path *)
+        | 2 (* dst is head *)        -> NodeSet.add src (NodeSet.remove dst heads), tails, path
+        | 3 (* both        *)        -> NodeSet.remove dst heads, NodeSet.remove src tails, path
+      )   
+      (NodeSet.empty, NodeSet.empty, NodeMap.empty)
           edges
       in
       (NodeSet.fold 
-	(fun head fragments -> 
-	  let rec build node list =
-	    if NodeSet.mem node tails then list, node
-	    else 
-	      let edge = NodeMap.find node path in
-	      build (D.G.dst edge) ((node, edge) :: list)
-	  in
-	  let list, last = build head [] in
-	  (Path (rev list, last)) :: fragments
-	) 
-	heads 
-	[]) @ (List.map (fun node -> Single node) (nodes ()))
-	
+    (fun head fragments -> 
+      let rec build node list =
+        if NodeSet.mem node tails then list, node
+        else 
+          let edge = NodeMap.find node path in
+          build (D.G.dst edge) ((node, edge) :: list)
+      in
+      let list, last = build head [] in
+      (Path (rev list, last)) :: fragments
+    ) 
+    heads 
+    []) @ (List.map (fun node -> Single node) (nodes ()))
+    
   end
 
 
@@ -263,70 +263,70 @@ module MakeBuildWeighted (T : DFST.Sig)(Freqs : CarriesWeight with type t = T.G.
 (*    module T = DFST(G) *)
     
     module WeightedGraph = struct
-	
-	type t = int * int * (((int * int) * int) array)
-	
-	let nBoys (n, _, _) = n
-	let nGirls(_, m, _) = m
-	let edges (_, _, es) = es
-	
+    
+    type t = int * int * (((int * int) * int) array)
+    
+    let nBoys (n, _, _) = n
+    let nGirls(_, m, _) = m
+    let edges (_, _, es) = es
+    
     end
 
     type tEdge = T.G.Edge.t
 
       let build () =
-	let graph       = T.graph in
-	let start       = T.start in
-	
-	let eh = Hashtbl.create (T.G.nedges graph) in
+    let graph       = T.graph in
+    let start       = T.start in
+    
+    let eh = Hashtbl.create (T.G.nedges graph) in
         let n = T.G.nnodes graph in
 (*        let g = Weighted_fast1.empty n n in *)
-	let edges = T.G.edges graph in
-(*	let (_, _, edgesInArray) as wg = n, n, (Array.make (List.length edges) ((-1, -1), -1)) in *)
-	let numbering = T.pre in
-	let numbering' = T.pre'1 in
-	
-(*	let _ = 
-	  List.fold_left
-	    (fun idx edge ->
-	      match T.sort edge with
-	      | DFST.Back -> idx + 1
-	      | _ ->
-		  let n = numbering (T.G.src edge) in
-		  let k = numbering (T.G.dst edge) in
-		  Hashtbl.add eh (n, k) edge;
-(*		  Weighted_fast1.add_edge g ((T.G.Edge.info edge).C.freq) n k; *)
-		  edgesInArray.(idx) <- ((n, k), Freqs.w (T.G.Edge.info edge));
-		  idx + 1
-	    )
-	    0
-	    edges
-	in *)
-	let bipartEdges = 
-	  List.fold_left
-	    (fun res edge ->
-	      match T.sort edge with
-	      | DFST.Back -> res
-	      | _ ->
-		  let n = numbering (T.G.src edge) in
-		  let k = numbering (T.G.dst edge) in
-		  Hashtbl.add eh (n, k) edge;
-(*		  Weighted_fast1.add_edge g ((T.G.Edge.info edge).C.freq) n k; *)
-		  ((n, k), Freqs.w (T.G.Edge.info edge)) :: res
-	    )
-	    []
-	    edges
-	in
-	let wg = n, n, (Array.of_list bipartEdges) in
-	let module P = PM.Make(WeightedGraph) in
-	let matching = P.search wg in
-(*	let matching = Weighted_fast1.compute_matching g in
-	if not (Weighted_fast1.checkMatching g matching) then raise (UUPS "incorrect matching") else*)
-	let ans = List.map (fun (e, w) -> Hashtbl.find eh e) matching in
-	let module X = View.List(T.G.Edge) in
-	Printf.fprintf stderr "%s\n" (X.toString ans);
-	ans
-	
+    let edges = T.G.edges graph in
+(*  let (_, _, edgesInArray) as wg = n, n, (Array.make (List.length edges) ((-1, -1), -1)) in *)
+    let numbering = T.Pre.number in
+    let numbering' = T.Pre.node in
+    
+(*  let _ = 
+      List.fold_left
+        (fun idx edge ->
+          match T.sort edge with
+          | DFST.Back -> idx + 1
+          | _ ->
+          let n = numbering (T.G.src edge) in
+          let k = numbering (T.G.dst edge) in
+          Hashtbl.add eh (n, k) edge;
+(*        Weighted_fast1.add_edge g ((T.G.Edge.info edge).C.freq) n k; *)
+          edgesInArray.(idx) <- ((n, k), Freqs.w (T.G.Edge.info edge));
+          idx + 1
+        )
+        0
+        edges
+    in *)
+    let bipartEdges = 
+      List.fold_left
+        (fun res edge ->
+          match T.sort edge with
+          | DFST.Back -> res
+          | _ ->
+          let n = numbering (T.G.src edge) in
+          let k = numbering (T.G.dst edge) in
+          Hashtbl.add eh (n, k) edge;
+(*        Weighted_fast1.add_edge g ((T.G.Edge.info edge).C.freq) n k; *)
+          ((n, k), Freqs.w (T.G.Edge.info edge)) :: res
+        )
+        []
+        edges
+    in
+    let wg = n, n, (Array.of_list bipartEdges) in
+    let module P = PM.Make(WeightedGraph) in
+    let matching = P.search wg in
+(*  let matching = Weighted_fast1.compute_matching g in
+    if not (Weighted_fast1.checkMatching g matching) then raise (UUPS "incorrect matching") else*)
+    let ans = List.map (fun (e, w) -> Hashtbl.find eh e) matching in
+    let module X = View.List(T.G.Edge) in
+    Printf.fprintf stderr "%s\n" (X.toString ans);
+    ans
+    
   end
 
 
