@@ -47,7 +47,7 @@ module Make
     let _ = 
       LOG (
         Printf.fprintf stderr "Single node list:\n";
-        List.iter (fun node -> Printf.fprintf stderr "%s; " (D.G.Node.toString node)) nodes;
+        List.iter (fun node -> Printf.fprintf stderr "%s; " (D.G.Node.toString node)) (Lazy.force nodes);
         Printf.fprintf stderr "\n";
       )
            

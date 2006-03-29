@@ -22,64 +22,64 @@ type sort = Tree | Forward | Back | Cross
 
 (** General signature for DFST *)
 module type Sig =
-  sig
+	sig
 
-    (** A graph module the DFST is built for *)
-    module G : Digraph.Sig
+		(** A graph module the DFST is built for *)
+		module G : Digraph.Sig
 
-    (** [reachedNode node] tests whether [node] is reached after DFST is built *)
-    val reachedNode : G.Node.t -> bool
+		(** [reachedNode node] tests whether [node] is reached after DFST is built *)
+		val reachedNode : G.Node.t -> bool
 
-    (** [reachedEdge edge] tests whether [edge] is reached after DFST is built *)
-    val reachedEdge : G.Edge.t -> bool
+		(** [reachedEdge edge] tests whether [edge] is reached after DFST is built *)
+		val reachedEdge : G.Edge.t -> bool
 
-    (** [isValid n] checks whether [n] is a valid number to be used as a parameter 
-        for [pre'1] or [post'1] *)
-    val isValid : int -> bool
+		(** [isValid n] checks whether [n] is a valid number to be used as a parameter 
+				for [pre'1] or [post'1] *)
+		val isValid : int -> bool
 
-    (** A preorder numeration module  *)
-    module Pre : Order.Sig with module G = G
+		(** A preorder numeration module  *)
+		module Pre : Order.Sig with module G = G
 
-    (** A postorder numeration module *)
-    module Post : Order.Sig with module G = G
+		(** A postorder numeration module *)
+		module Post : Order.Sig with module G = G
     
-    (** [sort edge] returns DFST sort of the [edge] or raises [Unreachable] exception 
-        if [edge] is unreachable*) 
-    val sort : G.Edge.t -> sort 
+		(** [sort edge] returns DFST sort of the [edge] or raises [Unreachable] exception 
+				if [edge] is unreachable*) 
+		val sort : G.Edge.t -> sort 
 
-    (** Returns graph the DFST was built for *)
-    val graph : G.t              
+		(** Returns graph the DFST was built for *)
+		val graph : G.t              
 
-    (** Returns the starting node of the graph *)
-    val start : G.Node.t
+		(** Returns the starting node of the graph *)
+		val start : G.Node.t
 
-    (** Type of tree node *) 
-    type t = G.Node.t
+		(** Type of tree node *) 
+		type t = G.Node.t
 
-    (** Root of the DFST *)
-    val root : t
+		(** Root of the DFST *)
+		val root : t
 
-    (** Parent function *)
-    val parent : t -> t option
+		(** Parent function *)
+		val parent : t -> t option
 
-    (** Children function  *)
-    val children : t -> t list
+		(** Children function  *)
+		val children : t -> t list
 
-    (** DOT visualizer *)
-    module DOT :
-      sig
+		(** DOT visualizer *)
+		module DOT :
+			sig
 
-        (** Node wrapper *)
-    module Node : DOT.Node with type t = G.Node.t
+				(** Node wrapper *)
+				module Node : DOT.Node with type t = G.Node.t
 
-        (** Edge wrapper *)
-    module Edge : Digraph.DOT.Edge with type t = G.Edge.t
+				(** Edge wrapper *)
+				module Edge : Digraph.DOT.Edge with type t = G.Edge.t
 
-    include Digraph.DOT.S with type graph = G.t and type node = G.Node.t and type edge = G.Edge.t and type parm = unit
+				include Digraph.DOT.S with type graph = G.t and type node = G.Node.t and type edge = G.Edge.t and type parm = unit
 
-      end
+			end
 
-  end
+	end
 
 (** Depth-First Search Tree Constructor *)
 module Make (G : Digraph.Sig) (X : sig val graph : G.t val start : G.Node.t end) : Sig with module G = G

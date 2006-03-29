@@ -1,7 +1,7 @@
 (*
  * Order: Represents numeration for directed graphs.
  * Copyright (C) 2004-2006
- * Gennadiy A. Sych, St.Petersburg State University
+ * Gennadiy Sych, St.Petersburg State University
  * 
  * This software is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -16,14 +16,16 @@
  *)
 
 module type Sig =
-    sig
-        module G : Digraph.Sig
+	sig
+		
+		module G : Digraph.Sig
 
-        exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+		exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
 
-        exception RangeError of int
+		exception RangeError of int
 
-        val number  : G.Node.t -> int
+		val number  : G.Node.t -> int
 
-        val node : int -> G.Node.t
-    end
+		val node : int -> G.Node.t
+
+	end

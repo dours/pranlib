@@ -1,7 +1,7 @@
 (*
  * Region: Region Construction.
  * Copyright (C) 2004-2006
- * Gennadiy A. Sych, St.Petersburg State University
+ * Gennadiy Sych, St.Petersburg State University
  * 
  * This software is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -19,16 +19,20 @@
 
 (** General signature for Region *)
 module type Sig =
-    sig
-        (** A graph module the region is built for *)
-        module G : Digraph.Sig
+	sig
+		(** A graph module the region is built for *)
+		module G : Digraph.Sig
 
-        (** A numeration of the graph *)
-        module F : Order.Sig
+		(** A numeration of the graph *)
+		module F : Order.Sig
+
+		(***)
+		module NodeSet : Set.S with type elt = G.Node.t
         
-        (** [build node] returns a region in F numeration for [node] and [node] *)
-        val build : G.Node.t -> G.Node.t * G.Node.t list
-    end
+		(** [build node] returns a region in F numeration for [node] and [node] *)
+		val build : G.Node.t -> G.Node.t * NodeSet.t
+
+	end
 
 (** Region constructor *)
 module Make (G : Digraph.Sig) (F : Order.Sig with module G = G) : Sig with module G = G and module F = F

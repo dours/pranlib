@@ -37,29 +37,31 @@ module Make (D: Dominance.Sig) :
     (** Region-based algorithms *)
     module Region :
       sig
+
+				module R : Region.Sig with module G = G and module F = T.Post
 		
         (** Strongly connected subgraphs formed by region by postorder *)
-	module SCS :
-	  sig
+				module SCS :
+				  sig
 
-	    (** [get node] returns the list of nodes that form a region for the [node]. 
-	        This set of nodes is strongly connected *)
-	    val get : G.Node.t -> G.Node.t list
-
-	  end
+	    			(** [get node] returns the list of nodes that form a region for the [node]. 
+				        This set of nodes is strongly connected *)
+				    val get : G.Node.t -> R.NodeSet.t
+	
+				  end
 	    
         (** Strongly connected components *)
-	module SCC :
-	  sig
-
-            (** Gets all strongly connected components and their bivertices. 
-	        Bivertex is the vertex such that its region is a strongly connected
-                component *)
-	    val get : unit -> (G.Node.t * G.Node.t list) list
+				module SCC :
+	  			sig
+	  			
+         		(** Gets all strongly connected components and their bivertices.
+								Bivertex is the vertex such that its region is a strongly connected
+		            component *)
+	  		  	val get : unit -> (G.Node.t * G.Node.t list) list
 		
-	  end
+				  end
 
-      end
+ 			end
 
 (*
     module UFS = Unionfind.Make (G.Node) 

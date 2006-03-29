@@ -1,4 +1,4 @@
-TESTS = test001 test002 test003 test004 test005 test006 test007
+TESTS = test001 test002 test003 test004 test005 test006 test007 test008
 
 TESTS_ENVIRONMENT = $(srcdir)/test.sh
 
@@ -41,3 +41,6 @@ test006: test006.ml
 
 test007: test007.ml
 	$(OCAMLC) $(BFLAGS) $(EXTRA_CMA) $(P4FLAGS) -o $@$(EXEEXT) $< 
+
+test008: test008.ml
+	$(OCAMLC) $(BFLAGS) $(EXTRA_CMA) $(P4FLAGS) -o $@$(EXEEXT) $<

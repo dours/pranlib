@@ -44,7 +44,7 @@ module Make (D: Dominance.Sig) =
             if T.isValid i 
 (*            then lazy (snd (region NodeSet.empty i [] [T.Post.node i]))*)
             then lazy (snd (R.build (T.Post.node i)) )
-            else lazy []
+            else lazy R.NodeSet.empty
           )
           )
 
@@ -58,7 +58,7 @@ module Make (D: Dominance.Sig) =
           let rec region visited binumber scc = function
           | [] -> visited, scc
           | hd :: tl ->
-              LOG (Printf.fprintf stderr "    Visiting %d\n" (F.number hd));
+              LOG (Printf.fprintf stderr "    Visiting %d\n" (T.Post.number hd));
               let scc, visited, frontier = 
             fold_left 
               (fun (scc, visited, frontier) edge ->
