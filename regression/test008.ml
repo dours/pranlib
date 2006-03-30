@@ -32,9 +32,14 @@ let g, e37 = G.insertEdge g n3 n7 "3->7" in
 let g, e73 = G.insertEdge g n7 n3 "7->3" in
 let g, e46 = G.insertEdge g n4 n6 "4->6" in
 let g, e64 = G.insertEdge g n6 n4 "6->4" in
-(*Printf.printf "%s\n" (G.toDOT g);*)
+
 let module DFST = DFST.Make (G) (struct let graph = g let start = n1 end) in
-(*Printf.printf "%s\n" ( DFST.DOT.toDOT () );*)
+
+(*
+let g, start = Generate.Digraph.Random.ControlFlow.create 10 15 in
+let module DFST = DFST.Make (Generate.Digraph.G) (struct let graph = g let start = start end) in
+*)
 let module H = Hammocks.Make(DFST) in
 (*List.iter (fun node -> Printf.printf "node: %d, K: %d\n" (H.T.G.Node.index node) (H.K.number node)) (H.T.G.nodes H.T.graph)*)
 Printf.printf "%s\n" ( H.DOT.toDOT () )
+
