@@ -23,10 +23,12 @@ module Make (T : DFST.Sig) :
 	sig
 
 		(** A DFST module with digraph hierarchy is built for *)
-		module T : DFST.Sig
+		module T : DFST.Sig with module G = T.G
 
 		(** K numeration module *)
 		module K : Order.Sig with module G = T.G
+
+    module G : Digraph.Sig with type t = T.G.t and module Node = T.G.Node
 
 
 (*		module L : Order.Sig with module G = T.G
@@ -40,6 +42,10 @@ module Make (T : DFST.Sig) :
 
 			end
 *)
+		(** [get node] constructs and returns a list of pairs (bg, ham) where
+				ham is a hammock with bg (=node) vertext of Begin set *)
+		val get : T.G.Node.t -> (T.G.Node.t * T.G.Node.t list) list
+
 		(** DOT visualizer *)
 		module DOT :
 			sig

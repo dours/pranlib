@@ -18,65 +18,65 @@
 type sort = Tree | Forward | Back | Cross
 
 module type Sig =
-  sig
+	sig
 
-    module G : Digraph.Sig
+		module G : Digraph.Sig
 
-    val reachedNode : G.Node.t -> bool
-    val reachedEdge : G.Edge.t -> bool
+		val reachedNode : G.Node.t -> bool
+		val reachedEdge : G.Edge.t -> bool
 
-    val isValid : int -> bool      
+		val isValid : int -> bool      
 
-    module Pre  : Order.Sig with module G = G
-    module Post : Order.Sig with module G = G
+		module Pre  : Order.Sig with module G = G
+		module Post : Order.Sig with module G = G
   
-    val sort    : G.Edge.t -> sort 
-    val graph   : G.t          
-    val start   : G.Node.t    
+		val sort    : G.Edge.t -> sort 
+		val graph   : G.t          
+		val start   : G.Node.t    
 
-    type t = G.Node.t
+		type t = G.Node.t
 
-    val root     : t
-    val parent   : t -> t option
-    val children : t -> t list
+		val root     : t
+		val parent   : t -> t option
+		val children : t -> t list
 
-    (** DOT visualizer *)
-    module DOT :
-      sig
+		(** DOT visualizer *)
+		module DOT :
+			sig
 
-    module Node  : DOT.Node          with type t = G.Node.t
-    module Edge  : Digraph.DOT.Edge  with type t = G.Edge.t
+				module Node  : DOT.Node          with type t = G.Node.t
+				module Edge  : Digraph.DOT.Edge  with type t = G.Edge.t
 
-    include Digraph.DOT.S with type graph = G.t and type node = G.Node.t and type edge = G.Edge.t and type parm = unit
+				include Digraph.DOT.S with type graph = G.t and type node = G.Node.t and type edge = G.Edge.t and type parm = unit
 
-      end
+			end
 
-  end
+	end
 
 module Make (G : Digraph.Sig) (X : sig val graph : G.t val start : G.Node.t end) =
-  struct
+	struct
 
-    open List
-    open Printf
+		open List
+		open Printf
 
-    module G = G
+		module G = G
 
-    exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
-    exception RangeError  of int
+		exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+		exception RangeError  of int
 
-    type ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i) s =
-     {
-       pre         : 'a;
-       post        : 'b;
-       pre'1       : 'c;
-       post'1      : 'd;
-       sort        : 'e;
-       parent      : 'f;
-       children    : 'g;
-       reachedNode : 'h;
-       reachedEdge : 'i;
-       isValid     : int -> bool;
-     }
+		type ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i) s =
+		{
+			pre         : 'a;
+			post        : 'b;
+			pre'1       : 'c;
+			post'1      : 'd;
+			sort        : 'e;
+			parent      : 'f;
+			children    : 'g;
+			reachedNode : 'h;
+			reachedEdge : 'i;
+			isValid     : int -> bool;
+		}
 
     let build graph =
       let start = X.start             in

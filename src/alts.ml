@@ -18,7 +18,7 @@
 open List
 
 module Make (D: DFST.Sig) = 
-  struct
+	struct
 
     module T = D
     module G = D.G

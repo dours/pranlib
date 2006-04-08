@@ -19,27 +19,27 @@
 
 (** Alt finding constructor *)
 module Make (D: DFST.Sig) : 
-  sig
+	sig
 
-    (** The DFST module *)
-    module T : DFST.Sig with module G = D.G
+		(** The DFST module *)
+		module T : DFST.Sig with module G = D.G
 
-    (** The graph module *)
-    module G : Digraph.Sig with type t = D.G.t and module Node = D.G.Node and module Edge = D.G.Edge
+		(** The graph module *)
+		module G : Digraph.Sig with type t = D.G.t and module Node = D.G.Node and module Edge = D.G.Edge
 
-    (** The graph data *)
-    val graph : G.t
+		(** The graph data *)
+		val graph : G.t
 
-    (** The starting node *)
-    val start : G.Node.t
+		(** The starting node *)
+		val start : G.Node.t
 
-    (** Maximal alt finding module *)
-    module MA :
-      sig
+		(** Maximal alt finding module *)
+		module MA :
+			sig
 
-        (** [get node] gets maximal alt with header [node] *)
-	val get : G.Node.t -> G.Node.t list
+				(** [get node] gets maximal alt with header [node] *)
+				val get : G.Node.t -> G.Node.t list
 
-      end
+			end
 
-  end
+	end
