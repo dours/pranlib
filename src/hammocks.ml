@@ -158,7 +158,7 @@ module Make (T : DFST.Sig) =
           let buildBg node =
 
             let preds = G.pred node in
-            if (List.exists (fun node -> let num = K.number node in num < i || num > j) preds)
+            if (List.exists (fun node -> let num = K.number node in num < i || num > j) preds) || (node == T.start)
             then (node :: bg), (bglen+1)
             else bg, bglen
           in
@@ -187,7 +187,7 @@ module Make (T : DFST.Sig) =
               | h :: t ->
                 let num = K.number h in
                 if num < i || num > j then
-										(*TODO: it's not necessary to verify this all time (I can make a flag...)*)
+										(*TODO: probably, I can make a flag here*)
 										if not(mem h en) then
 											build (h :: en) (enlen+1) frontier t
 										else
@@ -230,7 +230,7 @@ module Make (T : DFST.Sig) =
 
               if enlen > 1 then [], [], []
               else
-								(*TODO: may be I can verify this using another way?*)
+								(*TODO: may be I can verify this in some another way?*)
                 if List.exists
                         (fun sucnode -> mem sucnode bg(*List.exists (fun begnode -> sucnode == begnode) bg*))
                         en
