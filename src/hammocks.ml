@@ -143,20 +143,19 @@ module Make (T : DFST.Sig) =
     let get node =
       let num = K.number node in
       let nnodes = (G.nnodes T.graph) in
-
-          LOG ( printf "Begin hammocks construction for node %d\n" num; );
-          
+      
+      LOG ( printf "Begin hammocks construction for node %d\n" num; );
+      
       let getHam i j =
-      
+	
         LOG ( printf "Verifying hammock: (%d .. %d)\n" i j; );
-      
+	
         let rec build (bg, bglen) (en, enlen) ham frontier =
-
-					let mem elm lst = List.exists (fun e -> e == elm) lst
-					in
-        
+	  
+	  let mem elm lst = List.exists (fun e -> e == elm) lst in
+          
           let buildBg node =
-
+	    
             let preds = G.pred node in
             if (List.exists (fun node -> let num = K.number node in num < i || num > j) preds) || (node == T.start)
             then (node :: bg), (bglen+1)
@@ -164,39 +163,39 @@ module Make (T : DFST.Sig) =
           in
           
           let buildEn node frontier =
-
-						LOG ( printf "	Building End...\n"; );
-
-						(*TODO: this function will work very slow!*)
+	    
+	    LOG ( printf "	Building End...\n"; );
+	    
+	    (*TODO: this function will work very slow!*)
             let rec build en enlen frontier succs =
-
-							LOG (
-								printf "		End: ";
-								List.iter (fun node -> printf "%d, " (K.number node)) en;
-								printf "\n";
-								printf "		frontier: ";
-								List.iter (fun node -> printf "%d, " (K.number node)) frontier;
-								printf "\n";
-								printf "		succs: ";
-								List.iter (fun node -> printf "%d, " (K.number node)) succs;
-								printf "\n";
-							);
-	
-							match succs with
+	      
+	      LOG (
+	        printf "		End: ";
+	        List.iter (fun node -> printf "%d, " (K.number node)) en;
+	        printf "\n";
+	        printf "		frontier: ";
+	        List.iter (fun node -> printf "%d, " (K.number node)) frontier;
+	        printf "\n";
+	        printf "		succs: ";
+	        List.iter (fun node -> printf "%d, " (K.number node)) succs;
+	        printf "\n";
+	      );
+	      
+	      match succs with
               | [] -> en, enlen, frontier
               | h :: t ->
-                let num = K.number h in
-                if num < i || num > j then
-										(*TODO: probably, I can make a flag here*)
-										if not(mem h en) then
-											build (h :: en) (enlen+1) frontier t
-										else
-											build en enlen frontier t
-                else
-									if num >= i && num <= j && ((K.number h) > (K.number node)) && not (mem h frontier) then
-	                  build en enlen (h :: frontier) t
-									else
-										build en enlen frontier t
+                  let num = K.number h in
+                  if num < i || num > j then
+		    (*TODO: probably, I can make a flag here*)
+		    if not(mem h en) then
+		      build (h :: en) (enlen+1) frontier t
+		    else
+		      build en enlen frontier t
+                  else
+		    if num >= i && num <= j && ((K.number h) > (K.number node)) && not (mem h frontier) then
+	              build en enlen (h :: frontier) t
+		    else
+		      build en enlen frontier t
             in
             
             build en enlen frontier (G.succ node)
@@ -204,59 +203,63 @@ module Make (T : DFST.Sig) =
           
           match frontier with
           | [] -> 
-            if bglen = 1 && enlen <= 1 then begin
-
-							LOG (							
-								printf "	Catch it! Begin: %d; Ham: " (match bg with | [] -> (-1) | h::t -> K.number h);
-								List.iter (fun node -> printf "%d, " (K.number node)) ham;
-								printf "\n";
-							);
-
-							bg, ham, en
-						end
-            else [], [], []
-            
+              if bglen = 1 && enlen <= 1 then begin
+		
+		LOG (							
+		printf "Caught it! Begin: %d; Ham: " (match bg with | [] -> (-1) | h::t -> K.number h);
+		  List.iter (fun node -> printf "%d, " (K.number node)) ham;
+		  printf "\n";
+	         );
+		
+		bg, ham, en
+	      end
+              else [], [], []
+		  
           | h :: t ->
+	      
+	      LOG ( printf "	Matching frontier with %d :: t\n" (K.number h);	);
+	      
+              let bg, bglen = buildBg h in
 
-						LOG ( printf "	Matching frontier with %d :: t\n" (K.number h);	);
+              if bglen > 1 then [], [], []
+              else begin
+		
+		LOG ( printf "	Begin: %d\n" (match bg with | [] -> -1 | h::t -> K.number h); );
+		
+		let en, enlen, frontier = buildEn h t in
+		
+		if enlen > 1 then [], [], []
+		else begin
+		  (*TODO: may be I can verify this in some another way?*)
+                  if List.exists
+                      (fun sucnode -> mem sucnode bg(*List.exists (fun begnode -> sucnode == begnode) bg*))
+                      en
+                  then begin 
+		    
+		    LOG ( printf "	Edge between Begin and End exists. Exit.\n"; );
+		    
+		    [], [], [] 
+		  end
+                  else build (bg, bglen) (en, enlen) (h :: ham) frontier
+		end
 
-            let bg, bglen = buildBg h in
-            if bglen > 1 then [], [], []
-            else
-
-							LOG ( printf "	Begin: %d\n" (match bg with | [] -> -1 | h::t -> K.number h); );
-
-              let en, enlen, frontier = buildEn h t in
-
-              if enlen > 1 then [], [], []
-              else
-								(*TODO: may be I can verify this in some another way?*)
-                if List.exists
-                        (fun sucnode -> mem sucnode bg(*List.exists (fun begnode -> sucnode == begnode) bg*))
-                        en
-                then begin 
-
-									LOG ( printf "	Edge between Begin and End exists. Exit.\n"; );
-
-									[], [], [] 
-								end
-                else build (bg, bglen) (en, enlen) (h :: ham) frontier
+	      end
         in
-            
+        
         build ([], 0) ([], 0) [] [(K.node i)]
       in
-
+      
       let rec build i hams =
         if i < nnodes then
           let bg, ham, en = getHam num i in
-					match bg with
-					| [] -> build (i+1) hams
-					| h :: t ->
-	          build (i+1) ( (h, ham) :: hams )
+	  match bg with
+	  | [] -> build (i+1) hams
+	  | h :: t ->
+	      build (i+1) ( (h, ham) :: hams )
         else
           hams
       in
-
+      
       build num []
 
 
