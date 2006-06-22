@@ -136,10 +136,138 @@ module Make (T : DFST.Sig) =
         let node   =  (fun num  -> (Lazy.force data).node num)
       
       end
-    
 
+      
+      let hammocks () =
+        let nnodes = G.nnodes T.graph in
+        
+        let verify p = function | None -> false | Some q -> p q in
+        let getNum = function | None -> -1 | Some q -> K.number q in   
+        let mem lst elm = List.exists (fun e -> e == elm) lst in
+        
+        let rec build nodes hamms =
+          match nodes with
+          | [] -> hamms
+          | p :: t ->
+              
+            LOG(  
+              printf "Assume K(begin) = %d\n" (K.number p)
+            );
 
+            let rec fold k q set1 max1 max2 hams =
 
+              LOG ( printf " Running fold for k=%d\n" k );
+              
+              if k < nnodes then
+                let w = K.node k in
+                
+                let rec foldset1 nodes q set1 max1 break =
+                  LOG( 
+                    printf "  Running foldset1 with params: SUCCS(w)= ";
+                    List.iter (fun node -> printf "%d, " (K.number node)) nodes ;
+                    printf " K(q)=%d, set1=%B, max1=%d, break=%B\n" (getNum q) set1 max1 break 
+                  );
+                  
+                  if break then q, set1, max1, break
+                  else begin
+                    match nodes with
+                    | [] -> q, set1, max1, break
+                    | v :: t ->
+                      let q, set1, max1, break =
+                        if (T.Pre.number v) < (T.Pre.number p) then
+                          if set1 then
+                            if not (verify ((==) v) q) then
+                              q, set1, max1, true
+                            else
+                              q, set1, max1, false
+                          else
+                            (Some v), true, max1, break 
+                        else
+                          (* if SET3 then break *)
+                          if (K.number v) < (K.number p) then
+                            q, set1, max1, true
+                          else
+                            q, set1, (if max1 > (K.number v) then max1 else (K.number v)), break
+                      in
+                      foldset1 t q set1 max1 break
+                  end
+                in
+
+                let q, set1, max1, break = foldset1 (G.succ w) q set1 max1 false in
+                if break then hams
+                else
+                  let max2, break = 
+                    if not (w == p) then
+                     
+                      let rec foldset2 nodes max2 break =
+                        
+                        LOG( 
+                          printf "  Running foldset2 with params: PREDS(w)= ";
+                          List.iter (fun node -> printf "%d, " (K.number node)) nodes ;
+                          printf " max2=%d, break=%B\n" max1 break
+                        );
+                        
+                        if break then max2, break
+                        else
+                          match nodes with
+                          | [] -> max2, break
+                          | v :: t ->
+                            let break = if (K.number v) < (K.number p) then true else false in
+                            foldset2 t (if max2 > (K.number v) then max2 else (K.number v)) break
+                      in
+
+                      foldset2 (G.pred w) max2 false
+                     
+                    else
+                      max2, break
+                  in
+                  if break then hams
+                  else
+                    if set1 then
+                      (* bad piece : mem ... *)
+                      if max1 <= k && max2 <= k && not (verify (mem (G.pred p)) q) then begin
+                        
+                        LOG(
+                          printf " Found new hammock K'[begin .. k]: begin=%d, k=%d, end=%d\n" (K.number p) k (getNum q)
+                        );
+                        
+                        fold (k+1) q set1 max1 max2 ((K.number p, k, getNum q) :: hams)
+                      end
+                      else
+                        fold (k+1) q set1 max1 max2 hams
+                    else
+                      if k = nnodes then begin
+                        
+                        LOG(
+                          printf " Found new hammock K'[begin .. k]: begin=%d, k=%d, end=NO\n" (K.number p) k
+                        );
+                        
+                        fold (k+1) q set1 max1 max2 ((K.number p, k, -1) :: hams)
+                      end
+                      else
+                        (* bad piece : mem ... *)
+                        if (max1 = k + 1) && (max2 <= k) && not (mem (G.pred p) (K.node (k+1))) then begin
+
+                          LOG(
+                            printf " Found new hammock K'[begin .. k]: begin=%d, k=%d, end=%d\n" (K.number p) k (k+1)
+                          );
+                          
+                          fold (k+1) q set1 max1 max2 ((K.number p, k, k+1) :: hams)
+                        end
+                        else
+                          fold (k+1) q set1 max1 max2 hams
+              else
+                hams
+                
+            in
+            let hamms = fold (K.number p) None false (K.number p) (K.number p) hamms in
+            build t hamms
+        in
+
+        build (G.nodes T.graph) []        
+                
+
+(*
     let get node =
       let num = K.number node in
       let nnodes = (G.nnodes T.graph) in
@@ -261,7 +389,7 @@ module Make (T : DFST.Sig) =
       in
       
       build num []
-
+*)
 
     module DOT =
       struct

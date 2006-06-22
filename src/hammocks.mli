@@ -44,7 +44,11 @@ module Make (T : DFST.Sig) :
 *)
 		(** [get node] constructs and returns a list of pairs (bg, ham) where
 				ham is a hammock with bg (=node) vertext of Begin set *)
-		val get : T.G.Node.t -> (T.G.Node.t * T.G.Node.t list) list
+		(*val get : T.G.Node.t -> (T.G.Node.t * T.G.Node.t list) list*)
+
+		(** [hammocks ()] constructs a list of triples (begin, k, q) where
+				K'[begin .. k] is a hammock with q end vertex *)
+    val hammocks : unit -> (int * int * int) list
 
 		(** DOT visualizer *)
 		module DOT :
