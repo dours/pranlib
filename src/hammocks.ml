@@ -236,7 +236,7 @@ module Make (T : DFST.Sig) =
                       else
                         fold (k+1) q set1 max1 max2 hams
                     else
-                      if k = nnodes then begin
+                      if k = (nnodes-1) then begin
                         
                         LOG(
                           printf " Found new hammock K'[begin .. k]: begin=%d, k=%d, end=NO\n" (K.number p) k
