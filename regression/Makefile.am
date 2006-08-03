@@ -21,6 +21,7 @@ clean-am:
 	rm -f $(addsuffix $(EXEEXT), $(TESTS))
 	rm -f *.diff *.log
 
+# Rules to build tests
 test001: test001.ml
 	$(OCAMLC) $(BFLAGS) $(EXTRA_CMA) $(P4FLAGS) -o $@$(EXEEXT) $< 
 

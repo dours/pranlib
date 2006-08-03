@@ -35,9 +35,9 @@ CMXA := $(addsuffix .cmxa, $(PACKAGE))
 # compiled native library (separated)
 LIB := $(addsuffix .a, $(PACKAGE))
 # executable bytecode
-BYTE := $(addsuffix .byte, $(PACKAGE))
+BYTE := $(addsuffix .byte$(EXEEXT), $(PACKAGE))
 # executable native bytecode
-NATIVE := $(addsuffix .opt, $(PACKAGE))
+NATIVE := $(addsuffix .opt$(EXEEXT), $(PACKAGE))
 
 # add extra compiled libraries used for linking
 #EXTRA_CMA += $(addsuffix .cma, lib1 lib2)
@@ -103,7 +103,7 @@ clean-am:
 #install-exec-am: $(BYTE) $(NATIVE)
 #	$(mkinstalldirs) ${bindir}
 #	$(INSTALL_PROGRAM) $(BYTE) ${bindir}/$(BYTE)
-#	$(INSTALL_PROGRAM) $(NATIVE) ${bindir}/$(PACKAGE)
+#	$(INSTALL_PROGRAM) $(NATIVE) ${bindir}/$(PACKAGE)$(EXEEXT)
 
 uninstall-am:
 @OCAMLFIND_TRUE@	if test "$(SITELIBDIR)" = ""; then \
@@ -116,7 +116,7 @@ uninstall-am:
 @OCAMLFIND_FALSE@	else \
 @OCAMLFIND_FALSE@	    rm -fR $(SITELIBDIR)/$(PACKAGE); \
 @OCAMLFIND_FALSE@	fi
-#	rm -f ${bindir}/$(BYTE) ${bindir}/$(PACKAGE)
+#	rm -f ${bindir}/$(BYTE) ${bindir}/$(PACKAGE)$(EXEEXT)
 
 # clean up docs in distclean mode
 distclean-am:
@@ -188,7 +188,7 @@ version.ml: $(top_srcdir)/VERSION
 
 # resolve compiling dependencies
 .depend: $(SOURCES)
-	ocamldep $(MODULE_INCLUDES) $(PARSER_INCLUDES) *.mli *.ml > .depend
+	ocamldep $(MODULE_INCLUDES) $(PARSER_INCLUDES) $(AM_P4FLAGS) *.mli *.ml > .depend
 
 -include .depend
 
