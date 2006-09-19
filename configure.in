@@ -26,8 +26,8 @@ dnl ... for parser
 AC_PROG_CAMLP4
 dnl ... for ocamlfind
 AC_PROG_FINDLIB
-dnl set OCAMLFIND_TRUE an OCAMLFIND_FALSE in Makefile
-AM_CONDITIONAL(OCAMLFIND, test "$have_ocamlfind" = "yes")
+dnl set HAVE_OCAMLFIND in Makefile
+AM_CONDITIONAL(HAVE_OCAMLFIND, test "$have_ocamlfind" = "yes")
 dnl ... for ocamldsort
 AC_PROG_OCAMLDSORT
 
