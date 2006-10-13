@@ -1,5 +1,5 @@
 (*
- * Hammocks: hammocks hierarchy construction.
+ * Hammocks: hammock hierarchy construction.
  * Copyright (C) 2005
  * Gennadiy Sych, St.Petersburg State University
  * 
@@ -15,20 +15,20 @@
  * (enclosed in the file COPYING).
  *)
 
-(** {1 Hammocks hierarchy construction } *)
+(** {1 Hammock hierarchy construction } *)
 
 (** General constructor *)
 
 module Make (T : DFST.Sig) :
-	sig
+    sig
 
-		(** A DFST module with digraph hierarchy is built for *)
-		module T : DFST.Sig with module G = T.G
+      (** A DFST module with digraph hierarchy is built for *)
+      module T : DFST.Sig with module G = T.G
 
-		(** K numeration module *)
-		module K : Order.Sig with module G = T.G
+      (** K numeration module *)
+      module K : Order.Sig with module G = T.G
 
-    module G : Digraph.Sig with type t = T.G.t and module Node = T.G.Node
+      module G : Digraph.Sig with type t = T.G.t and module Node = T.G.Node
 
 
 (*		module L : Order.Sig with module G = T.G
@@ -42,26 +42,31 @@ module Make (T : DFST.Sig) :
 
 			end
 *)
-		(** [get node] constructs and returns a list of pairs (bg, ham) where
-				ham is a hammock with bg (=node) vertext of Begin set *)
+	  (** [get node] constructs and returns a list of pairs (bg, ham) where
+	     ham is a hammock with bg (=node) vertext of Begin set *)
 		(*val get : T.G.Node.t -> (T.G.Node.t * T.G.Node.t list) list*)
 
-		(** [hammocks ()] constructs a list of triples (begin, k, q) where
-				K'[begin .. k] is a hammock with q end vertex *)
-    val hammocks : unit -> (int * int * int) list
+      (** [hammocks ()] constructs a list of triples (begin, k, q) where
+	  K'[begin..k] is a hammock with q end vertex 
+      *)
+      val hammocks : unit -> (int * int * int) list
 
-		(** DOT visualizer *)
-		module DOT :
-			sig
+      (** DOT visualizer *)
+      module DOT :
+	sig
 
-				(** Node wrapper *)
-				module Node : DOT.Node with type t = T.G.Node.t
+	  (** Node wrapper *)
+	  module Node : DOT.Node with type t = T.G.Node.t
 
-				(** Edge wrapper *)
-				module Edge : Digraph.DOT.Edge with type t = T.G.Edge.t
+	  (** Edge wrapper *)
+	  module Edge : Digraph.DOT.Edge with type t = T.G.Edge.t
+				      
+	  include Digraph.DOT.S with 
+	     type graph = T.G.t      and 
+	     type node  = T.G.Node.t and 
+	     type edge  = T.G.Edge.t and 
+	     type parm  = unit
 
-				include Digraph.DOT.S with type graph = T.G.t and type node = T.G.Node.t and type edge = T.G.Edge.t and type parm = unit
-
-			end
-      
 	end
+      
+    end

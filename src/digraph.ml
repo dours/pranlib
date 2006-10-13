@@ -356,12 +356,12 @@ module Make (NodeInfo : Info) (EdgeInfo : Info) =
 	  if nnodes g = 0 
 	  then create ()
 	  else
-	    let index = Array.create (lastNode g) (let n :: _ = nodes g in n) in
+	    let index = Urray.make (lastNode g) (let n :: _ = nodes g in n) in
 	    let g' = 
 	      fold_left 
 		(fun g' node -> 
 		  let g', node' = insertNode g' (Node.info node) in
-		  index.(Node.index node) <- node';
+		  Urray.set index (Node.index node) node';
 		  g'
 		) 
 		(create ()) 
@@ -369,7 +369,13 @@ module Make (NodeInfo : Info) (EdgeInfo : Info) =
 	    in
 	    fold_left 
 	      (fun g' edge -> 
-		fst (insertEdge g' index.(Node.index (src edge)) index.(Node.index (dst edge)) (Edge.info edge))
+		fst 
+		  (
+		   insertEdge g' 
+		     (Urray.get index (Node.index (src edge))) 
+		     (Urray.get index (Node.index (dst edge))) 
+		     (Edge.info edge)
+		  )
 	      ) 
 	      g' 
 	      (edges g)

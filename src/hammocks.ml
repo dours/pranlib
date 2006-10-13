@@ -44,12 +44,12 @@ module Make (T : DFST.Sig) =
           let renumK i (getKiNum, getKiNode) =
             LOG (printf "Running renumK for %d\n" i);
 
-            let nextorder  = Array.create (G.lastNode graph) (-1) in
-            let nextorder' = Array.create nnodes T.start in
+            let nextorder  = Urray.make (G.lastNode graph) (-1) in
+            let nextorder' = Urray.make nnodes T.start in
       
             let set node num =
-              nextorder.(G.Node.index node) <- num;
-              nextorder'.(num) <- node
+              Urray.set nextorder (G.Node.index node) num;
+              Urray.set nextorder' num node
             in
       
             for j=0 to i-1 do set (getKiNode j) j done;
@@ -101,15 +101,15 @@ module Make (T : DFST.Sig) =
             );
         
             let isValid i = 
-              (i >= 0) && (i < nnodes) && (i = 0 || not (G.Node.equal nextorder'.(i) T.start)) 
+              (i >= 0) && (i < nnodes) && (i = 0 || not (G.Node.equal (Urray.get nextorder' i) T.start)) 
             in
 
             let getNum node = 
-              let m = nextorder.(G.Node.index node) in
+              let m = Urray.get nextorder (G.Node.index node) in
               if m = -1 then raise (Unreachable (`Node node)) else m
             in
 
-            let getNode num = if isValid num then nextorder'.(num) else raise (RangeError num) in
+            let getNode num = if isValid num then Urray.get nextorder' num else raise (RangeError num) in
 
             LOG (
               List.iter (fun node -> printf "node: %d; K: %d\n" (G.Node.index node) (getNum node)) (G.nodes T.graph)
@@ -136,7 +136,6 @@ module Make (T : DFST.Sig) =
         let node   =  (fun num  -> (Lazy.force data).node num)
       
       end
-
       
       let hammocks () =
         let nnodes = G.nnodes T.graph in

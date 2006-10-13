@@ -39,7 +39,7 @@ module Make (D: Dominance.Sig) =
 
         let all = 
           lazy (
-            Array.init (G.nnodes graph) 
+            Urray.init (G.nnodes graph) 
           (fun i -> 
             if T.isValid i 
 (*            then lazy (snd (region NodeSet.empty i [] [T.Post.node i]))*)
@@ -48,7 +48,7 @@ module Make (D: Dominance.Sig) =
           )
           )
 
-        let get node = Lazy.force (Lazy.force all).(T.Post.number node)
+        let get node = Lazy.force (Urray.get (Lazy.force all) (T.Post.number node))
 
       end
         

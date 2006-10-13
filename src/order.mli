@@ -19,24 +19,31 @@
 
 (** General signature for Order *)
 module type Sig =
-	sig
-		(** A graph module the numeration is built for *)
-		module G : Digraph.Sig
+  sig
+
+    (** A graph module the numeration is built for *)
+    module G : Digraph.Sig
         
-		(** Exception raised when the Order properties are queried for the 
-				unreachable node/edge *)
-		exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+    (** Exception raised when the Order properties are queried for the 
+	unreachable node/edge 
+    *)
+    exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
  
-		(** Exception raised when parameter for the [inverse] goes out of
-				the valid range *)
-		exception RangeError of int
+    (** Exception raised when parameter for the [inverse] goes out of
+	the valid range 
+    *)
+    exception RangeError of int
 
+	
+    (** The direct mapping of the numeration. [number node] returns number 
+	of the [node] in the numeration
+    *)
+    val number  : G.Node.t -> int
+	
+    (** The inverse mapping of the numeration. [node num] returns node
+	whose number is [num] in the numeration. 
+    *)
+    val node : int -> G.Node.t
 
-		(** The direct mapping of the numeration. [number node] returns number 
-				of the [node] in the numeration. *)
-		val number  : G.Node.t -> int
-
-		(** The inverse mapping of the numeration. [node num] returns node
-				whose number is [num] in the numeration. *)
-		val node : int -> G.Node.t
-	end
+  end
+      

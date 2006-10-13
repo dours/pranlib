@@ -59,28 +59,28 @@ module Make (D: DFST.Sig) =
           struct
 
             (** Data *)
-            let incoming = Array.make (G.nnodes graph) (0, 0)
+            let incoming = Urray.make (G.nnodes graph) (0, 0)
 
             (** Fill array with proper values *)
             let fill () =
-              Array.iteri 
-                (fun i _ -> incoming.(i) <- (length (G.ins (P.node i)), 0)) 
+              Urray.iteri 
+                (fun i _ -> Urray.set incoming i (length (G.ins (P.node i)), 0)) 
                     incoming
 
             (** Get a counter for node *)
-            let get i = fst incoming.(i)
+            let get i = fst (Urray.get incoming i)
 
             (** Decrease a node's counter *)
             let dec i = 
-              let x, y = incoming.(i) in
+              let x, y = Urray.get incoming i in
               LOG (Printf.printf "dec %d: (outer=%d, inner=%d)\n" i x y);
-              incoming.(i) <- (x - 1, y + 1)
+              Urray.set incoming i (x - 1, y + 1)
                   
             (** Increase a node's counter *)
             let inc i = 
-              let x, y = incoming.(i) in
+              let x, y = Urray.get incoming i in
               LOG (Printf.printf "inc %d: (outer=%d, inner=%d)\n" i x y);
-              if y > 0 then incoming.(i) <- (x + 1, y - 1)
+              if y > 0 then Urray.set incoming i (x + 1, y - 1)
 
           end
       end
@@ -110,7 +110,7 @@ module Make (D: DFST.Sig) =
               }
             
             (* Set data *)
-            let set = Array.init (G.nnodes graph) 
+            let set = Urray.init (G.nnodes graph) 
                           (fun _ -> { belongs = false; next = -1; prev = -1 })
             let head = ref (-1)
                                                   
@@ -118,16 +118,16 @@ module Make (D: DFST.Sig) =
             let empty () = (!head = -1)
 
             (* Check whether a node belongs to the set *)
-            let mem nd = set.(nd).belongs
+            let mem nd = (Urray.get set nd).belongs
 
             (* Add a node to the set *)
             let add nd = 
-                let e = set.(nd) in
+                let e = Urray.get set nd in
                 if e.belongs then () 
                 else begin
                     e.belongs <- true;
                     let h = !head in
-                    if h <> -1 then set.(h).prev <- nd;
+                    if h <> -1 then (Urray.get set h).prev <- nd;
                     e.next <- h;
                     head := nd
                 end
@@ -135,22 +135,23 @@ module Make (D: DFST.Sig) =
             (* Retrieve a node from the set *)
             let choose () = 
                 match !head with -1 -> failwith "No elements"
-                    | nh -> let e = set.(nh) in
-                      e.belongs <- false;
-                      head := e.next;
-                      if e.next != -1 then set.(e.next).prev <- -1;
-                      e.next <- -1; e.prev <- -1;
-                      nh
+                    | nh -> 
+			let e = Urray.get set nh in
+			e.belongs <- false;
+			head := e.next;
+			if e.next != -1 then (Urray.get set (e.next)).prev <- -1;
+			e.next <- -1; e.prev <- -1;
+			nh
 
             (* Retrieve a given node from the set *)
             let remove nd = 
-                let e = set.(nd) in
+                let e = Urray.get set nd in
                 if not e.belongs then ()
                 else begin
                     e.belongs <- false;
                     let next = e.next and prev = e.prev in
-                    if next != -1 then set.(next).prev <- prev;
-                    if prev != -1 then set.(prev).next <- next;
+                    if next != -1 then (Urray.get set next).prev <- prev;
+                    if prev != -1 then (Urray.get set prev).next <- next;
                     if prev = -1 then head := next;
                     e.next <- -1; e.prev <- -1
                 end
@@ -160,7 +161,7 @@ module Make (D: DFST.Sig) =
                 let rec aux res e = 
                     if e = -1 then res 
                     else begin 
-                        let en = set.(e) in
+                        let en = Urray.get set e in
                         en.prev <- -1;
                         en.belongs <- false;
                         let next = en.next in en.next <- -1;
@@ -176,22 +177,22 @@ module Make (D: DFST.Sig) =
 
             (* Set data *)
             let size = G.nnodes graph
-            let index = Array.make size (-1)
-            let value = Array.make size (-1)
+            let index = Urray.make size (-1)
+            let value = Urray.make size (-1)
             let next = ref 0
                                              
             (* Check whether set is empty *)
             let empty () = (!next = 0)
 
             (* Check whether a node belongs to the set *)
-            let mem nd = index.(nd) >= 0
+            let mem nd = (Urray.get index nd) >= 0
 
             (* Add a node to the set *)
             let add nd = 
                 if not (mem nd) then begin
                     let pos = !next in
-                    index.(nd) <- pos;
-                    value.(pos) <- nd;
+                    Urray.set index nd pos;
+                    Urray.set value pos nd;
                     next := pos + 1
                 end
 
@@ -201,21 +202,21 @@ module Make (D: DFST.Sig) =
                 if pos = 0 then failwith "No elements" 
                 else begin
                     let np = pos - 1 in
-                    let nd = value.(np) in
-                    index.(nd) <- -1;
+                    let nd = Urray.get value np in
+                    Urray.set index nd (-1);
                     next := np; nd
                 end
 
             (* Retrieve a given node from the set *)
             let remove nd = 
-                let i = index.(nd) in
+                let i = Urray.get index nd in
                 if i >= 0 then begin
-                    index.(nd) <- -1;
+                    Urray.set index nd (-1);
                     let np = !next - 1 in
                     if i < np then begin
-                        let n = value.(np) in
-                        index.(n) <- i;
-                        value.(i) <- n
+                        let n = Urray.get value np in
+                        Urray.set index n i;
+                        Urray.set value i n
                     end;
                     next := np
                 end
@@ -225,8 +226,8 @@ module Make (D: DFST.Sig) =
                 let rec aux res e = 
                     if e = -1 then res 
                     else begin 
-                        let en = value.(e) in
-                        index.(en) <- -1;
+                        let en = Urray.get value e in
+                        Urray.set index en (-1);
                         aux (en :: res) (e - 1)
                     end in
                 let l = aux [] (!next - 1) in
@@ -294,7 +295,7 @@ module Make (D: DFST.Sig) =
           backward ();
           LOG (
             Printf.printf "incomings after MA construction:\n";
-            Array.iteri 
+            Urray.iteri 
               (fun i (n, m) -> Printf.printf "  %d: (outer=%d, inner=%d)\n" i n m) 
               (Lazy.force INS.incoming);
             Printf.printf "end incomings\n"
@@ -326,11 +327,11 @@ module Make (D: DFST.Sig) =
                 let module MA = NodeSet.Make (Unit) in
                 let module Core = MakeMA (INS) (BD) (MA) (DefHooks) in
 
-                Array.init (G.nnodes graph)
+                Urray.init (G.nnodes graph)
                   (fun i -> lazy (INS.fill (); Core.get (P.node i)))
               )
 
-            let get node = Lazy.force (Lazy.force all).(P.number node)
+            let get node = Lazy.force (Urray.get (Lazy.force all) (P.number node))
 
         end
 
@@ -339,16 +340,22 @@ module Make (D: DFST.Sig) =
       struct
 
         let data = lazy (
-            let a = Array.make (G.nnodes graph) [] in
-            iterNumRev (fun n -> let ma = T.children (P.node n) in
-                        a.(n) <- fold_left (fun cur child -> 
-                                                a.(P.number child) @ cur)
-                                     [P.node n] ma) 
-                (G.nnodes graph - 1) 0;
+            let a = Urray.make (G.nnodes graph) [] in
+            iterNumRev 
+	      (fun n -> 
+		let ma = T.children (P.node n) in
+		Urray.set a n 
+		  (fold_left 
+		    (fun cur child -> (Urray.get a (P.number child)) @ cur)
+                    [P.node n] 
+		    ma
+                  )
+	      ) 
+              (G.nnodes graph - 1) 0;
             a
         )
 
-        let get node = (Lazy.force data).(P.number node)
+        let get node = Urray.get (Lazy.force data) (P.number node)
           
       end
 
@@ -369,18 +376,27 @@ module Make (D: DFST.Sig) =
             lazy (
               (* Initialize data *)
               let count = G.nnodes graph in
-              let data = Array.init count (fun n -> 
+              let data = Urray.init count (fun n -> 
                                               {char = n;
                                                descs = DefHooks.descs n;
                                                parent = 0}) in
 
               (* Initialize nodes characteristics *)
-              let getChar nd = data.(nd).char in
-              let setChar nd ch = data.(nd).char <- ch in
-              iterNum (fun pn -> iter 
-                  (fun cn -> let d = data.(cn) in 
-                        if d.char > pn then if cn > pn then d.char <- pn) 
-                   data.(pn).descs) 0 (count - 1);
+
+              let getChar nd = (Urray.get data nd).char in
+              let setChar nd ch = (Urray.get data nd).char <- ch in
+
+              iterNum 
+		(fun pn -> 
+		  iter 
+                    (fun cn -> 
+		      let d = Urray.get data cn in 
+                      if d.char > pn then if cn > pn then d.char <- pn
+		    ) 
+                    (Urray.get data pn).descs
+		) 
+		0 
+		(count - 1);
 
               (* Initialize resulting hash *)
               let hash = HT.create count in
@@ -408,7 +424,7 @@ module Make (D: DFST.Sig) =
                       let onUnfoldBD parent nd = 
                           let ch = getChar parent in
                           if ch < getChar nd then setChar nd ch
-                      let descs nd = data.(nd).descs
+                      let descs nd = (Urray.get data nd).descs
                     end
                   in
                   let module SINGLE = PartialMA (Hooks) in
@@ -423,8 +439,8 @@ module Make (D: DFST.Sig) =
                      by recalculating the descendants) *)
                   iter (fun v -> iter (fun w -> DS.add w) (Hooks.descs v)) maInt;
                   iter (fun v -> DS.remove v) maInt;
-                  data.(n).descs <- DS.elements ();
-                  iter (fun nd -> INS.inc nd) (data.(n).descs);
+                  (Urray.get data n).descs <- DS.elements ();
+                  iter (fun nd -> INS.inc nd) ((Urray.get data n).descs);
 
                   (* Store information for tree *)
                   iter (fun nd -> if nd != node then 
