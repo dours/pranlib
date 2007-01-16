@@ -34,7 +34,7 @@ module Make (D: DFST.Sig) =
     (* Signature for maximal alt access module *)
     module type MA = 
       sig
-	val get : G.Node.t -> G.Node.t list
+  val get : G.Node.t -> G.Node.t list
       end
 
     (* Apply function for a set of numbers *)
@@ -136,12 +136,12 @@ module Make (D: DFST.Sig) =
             let choose () = 
                 match !head with -1 -> failwith "No elements"
                     | nh -> 
-			let e = Urray.get set nh in
-			e.belongs <- false;
-			head := e.next;
-			if e.next != -1 then (Urray.get set (e.next)).prev <- -1;
-			e.next <- -1; e.prev <- -1;
-			nh
+      let e = Urray.get set nh in
+      e.belongs <- false;
+      head := e.next;
+      if e.next != -1 then (Urray.get set (e.next)).prev <- -1;
+      e.next <- -1; e.prev <- -1;
+      nh
 
             (* Retrieve a given node from the set *)
             let remove nd = 
@@ -293,13 +293,13 @@ module Make (D: DFST.Sig) =
           MA.add n;
           let _ = forward [n] in
           backward ();
-          LOG (
+(*          LOG (
             Printf.printf "incomings after MA construction:\n";
             Urray.iteri 
               (fun i (n, m) -> Printf.printf "  %d: (outer=%d, inner=%d)\n" i n m) 
               (Lazy.force INS.incoming);
             Printf.printf "end incomings\n"
-          );
+          );*)
           MA.elements ()
 
         let get node = map P.node (getNumbers node)
@@ -342,15 +342,15 @@ module Make (D: DFST.Sig) =
         let data = lazy (
             let a = Urray.make (G.nnodes graph) [] in
             iterNumRev 
-	      (fun n -> 
-		let ma = T.children (P.node n) in
-		Urray.set a n 
-		  (fold_left 
-		    (fun cur child -> (Urray.get a (P.number child)) @ cur)
+        (fun n -> 
+    let ma = T.children (P.node n) in
+    Urray.set a n 
+      (fold_left 
+        (fun cur child -> (Urray.get a (P.number child)) @ cur)
                     [P.node n] 
-		    ma
+        ma
                   )
-	      ) 
+        ) 
               (G.nnodes graph - 1) 0;
             a
         )
@@ -387,16 +387,16 @@ module Make (D: DFST.Sig) =
               let setChar nd ch = (Urray.get data nd).char <- ch in
 
               iterNum 
-		(fun pn -> 
-		  iter 
+    (fun pn -> 
+      iter 
                     (fun cn -> 
-		      let d = Urray.get data cn in 
+          let d = Urray.get data cn in 
                       if d.char > pn then if cn > pn then d.char <- pn
-		    ) 
+        ) 
                     (Urray.get data pn).descs
-		) 
-		0 
-		(count - 1);
+    ) 
+    0 
+    (count - 1);
 
               (* Initialize resulting hash *)
               let hash = HT.create count in

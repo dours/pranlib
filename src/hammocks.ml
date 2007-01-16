@@ -66,16 +66,16 @@ module Make (T : DFST.Sig) =
                 end)
             in
 
-            LOG (printf "Building region...\n");
+            LOG (printf "Building region for K...\n");
       
             let _, r = R.build (getKiNode i) in
 
             LOG (
-              printf "Region built\n";
+              printf "Region for K built\n";
               printf "Region: ";
               R.NodeSet.iter (fun node -> printf "%d, " (R.F.number node)) r ;
               printf "\n";
-              printf "Renumbering...\n"
+              printf "K Renumbering...\n"
             );
             
             let module NodeSet = R.NodeSet in
@@ -97,7 +97,7 @@ module Make (T : DFST.Sig) =
             inner i i (i+(NodeSet.cardinal r));
 
             LOG (
-              printf "Renumbered\n"
+              printf "K Renumbered\n"
             );
         
             let isValid i = 
@@ -136,13 +136,234 @@ module Make (T : DFST.Sig) =
         let node   =  (fun num  -> (Lazy.force data).node num)
       
       end
+
+   let mem elm lst = List.exists (fun e -> e == elm) lst
+
+    module L = 
+      struct
+  
+        module G = G
+
+        exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+        exception RangeError  of int
+
+        type ('a, 'b) s =
+        {
+          number  : 'a;
+          node : 'b;
+        }
+
+        let build graph =
+          let nnodes = G.nnodes graph in
+    
+          let renumL i (getLiNum, getLiNode) =
+            LOG (printf "Running renumL for %d\n" i);
+
+            let nextorder  = Urray.make (G.lastNode graph) (-1) in
+            let nextorder' = Urray.make nnodes T.start in
       
+            let set node num =
+              Urray.set nextorder (G.Node.index node) num;
+              Urray.set nextorder' num node
+            in
+
+            List.iter (fun x -> set x (getLiNum x)) (G.nodes graph);
+
+            let module R = Region.Make (G) 
+                (struct 
+                  exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+                  exception RangeError  of int
+          
+                  module G = G 
+          
+                  let node   = getLiNode 
+                  let number = getLiNum 
+                end)
+            in
+
+            LOG (printf "Building region for L...\n");
+
+            (* The begining of the algorithm *)
+
+            let _, r = R.build (getLiNode i) in
+
+            LOG (
+              printf "Region for L built\n";
+              printf "Region: ";
+              R.NodeSet.iter (fun node -> printf "%d, " (R.F.number node)) r ;
+              printf "\n";
+              printf "L Renumbering...\n"
+            );
+
+            let r = R.NodeSet.fold (fun x l -> x :: l) r [] in
+
+            LOG (
+              printf "Region: ";
+              List.iter (fun x -> printf "%d, " (R.F.number x)) r;
+              printf "\n";
+            );
+
+            (* Computes Exit(S) - exit vertex set for specified subgraph S. *)
+            let exit s =
+              List.fold_right (fun x exits -> 
+                                    if (List.fold_left (fun res y -> res || not (mem y s) ) false (G.succ x))
+                                    then
+                                      x :: exits
+                                    else
+                                      exits
+                                   )
+                                  s
+                                  []
+            in
+
+            (* Computes Line(F, S) - the line for specified numeration F and subgraph S. *)
+            let line number s =
+              
+              LOG(
+                printf "Calculating a line for set (Li numbers): ";
+                List.iter (fun x -> printf "%d, " (getLiNum x)) s;
+                printf "\n";
+              );
+
+              let rec fold frontier l =
+                match frontier with
+                | [] -> l
+                | u :: t ->
+              
+                  let rec updateFrontier frontier preds =
+                    match preds with
+                    | [] -> frontier
+                    | v :: t ->
+                      if (mem v s) then
+                        if (number v) < (number u) then updateFrontier (v :: frontier) t
+                        else updateFrontier frontier t
+                      else updateFrontier frontier t
+                  in
+
+                  let frontier = updateFrontier t (G.pred u) in
+                  fold frontier (u :: l)
+              in
+              fold (exit s) []
+             
+            in
+
+            let rank number i u s =
+
+              LOG(
+                (*printf "Calculating rank for i = %d, Li(u) = %d\n" i (getLiNum u);*)
+                ();
+              );
+              
+              let rec fold frontier r visited =
+                match frontier with
+                | [] -> r
+                | v :: t ->
+
+                  let visited = (v :: visited) in
+              
+                  let rec fld preds r frontier =
+                    match preds with
+                    | [] -> r, frontier
+                    | w :: t ->
+                      if not (mem w visited) then
+                        if (mem w (line number s)) then fld t (max r (number w)) frontier
+                        else fld t r (w :: frontier)
+                      else fld t r frontier
+                  in
+
+                  let r, frontier = fld (G.pred v) r t in
+                  fold frontier r visited
+              in
+              fold [u] i []
+             
+            in
+
+
+            let rank w = rank getLiNum i w r in
+            let sorted = List.sort (fun u v ->  
+                                    let rankU = rank u in
+                                    let rankV = rank v in
+                                    if rankU < rankV || rankU = rankV && (getLiNum u) < (getLiNum v) then -1 else 1) r
+            in
+
+            LOG(
+              printf "Sorted by (rank, Li): ";
+              List.iter (fun x -> printf "(%d, %d) " (rank x) (getLiNum x)) sorted;
+              printf "\n";
+            );
+
+            let rec fld n lst =
+              match lst with
+              | [] -> ()
+              | u :: t -> 
+                
+                LOG(
+                  printf "Assigning %d L number to node with graph index %d\n" n (G.Node.index u);
+                );
+
+                set u n; fld (n+1) t
+            in
+
+            fld i sorted;
+
+            LOG(
+              printf "nextorder: ";
+              for i = 0 to (Urray.length nextorder)-1 do printf "%d, " (Urray.get nextorder i) done;
+              printf "\n";
+            );
+
+            (* The end of the algorithm *)
+
+            LOG (
+              printf "L Renumbered\n"
+            );
+        
+            let isValid i = 
+              (i >= 0) && (i < nnodes) && (i = 0 || not (G.Node.equal (Urray.get nextorder' i) T.start)) 
+            in
+
+            let getNum node = 
+              LOG(
+                (* printf "getNum called with node with index = %d\n" (G.Node.index node); *)();
+              );
+              let m = Urray.get nextorder (G.Node.index node) in
+              if m = -1 then raise (Unreachable (`Node node)) else m
+            in
+
+            let getNode num = if isValid num then Urray.get nextorder' num else raise (RangeError num) in
+
+            LOG (
+              List.iter (fun node -> printf "node: %d; L: %d\n" (G.Node.index node) (getNum node)) (G.nodes T.graph)
+            );
+      
+            getNum, getNode
+          in
+
+          let rec build getNum getNode n =
+            if n < nnodes then
+              let getNum, getNode = renumL n (getNum, getNode) in
+              build getNum getNode (n+1)
+            else begin
+              LOG (printf "L order built\n"); 
+              {number = getNum; node = getNode}
+            end
+          in
+    
+          build K.number K.node 0 
+      
+        let data = lazy (build T.graph)
+      
+        let number =  (fun node -> (Lazy.force data).number node)
+        let node   =  (fun num  -> (Lazy.force data).node num)
+ 
+      end
+  
       let hammocks () =
         let nnodes = G.nnodes T.graph in
         
         let verify p = function | None -> false | Some q -> p q in
         let getNum = function | None -> -1 | Some q -> K.number q in   
-        let mem lst elm = List.exists (fun e -> e == elm) lst in
+(*        let mem lst elm = List.exists (fun e -> e == elm) lst in*)
         
         let rec build nodes hamms =
           match nodes with
@@ -224,7 +445,7 @@ module Make (T : DFST.Sig) =
                   else
                     if set1 then
                       (* bad piece : mem ... *)
-                      if max1 <= k && max2 <= k && not (verify (mem (G.pred p)) q) then begin
+                      if max1 <= k && max2 <= k && not (verify (fun x -> mem x (G.pred p)) q) then begin
                         
                         LOG(
                           printf " Found new hammock K'[begin .. k]: begin=%d, k=%d, end=%d\n" (K.number p) k (getNum q)
@@ -245,7 +466,7 @@ module Make (T : DFST.Sig) =
                       end
                       else
                         (* bad piece : mem ... *)
-                        if (max1 = k + 1) && (max2 <= k) && not (mem (G.pred p) (K.node (k+1))) then begin
+                        if (max1 = k + 1) && (max2 <= k) && not (mem (K.node (k+1)) (G.pred p)) then begin
 
                           LOG(
                             printf " Found new hammock K'[begin .. k]: begin=%d, k=%d, end=%d\n" (K.number p) k (k+1)
@@ -263,132 +484,7 @@ module Make (T : DFST.Sig) =
             build t hamms
         in
 
-        build (G.nodes T.graph) []        
-                
-
-(*
-    let get node =
-      let num = K.number node in
-      let nnodes = (G.nnodes T.graph) in
-      
-      LOG ( printf "Begin hammocks construction for node %d\n" num; );
-      
-      let getHam i j =
-	
-        LOG ( printf "Verifying hammock: (%d .. %d)\n" i j; );
-	
-        let rec build (bg, bglen) (en, enlen) ham frontier =
-	  
-	  let mem elm lst = List.exists (fun e -> e == elm) lst in
-          
-          let buildBg node =
-	    
-            let preds = G.pred node in
-            if (List.exists (fun node -> let num = K.number node in num < i || num > j) preds) || (node == T.start)
-            then (node :: bg), (bglen+1)
-            else bg, bglen
-          in
-          
-          let buildEn node frontier =
-	    
-	    LOG ( printf "	Building End...\n"; );
-	    
-	    (*TODO: this function will work very slow!*)
-            let rec build en enlen frontier succs =
-	      
-	      LOG (
-	        printf "		End: ";
-	        List.iter (fun node -> printf "%d, " (K.number node)) en;
-	        printf "\n";
-	        printf "		frontier: ";
-	        List.iter (fun node -> printf "%d, " (K.number node)) frontier;
-	        printf "\n";
-	        printf "		succs: ";
-	        List.iter (fun node -> printf "%d, " (K.number node)) succs;
-	        printf "\n";
-	      );
-	      
-	      match succs with
-              | [] -> en, enlen, frontier
-              | h :: t ->
-                  let num = K.number h in
-                  if num < i || num > j then
-		    (*TODO: probably, I can make a flag here*)
-		    if not(mem h en) then
-		      build (h :: en) (enlen+1) frontier t
-		    else
-		      build en enlen frontier t
-                  else
-		    if num >= i && num <= j && ((K.number h) > (K.number node)) && not (mem h frontier) then
-	              build en enlen (h :: frontier) t
-		    else
-		      build en enlen frontier t
-            in
-            
-            build en enlen frontier (G.succ node)
-          in
-          
-          match frontier with
-          | [] -> 
-              if bglen = 1 && enlen <= 1 then begin
-		
-		LOG (							
-		printf "Caught it! Begin: %d; Ham: " (match bg with | [] -> (-1) | h::t -> K.number h);
-		  List.iter (fun node -> printf "%d, " (K.number node)) ham;
-		  printf "\n";
-	         );
-		
-		bg, ham, en
-	      end
-              else [], [], []
-		  
-          | h :: t ->
-	      
-	      LOG ( printf "	Matching frontier with %d :: t\n" (K.number h);	);
-	      
-              let bg, bglen = buildBg h in
-
-              if bglen > 1 then [], [], []
-              else begin
-		
-		LOG ( printf "	Begin: %d\n" (match bg with | [] -> -1 | h::t -> K.number h); );
-		
-		let en, enlen, frontier = buildEn h t in
-		
-		if enlen > 1 then [], [], []
-		else begin
-		  (*TODO: may be I can verify this in some another way?*)
-                  if List.exists
-                      (fun sucnode -> mem sucnode bg(*List.exists (fun begnode -> sucnode == begnode) bg*))
-                      en
-                  then begin 
-		    
-		    LOG ( printf "	Edge between Begin and End exists. Exit.\n"; );
-		    
-		    [], [], [] 
-		  end
-                  else build (bg, bglen) (en, enlen) (h :: ham) frontier
-		end
-
-	      end
-        in
-        
-        build ([], 0) ([], 0) [] [(K.node i)]
-      in
-      
-      let rec build i hams =
-        if i < nnodes then
-          let bg, ham, en = getHam num i in
-	  match bg with
-	  | [] -> build (i+1) hams
-	  | h :: t ->
-	      build (i+1) ( (h, ham) :: hams )
-        else
-          hams
-      in
-      
-      build num []
-*)
+        build (G.nodes T.graph) []
 
     module DOT =
       struct
@@ -410,7 +506,7 @@ module Make (T : DFST.Sig) =
             type t = G.Node.t
           
             let attrs node = ["shape", "ellipse"]
-            let label node = sprintf "N=%d, K=%d\n%s" (T.Post.number node) (K.number node) (G.Node.toString node)
+            let label node = sprintf "N=%d, K=%d, L=%d\n%s" (T.Post.number node) (K.number node) (L.number node) (G.Node.toString node)
             let name  node = sprintf "node%d" (G.Node.index node)
 
           end

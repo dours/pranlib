@@ -28,45 +28,35 @@ module Make (T : DFST.Sig) :
       (** K numeration module *)
       module K : Order.Sig with module G = T.G
 
+      (** L numeration module *)
+      module L : Order.Sig with module G = T.G
+
+
       module G : Digraph.Sig with type t = T.G.t and module Node = T.G.Node
 
 
-(*		module L : Order.Sig with module G = T.G
-
-		module Hierarchy :
-			sig
-
-				type t
-
-				val build : T.t -> t
-
-			end
-*)
-	  (** [get node] constructs and returns a list of pairs (bg, ham) where
-	     ham is a hammock with bg (=node) vertext of Begin set *)
-		(*val get : T.G.Node.t -> (T.G.Node.t * T.G.Node.t list) list*)
-
-      (** [hammocks ()] constructs a list of triples (begin, k, q) where
-	  K'[begin..k] is a hammock with q end vertex 
+      (** [hammocks ()] constructs a list of triples (begin, k, q) where 
+          K'[begin..k] is a hammock with q end vertex. If constructed
+          hammock have no end vertex then q = -1.
       *)
       val hammocks : unit -> (int * int * int) list
 
       (** DOT visualizer *)
       module DOT :
-	sig
+  sig
 
-	  (** Node wrapper *)
-	  module Node : DOT.Node with type t = T.G.Node.t
+    (** Node wrapper *)
+    module Node : DOT.Node with type t = T.G.Node.t
 
-	  (** Edge wrapper *)
-	  module Edge : Digraph.DOT.Edge with type t = T.G.Edge.t
-				      
-	  include Digraph.DOT.S with 
-	     type graph = T.G.t      and 
-	     type node  = T.G.Node.t and 
-	     type edge  = T.G.Edge.t and 
-	     type parm  = unit
+    (** Edge wrapper *)
+    module Edge : Digraph.DOT.Edge with type t = T.G.Edge.t
+              
+    include Digraph.DOT.S with 
+       type graph = T.G.t      and 
+       type node  = T.G.Node.t and 
+       type edge  = T.G.Edge.t and 
+       type parm  = unit
 
-	end
+  end
       
     end
