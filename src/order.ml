@@ -16,16 +16,16 @@
  *)
 
 module type Sig =
-	sig
+  sig
 		
-		module G : Digraph.Sig
+    module G : Digraph.Sig
 
-		exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
-
-		exception RangeError of int
-
-		val number  : G.Node.t -> int
-
-		val node : int -> G.Node.t
-
-	end
+    exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+	
+    exception RangeError of int
+	
+    val number : G.Node.t -> int
+	
+    val node : int -> G.Node.t
+	
+  end

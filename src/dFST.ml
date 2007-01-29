@@ -20,7 +20,7 @@ type sort = Tree | Forward | Back | Cross
 module type Sig =
   sig
 
-    module G : Digraph.Sig
+    module G : CFG.Sig
 
     val reachedNode : G.Node.t -> bool
     val reachedEdge : G.Edge.t -> bool
@@ -56,7 +56,7 @@ module type Sig =
 	
   end
 
-module Make (G : Digraph.Sig) (X : sig val graph : G.t val start : G.Node.t end) =
+module Make (G : CFG.Sig) =
   struct
 
     open List
@@ -82,7 +82,7 @@ module Make (G : Digraph.Sig) (X : sig val graph : G.t val start : G.Node.t end)
         }
 
     let build graph =
-      let start = X.start             in
+      let start = G.start             in
       let n     = G.nnodes graph      in
       let pre'  = Urray.make n start  in
       let post' = Urray.make n start  in
@@ -174,7 +174,7 @@ module Make (G : Digraph.Sig) (X : sig val graph : G.t val start : G.Node.t end)
        isValid     = isValid;
       }
 	
-    let data = lazy (build X.graph) 
+    let data = lazy (build G.graph) 
 	      
     let reachedNode = (fun node -> (Lazy.force data).reachedNode node)
     let reachedEdge = (fun edge -> (Lazy.force data).reachedEdge edge)
@@ -187,9 +187,9 @@ module Make (G : Digraph.Sig) (X : sig val graph : G.t val start : G.Node.t end)
     let parent      = (fun node -> (Lazy.force data).parent      node)
     let children    = (fun node -> (Lazy.force data).children    node)
 	
-    let graph = X.graph
-    let start = X.start
-    let root  = X.start
+    let graph = G.graph
+    let start = G.start
+    let root  = G.start
 	
     module Pre = 
       struct

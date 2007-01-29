@@ -27,7 +27,7 @@ let g, e14 = G.insertEdge g n1 n4 "1->4" in
 let g, e41 = G.insertEdge g n4 n1 "4->1" in
 let g, e45 = G.insertEdge g n4 n5 "4->5" in
 
-let module DFST = DFST.Make (G) (struct let graph = g let start = n0 end) in
+let module DFST = DFST.Make (CFG.Make (G)(struct let graph = g let start = n0 end)) in
 let module H = Hammocks.Make(DFST) in
 (*Printf.printf "%s\n" ( H.DOT.toDOT () );
 H.hammocks ()*)

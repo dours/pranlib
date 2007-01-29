@@ -19,7 +19,7 @@ module type Sig =
   sig
 
     module T : DFST.Sig
-    module G : Digraph.Sig
+    module G : CFG.Sig
 
     type t = G.Node.t
 

@@ -55,5 +55,5 @@ let _ =
   let g, _  = edge g nl nk "" in
   let g, _  = edge g nj nl "" in
   let g, _  = edge g nh nm "" in
-  let module PC = PathCovering.MakeSimple (DFST.Make (G) (struct let graph = g let start = ns end)) in
+  let module PC = PathCovering.MakeSimple (DFST.Make (CFG.Make (G)(struct let graph = g let start = ns end))) in
   Printf.printf "%s" (PC.toDOT ())

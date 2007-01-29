@@ -17,18 +17,20 @@
 
 module type Sig =
   sig
-    module G : Digraph.Sig
+
+    module G : CFG.Sig
     module F : Order.Sig
 
     module NodeSet : Set.S with type elt = G.Node.t
 
     val build : G.Node.t -> G.Node.t * NodeSet.t
+
   end
 
 open List
 open Printf
 
-module Make (G : Digraph.Sig) (F : Order.Sig with module G = G) =
+module Make (G : CFG.Sig) (F : Order.Sig with module G = G) =
   struct
     
     module G = G

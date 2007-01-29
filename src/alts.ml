@@ -34,7 +34,9 @@ module Make (D: DFST.Sig) =
     (* Signature for maximal alt access module *)
     module type MA = 
       sig
-  val get : G.Node.t -> G.Node.t list
+
+	val get : G.Node.t -> G.Node.t list
+
       end
 
     (* Apply function for a set of numbers *)
@@ -338,23 +340,23 @@ module Make (D: DFST.Sig) =
     (* Create maximal alt from dominance tree *)
     module MAFromDom (T : Tree.Tree with type t = G.Node.t) =
       struct
-
+	
         let data = lazy (
-            let a = Urray.make (G.nnodes graph) [] in
-            iterNumRev 
-        (fun n -> 
-    let ma = T.children (P.node n) in
-    Urray.set a n 
-      (fold_left 
-        (fun cur child -> (Urray.get a (P.number child)) @ cur)
-                    [P.node n] 
-        ma
-                  )
-        ) 
-              (G.nnodes graph - 1) 0;
-            a
-        )
-
+          let a = Urray.make (G.nnodes graph) [] in
+          iterNumRev 
+            (fun n -> 
+	      let ma = T.children (P.node n) in
+	      Urray.set a n 
+		(fold_left 
+		   (fun cur child -> (Urray.get a (P.number child)) @ cur)
+		   [P.node n] 
+		   ma
+		)
+            ) 
+            (G.nnodes graph - 1) 0;
+          a
+         )
+	    
         let get node = Urray.get (Lazy.force data) (P.number node)
           
       end
@@ -387,16 +389,16 @@ module Make (D: DFST.Sig) =
               let setChar nd ch = (Urray.get data nd).char <- ch in
 
               iterNum 
-    (fun pn -> 
-      iter 
+		(fun pn -> 
+		  iter 
                     (fun cn -> 
-          let d = Urray.get data cn in 
+		      let d = Urray.get data cn in 
                       if d.char > pn then if cn > pn then d.char <- pn
-        ) 
+		    ) 
                     (Urray.get data pn).descs
-    ) 
-    0 
-    (count - 1);
+		) 
+		0 
+		(count - 1);
 
               (* Initialize resulting hash *)
               let hash = HT.create count in

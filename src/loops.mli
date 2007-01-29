@@ -26,7 +26,7 @@ module Make (D: Dominance.Sig) :
     module T : DFST.Sig with module G = D.T.G
 
     (** The graph module *)
-    module G : Digraph.Sig with type t = T.G.t and module Node = T.G.Node and module Edge = T.G.Edge
+    module G : CFG.Sig with type t = T.G.t and module Node = T.G.Node and module Edge = T.G.Edge
 
     (** The graph data *)
     val graph : G.t

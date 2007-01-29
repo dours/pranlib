@@ -60,5 +60,5 @@ let _ =
   let (g, _) = edge g n9' n4 "" in
   let (g, _) = edge g n3' n1 "" in
   let (g, _) = edge g n4' n1 "" in
-  let module D = Dominance.Make (DFST.Make (G) (struct let graph = g let start = n0 end)) in
+  let module D = Dominance.Make (DFST.Make (CFG.Make (G)(struct let graph = g let start = n0 end))) in
   Printf.printf "%s" (D.Tree.toDOT ())

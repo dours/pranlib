@@ -46,7 +46,7 @@ let g, e13 = G.insertEdge g n1 n3 "1->3" in
 let g, e31 = G.insertEdge g n3 n1 "3->1" in
 *)
 
-let module DFST = DFST.Make (G) (struct let graph = g let start = n1 end) in
+let module DFST = DFST.Make (CFG.Make (G)(struct let graph = g let start = n1 end))  in
 (*let module DFST = DFST.Make (G) (struct let graph = g let start = n0 end) in*)
 
 (*

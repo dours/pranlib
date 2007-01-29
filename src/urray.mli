@@ -1,3 +1,7 @@
+(** Incapsulates some array operations to overcome 
+    OCaml array length restriction on 32-bit platforms 
+*)
+
 (** Main type *)
 type 'a t
 

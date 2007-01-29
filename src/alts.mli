@@ -25,7 +25,7 @@ module Make (D: DFST.Sig) :
     module T : DFST.Sig with module G = D.G
 
     (** The graph module *)
-    module G : Digraph.Sig with type t = D.G.t and module Node = D.G.Node and module Edge = D.G.Edge
+    module G : CFG.Sig with type t = D.G.t and module Node = D.G.Node and module Edge = D.G.Edge
 
     (** The graph data *)
     val graph : G.t

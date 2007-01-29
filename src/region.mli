@@ -19,20 +19,21 @@
 
 (** General signature for Region *)
 module type Sig =
-	sig
-		(** A graph module the region is built for *)
-		module G : Digraph.Sig
+  sig
 
-		(** A numeration of the graph *)
-		module F : Order.Sig
+    (** A graph module the region is built for *)
+    module G : CFG.Sig
 
-		(***)
-		module NodeSet : Set.S with type elt = G.Node.t
-        
-		(** [build node] returns a region in F numeration for [node] and [node] *)
-		val build : G.Node.t -> G.Node.t * NodeSet.t
+    (** A numeration of the graph *)
+    module F : Order.Sig
 
-	end
+    module NodeSet : Set.S with type elt = G.Node.t
+          
+    (** [build node] returns a region in F numeration for [node] and [node] *)
+    val build : G.Node.t -> G.Node.t * NodeSet.t
+
+  end
 
 (** Region constructor *)
-module Make (G : Digraph.Sig) (F : Order.Sig with module G = G) : Sig with module G = G and module F = F
+module Make (G : CFG.Sig) (F : Order.Sig with module G = G) : Sig with 
+   module G = G and module F = F

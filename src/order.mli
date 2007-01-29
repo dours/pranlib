@@ -33,7 +33,6 @@ module type Sig =
 	the valid range 
     *)
     exception RangeError of int
-
 	
     (** The direct mapping of the numeration. [number node] returns number 
 	of the [node] in the numeration
