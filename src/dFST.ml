@@ -55,8 +55,8 @@ module type Sig =
       end
 	
   end
-
-module Make (G : CFG.Sig) =
+ 
+module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edge.t list end) =
   struct
 
     open List
@@ -139,7 +139,7 @@ module Make (G : CFG.Sig) =
 		Urray.set state (G.Node.index nextNode) `InProcess;
 		visit 
 		  (currM+1, currN) 
-		  ((nextNode, G.outs nextNode) :: (node, rest) :: tl)
+		  ((nextNode, Order.order (G.outs nextNode)) :: (node, rest) :: tl)
 		  
             | `Done -> 
 		setSort 
@@ -275,4 +275,6 @@ module Make (G : CFG.Sig) =
       end
 	
   end
+
+module Make (G : CFG.Sig) = MakeOrdered (G) (struct let order x = x end)
     

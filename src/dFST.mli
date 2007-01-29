@@ -82,5 +82,8 @@ module type Sig =
 
   end
 
-(** Depth-First Search Tree Constructor *)
+(** Ordered Depth-First Tree constructor. Order defines the order for outgoing edge processing *)
+module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edge.t list end) : Sig with module G = G
+
+(** Depth-First Search Tree Constructor; outgoins edges are processed in an arbitrary order *)
 module Make (G : CFG.Sig) : Sig with module G = G
