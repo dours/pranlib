@@ -62,8 +62,9 @@ module Make
       let edges = fold_left (fun set edge -> EdgeSet.add edge set) EdgeSet.empty (edges ()) in
       let nodes = fold_left (fun set node -> NodeSet.add node set) NodeSet.empty (nodes ()) in
 
-      let module P = Digraph.DOT.Printer (D.G) 
-      (struct
+      let module P = Digraph.Printer (D.G) 
+      (
+       struct
 
         include D.DOT.Node
 

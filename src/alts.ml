@@ -338,7 +338,7 @@ module Make (D: DFST.Sig) =
         end
 	  
     (* Create maximal alt from dominance tree *)
-    module MAFromDom (T : Tree.Tree with type t = G.Node.t) =
+    module MAFromDom (T : Tree.Sig with type t = G.Node.t) =
       struct
 	
         let data = lazy (

@@ -50,7 +50,7 @@ module Make (D: DFST.Sig) :
       sig
 
         (** Dominance tree *)
-        module Tree : Tree.Tree with type t = G.Node.t
+        module Tree : Tree.Sig with type t = G.Node.t
 
         (** Maximal alt *)
         module MA : MA
@@ -61,6 +61,6 @@ module Make (D: DFST.Sig) :
       end
 
     (** Create a maximal alt module from dominance tree *)
-    module MAFromDom (T: Tree.Tree with type t = G.Node.t) : MA
+    module MAFromDom (T: Tree.Sig with type t = G.Node.t) : MA
 
   end

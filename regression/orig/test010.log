@@ -1,0 +1,43 @@
+digraph X {  
+  subgraph cluster0 {
+  
+  subgraph cluster6 {node0}
+
+subgraph cluster5 {node1}
+
+subgraph cluster4 {node4; node3; node2}
+
+subgraph cluster3 {node5}
+
+subgraph cluster2 {node9; node8; node7; node6}
+
+subgraph cluster1 {node10}
+}
+  node10 [label="index=10, info=k"];
+  node9 [label="index=9, info=j"];
+  node8 [label="index=8, info=i"];
+  node7 [label="index=7, info=h"];
+  node6 [label="index=6, info=g"];
+  node5 [label="index=5, info=f"];
+  node4 [label="index=4, info=e"];
+  node3 [label="index=3, info=d"];
+  node2 [label="index=2, info=c"];
+  node1 [label="index=1, info=b"];
+  node0 [label="index=0, info=a"];
+ node9 -> node6 [label="info="];
+  node8 -> node7 [label="info="];
+  node9 -> node10 [label="info="];
+  node8 -> node9 [label="info="];
+  node7 -> node8 [label="info="];
+  node6 -> node7 [label="info="];
+  node1 -> node6 [label="info="];
+  node3 -> node2 [label="info="];
+  node4 -> node2 [label="info="];
+  node2 -> node4 [label="info="];
+  node5 -> node10 [label="info="];
+  node4 -> node5 [label="info="];
+  node3 -> node4 [label="info="];
+  node2 -> node3 [label="info="];
+  node1 -> node2 [label="info="];
+  node0 -> node1 [label="info="];
+}

@@ -31,7 +31,6 @@ module Make (D: Dominance.Sig) =
     module Region =
       struct
 
-	module NodeSet = Set.Make (G.Node)
 	module R = Region.Make (G) (T.Post)
 
 	module SCS =
@@ -53,30 +52,6 @@ module Make (D: Dominance.Sig) =
         
 	module SCC =
 	  struct
-            
-            let rec region visited binumber scc = function
-              | [] -> visited, scc
-              | hd :: tl ->
-		  LOG (Printf.fprintf stderr "    Visiting %d\n" (T.Post.number hd));
-		  let scc, visited, frontier = 
-		    fold_left 
-		      (fun (scc, visited, frontier) edge ->
-			let candidate = G.src edge in
-			LOG (Printf.fprintf stderr "    Considering candidate %d..." (T.Post.number candidate));
-			if not (NodeSet.mem candidate visited) && (T.Post.number candidate > binumber)
-			then begin
-			  LOG (Printf.fprintf stderr "    added frontier.\n");
-			  scc, (NodeSet.add candidate visited), candidate :: frontier        
-			end
-			else begin
-			  LOG (Printf.fprintf stderr "    skipped.\n");
-			  scc, visited, frontier 
-			end
-		      ) 
-		      (hd :: scc, visited, tl) 
-		      (G.ins hd) 
-		  in
-		  region visited binumber scc frontier
 
             let build () =
               let n = G.nnodes graph in
@@ -86,15 +61,15 @@ module Make (D: Dominance.Sig) =
 		then sccs
 		else 
 		  let node = T.Post.node i in
-		  if not (NodeSet.mem node visited) 
+		  if not (R.NodeSet.mem node visited) 
 		  then begin
 		    LOG (Printf.fprintf stderr "  Building region for %d\n" i);
-		    let visited, scc = region visited i [] [node] in
-		    traverse (i+1) visited ((node, scc) :: sccs)
+		    let scc = snd (R.build node) in
+		    traverse (i+1) (R.NodeSet.union visited scc) ((node, scc) :: sccs)
 		  end
 		  else traverse (i+1) visited sccs
               in
-              traverse 0 NodeSet.empty []
+              traverse 0 R.NodeSet.empty []
 		
             let data = lazy (build ())
 		

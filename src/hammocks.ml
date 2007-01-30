@@ -511,9 +511,7 @@ module Make (T : DFST.Sig) =
 
           end
 
-(*        include Digraph.DOT.Printer (G) (Node) (Edge) *)
-
-        module M = Digraph.DOT.Printer (G) (Node) (Edge)
+        module M = Digraph.Printer (G) (Node) (Edge)
     
         type graph = M.graph
         type node  = M.node
@@ -533,7 +531,16 @@ module Make (T : DFST.Sig) =
         type parm = unit
 
         let toDOT () = M.toDOT T.graph
-        
+
+        module Clusters = M.Clusters
+
+	module Clustered =
+	  struct
+
+	    let toDOT () tree = M.Clustered.toDOT T.graph tree
+
+	  end
+
       end
 
     (* module L : Order.Sig with module G = T.G *)

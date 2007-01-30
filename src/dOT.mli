@@ -79,6 +79,15 @@ module type Sig =
         representation of [attrs] and [label] *)
     val attributes : string -> (string * string) list -> string
 
+    (** Module to provide type for cluster structure within a graph *)
+    module Clusters :
+      sig
+
+        (** Type for cluster tree; clusters have to form a nested structure *)
+	type t = Node of node list * t list | Leaf of node list
+
+      end
+
   end
 
 (** Printer --- a functor to instantiate basic graph printing methods *)

@@ -37,7 +37,7 @@ module type Sig =
     (** The direct mapping of the numeration. [number node] returns number 
 	of the [node] in the numeration
     *)
-    val number  : G.Node.t -> int
+    val number : G.Node.t -> int
 	
     (** The inverse mapping of the numeration. [node num] returns node
 	whose number is [num] in the numeration. 

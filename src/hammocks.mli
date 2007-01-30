@@ -34,13 +34,13 @@ module Make (T : DFST.Sig) :
     (** Underlying graph *)
     module G : CFG.Sig with type t = T.G.t and module Node = T.G.Node
 
-   (** [hammocks ()] constructs a list of triples (begin, k, q) where 
+    (** [hammocks ()] constructs a list of triples (begin, k, q) where 
         K'[begin..k] is a hammock with q end vertex. If constructed
-       hammock have no end vertex then q = -1.
-   *)
+        hammock have no end vertex then q = -1.
+    *)
     val hammocks : unit -> (int * int * int) list
 
-   (** DOT visualizer *)
+    (** DOT visualizer *)
     module DOT :
       sig
 

@@ -44,8 +44,8 @@ module Make (D: Dominance.Sig) :
 	module SCS :
 	  sig
 
-	    (** [get node] returns the list of nodes that form a region for the [node]. 
-	         This set of nodes is strongly connected 
+	    (** [get node] returns the list of nodes which form a region for the [node]. 
+	        This set of nodes is strongly connected 
 	     *)
 	    val get : G.Node.t -> R.NodeSet.t
 	
@@ -58,7 +58,7 @@ module Make (D: Dominance.Sig) :
             (** Gets all strongly connected components and their bivertices.
 		Bivertex is the vertex whose region is a strongly connected component 
 	     *)
-	    val get : unit -> (G.Node.t * G.Node.t list) list
+	    val get : unit -> (G.Node.t * R.NodeSet.t) list
 		
 	  end
 	    

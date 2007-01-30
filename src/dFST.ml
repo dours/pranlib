@@ -252,7 +252,7 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
 		
 	  end
 	    
-	module M = Digraph.DOT.Printer (G) (Node) (Edge)
+	module M = Digraph.Printer (G) (Node) (Edge)
 	    
 	type graph = M.graph
 	type node  = M.node
@@ -271,6 +271,15 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
 	    
 	type parm = unit
 	let toDOT () = M.toDOT graph
+
+	module Clusters = M.Clusters
+
+	module Clustered =
+	  struct
+	    
+	    let toDOT () tree = M.Clustered.toDOT graph tree
+
+	  end
             
       end
 	

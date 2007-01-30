@@ -15,7 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
-module type Tree =
+module type Sig =
   sig
 
     type t
@@ -29,7 +29,7 @@ module type Tree =
 module DOT =
   struct
 
-    module Printer (T : Tree) (N : DOT.Node with type t = T.t) =
+    module Printer (T : Sig) (N : DOT.Node with type t = T.t) =
       struct
 
 	include DOT.Printer (struct type t = unit let keyword _ = "digraph" let name _ = "X" let attrs _ = [] end) (N)
