@@ -34,3 +34,5 @@ module type Sig =
     val bottom : t
 
   end
+
+module TestMake : Sig with type t = string

@@ -1,5 +1,5 @@
 (*
- * Semilattice: semilattice abstraction.
+ * ProgramView: program abstraction module for DFA.
  * Copyright (C) 2007
  * Gennadiy Sych, St.Petersburg State University
  * 
@@ -15,20 +15,18 @@
  * (enclosed in the file COPYING).
  *)
 
+
 module type Sig =
   sig
+    
+    (** Type of a node representation for the particular algorithm *)
+    type nt
+    
+    module G : CFG.Sig
 
-    type t
-    val cap : t -> t -> t
-    val top : t
-    val bottom : t
+    val convert : G.Node.t -> nt
 
   end
 
-module TestMake = 
-  struct
-    type t = string
-    let top = ""
-    let bottom = ""
-    let cap x y = ""
-  end
+module TestViewAdapter (G : CFG.Sig) : Sig with module G = G and type nt = string
+ 

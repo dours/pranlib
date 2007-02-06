@@ -17,10 +17,13 @@
 
 module type Sig =
   sig                         
+
     module G : CFG.Sig
+
     module L : Semilattice.Sig
 
     exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+
     exception RangeError  of int
 
     val analyse : G.t -> G.Node.t -> L.t
@@ -28,13 +31,17 @@ module type Sig =
   end
 
 
-module Forward (P : ProgramView.Sig) =
+module Forward (AV : AlgView.Sig) =
   struct
     
-    module G = P.G
-    module L = P.L
+    module PV = ProgramView.Make (AV)
+
+    module G = AV.VA.G
+
+    module L = AV.L
 
     exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+
     exception RangeError  of int
 
     type ('a) s =
@@ -64,7 +71,7 @@ module Forward (P : ProgramView.Sig) =
       let rec traverse = function
         | [] -> { markup = markup }
         | v :: t ->
-          let after = P.flow v (before v) in
+          let after = PV.flow v (before v) in
           if after != (markup v) then 
             begin
               Urray.set marking (G.Node.index v) after;

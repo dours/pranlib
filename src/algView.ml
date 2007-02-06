@@ -1,5 +1,5 @@
 (*
- * Semilattice: semilattice abstraction.
+ * ProgramView: program abstraction module for DFA.
  * Copyright (C) 2007
  * Gennadiy Sych, St.Petersburg State University
  * 
@@ -17,18 +17,40 @@
 
 module type Sig =
   sig
+    
+    (** Node representation for the particular algorithm *)
+    type nt
+    
+    module L : Semilattice.Sig
+   
+    module VA : ViewAdapter.Sig with type nt = nt
+ 
+    val flow : nt -> (L.t -> L.t)
 
-    type t
-    val cap : t -> t -> t
-    val top : t
-    val bottom : t
+    val init : nt -> L.t
 
   end
 
-module TestMake = 
+
+module TestMake (VA : ViewAdapter.Sig) =
   struct
-    type t = string
-    let top = ""
-    let bottom = ""
-    let cap x y = ""
-  end
+     
+    type nt = VA.nt
+    
+    module VA = VA
+
+    module L = Semilattice.TestMake
+    
+    let flow n = fun x -> x
+
+    let init n = ""    
+
+  end 
+
+
+
+
+
+
+
+

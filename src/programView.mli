@@ -19,19 +19,17 @@
 (** {1 Program abstraction interface for DFA} *)
 
 (** General signature for program abstraction *)
-module type Sig =
+module Make (AV : AlgView.Sig) :
   sig
 
     (** Control-flow graph of the program *)
-    module G : CFG.Sig
 
     (** Specific analysis semilattice *)
-    module L : Semilattice.Sig
 
     (** [flow node] returns the flow function associated with the given node *)
-    val flow : G.Node.t -> (L.t -> L.t)
+    val flow : AV.VA.G.Node.t -> (AV.L.t -> AV.L.t)
 
     (** [init node] returns initial semilattice element associated with the given node *)
-    val init : G.Node.t -> L.t
+    val init : AV.VA.G.Node.t -> AV.L.t
 
   end

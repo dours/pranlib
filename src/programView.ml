@@ -16,12 +16,11 @@
  *)
 
 
-module type Sig =
-  sig
+module Make (AV : AlgView.Sig) =
+  struct
+ 
+    let flow n = AV.flow (AV.VA.convert n) 
 
-    module G : CFG.Sig
-    module L : Semilattice.Sig
-    val flow : G.Node.t -> (L.t -> L.t)
-    val init : G.Node.t -> L.t
-
+    let init n =  AV.init (AV.VA.convert n)
+              
   end

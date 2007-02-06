@@ -15,6 +15,8 @@
  * (enclosed in the file COPYING).
  *)
 
+
+(**  *)
 module type Sig =
   sig
     module G : CFG.Sig
@@ -27,5 +29,5 @@ module type Sig =
 
   end
 
-module Forward(P : ProgramView.Sig) : Sig with 
-  module G = P.G and module L = P.L
+module Forward(AV : AlgView.Sig) : Sig with 
+  module G = AV.VA.G and module L = AV.L
