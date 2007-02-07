@@ -22,7 +22,7 @@ module type Sig =
     val cap : t -> t -> t
     val top : t
     val bottom : t
-
+    val equal : t -> t -> bool
   end
 
 module TestMake = 
@@ -31,4 +31,5 @@ module TestMake =
     let top = ""
     let bottom = ""
     let cap x y = ""
+    let equal x y = true
   end

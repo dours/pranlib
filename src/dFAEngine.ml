@@ -51,6 +51,8 @@ module Forward (AV : AlgView.Sig) =
 
     let dfa g =
 
+    (* seems that following code is not completely correct =( *)
+
       let marking = Urray.make (G.nnodes g) L.bottom in
  
       let markup node =
@@ -58,6 +60,12 @@ module Forward (AV : AlgView.Sig) =
         if m = L.bottom then raise (Unreachable (`Node node)) else m
       in
 
+      let before v = List.fold_left 
+                       (fun x y -> L.cap x (markup y))
+                       L.bottom
+                       (G.pred v) 
+
+(*
       let before v =
         let rec fold before preds =
           match preds with
@@ -66,19 +74,20 @@ module Forward (AV : AlgView.Sig) =
             fold (L.cap before (markup h)) t
         in
         fold L.bottom (G.pred v)
+  *)    
+
       in
-      
+
       let rec traverse = function
         | [] -> { markup = markup }
         | v :: t ->
           let after = PV.flow v (before v) in
-          if after != (markup v) then 
-            begin
-              Urray.set marking (G.Node.index v) after;
-              traverse ((G.succ v) @ t)
-            end
-          else
+          if L.equal after (markup v) then (
             traverse t
+          ) else (
+            Urray.set marking (G.Node.index v) after;
+            traverse ((G.succ v) @ t)
+          )
       in
       traverse [G.start]
  

@@ -19,10 +19,13 @@
 (**  *)
 module type Sig =
   sig
+
     module G : CFG.Sig
+
     module L : Semilattice.Sig
 
     exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+
     exception RangeError  of int
 
     val analyse : G.t -> G.Node.t -> L.t

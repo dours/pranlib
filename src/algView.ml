@@ -32,7 +32,7 @@ module type Sig =
   end
 
 
-module TestMake (VA : ViewAdapter.Sig) =
+module RDMake (VA : ViewAdapter.Sig) =
   struct
      
     type nt = VA.nt

@@ -33,6 +33,8 @@ module type Sig =
     (** The bottom element of the semilattice *)
     val bottom : t
 
+    val equal : t -> t -> bool
+
   end
 
 module TestMake : Sig with type t = string
