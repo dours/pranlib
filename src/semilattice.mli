@@ -37,4 +37,8 @@ module type Sig =
 
   end
 
-module TestMake : Sig with type t = string
+(** Richable defenitions semilattice. Bit vectors implementation. *)
+module BitvRDMake : Sig
+
+
+

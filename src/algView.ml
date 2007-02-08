@@ -18,32 +18,27 @@
 module type Sig =
   sig
     
-    (** Node representation for the particular algorithm *)
-    type nt
-    
     module L : Semilattice.Sig
    
-    module VA : ViewAdapter.Sig with type nt = nt
+    module VA : ViewAdapter.Sig 
  
-    val flow : nt -> (L.t -> L.t)
+    val flow : VA.nt -> (L.t -> L.t)
 
-    val init : nt -> L.t
+    val init : VA.nt -> L.t
 
   end
 
 
 module RDMake (VA : ViewAdapter.Sig) =
   struct
-     
-    type nt = VA.nt
     
     module VA = VA
 
-    module L = Semilattice.TestMake
+    module L = Semilattice.BitvRDMake
     
     let flow n = fun x -> x
 
-    let init n = ""    
+    let init n = L.bottom    
 
   end 
 

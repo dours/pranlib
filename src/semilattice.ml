@@ -25,11 +25,20 @@ module type Sig =
     val equal : t -> t -> bool
   end
 
-module TestMake = 
+module BitvRDMake = 
   struct
+
     type t = string
+
     let top = ""
+
     let bottom = ""
+
     let cap x y = ""
+
     let equal x y = true
+
   end
+
+
+

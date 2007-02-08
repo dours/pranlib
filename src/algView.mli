@@ -19,18 +19,15 @@
 module type Sig =
   sig
     
-    (** Node representation for the particular algorithm *)
-    type nt
-    
     module L : Semilattice.Sig
 
-    module VA : ViewAdapter.Sig with type nt = nt
+    module VA : ViewAdapter.Sig
  
-    val flow : nt -> (L.t -> L.t)
+    val flow : VA.nt -> (L.t -> L.t)
 
-    val init : nt -> L.t
+    val init : VA.nt -> L.t
 
   end
 
-module TestMake (VA : ViewAdapter.Sig) : Sig with type nt = VA.nt and module VA=VA
+module RDMake (VA : ViewAdapter.Sig) : Sig with module VA=VA
 
