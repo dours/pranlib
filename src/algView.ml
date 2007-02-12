@@ -15,30 +15,65 @@
  * (enclosed in the file COPYING).
  *)
 
+type rd_sl = Bitv.t
+
+type rd_node = {def : Bitv.t; kill : Bitv.t}
+
 module type Sig =
   sig
-    
-    module L : Semilattice.Sig
-   
-    module VA : ViewAdapter.Sig 
- 
-    val flow : VA.nt -> (L.t -> L.t)
+    type t
 
-    val init : VA.nt -> L.t
+    type sl_t
+
+    module L : Semilattice.Sig with type t = sl_t
+ 
+    val flow : t -> (sl_t -> sl_t)
+
+    val init : t -> sl_t
 
   end
 
 
-module RDMake (VA : ViewAdapter.Sig) =
+module CilToDefUseAdapter =
+  struct 
+      
+    type nt = rd_node list 
+
+    type gnt = string
+
+    let convert s = match s with 
+                    | "" -> [{def = Bitv.create 1 true; kill = Bitv.create 1 false}]
+                    | _ -> [{def = Bitv.create 1 true; kill = Bitv.create 1 false}]
+
+  end
+
+module BitvRDSemilattice = 
   struct
-    
-    module VA = VA
 
-    module L = Semilattice.BitvRDMake
-    
-    let flow n = fun x -> x
+    type t = rd_sl
 
-    let init n = L.bottom    
+    let top = Bitv.create 1 true
+
+    let bottom = Bitv.create 1 false
+
+    let cap x y = Bitv.bw_or x y
+
+    let equal x y = x = y
+
+  end
+
+module RDMake =
+  struct
+
+    type t = rd_node
+
+    type sl_t = rd_sl
+    
+    module L = BitvRDSemilattice
+    
+    let flow nd = fun x -> Bitv.bw_or (Bitv.bw_and x (Bitv.bw_not nd.kill)) nd.def
+
+    let init _ = L.bottom    
 
   end 
 

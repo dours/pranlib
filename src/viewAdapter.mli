@@ -19,14 +19,14 @@
 module type Sig =
   sig
     
-    (** Type of a node representation for the particular algorithm *)
+    (** Type of node representation for the particular algorithm *)
     type nt
-    
-    module G : CFG.Sig
 
-    val convert : G.Node.t -> nt
+    (** Type of statement of original program *)
+    type gnt
+    
+    val convert : gnt -> nt
 
   end
 
-module TestViewAdapter (G : CFG.Sig) : Sig with module G = G and type nt = string
  

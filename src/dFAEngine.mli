@@ -20,17 +20,14 @@
 module type Sig =
   sig
 
-    module G : CFG.Sig
+    module PV : ProgramView.Sig
 
-    module L : Semilattice.Sig
-
-    exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+    exception Unreachable of [ `Node of PV.G.Node.t | `Edge of PV.G.Edge.t ] 
 
     exception RangeError  of int
 
-    val analyse : G.t -> G.Node.t -> L.t
+    val analyse : PV.G.t -> PV.G.Node.t -> PV.AV.L.t
 
   end
 
-module Forward(AV : AlgView.Sig) : Sig with 
-  module G = AV.VA.G and module L = AV.L
+module Forward(PV : ProgramView.Sig) : Sig with module PV = PV

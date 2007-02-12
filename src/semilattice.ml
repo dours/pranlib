@@ -18,25 +18,19 @@
 module type Sig =
   sig
 
+    (** Type of semilattice element *)
     type t
+
+    (** Intrsection operation *)
     val cap : t -> t -> t
+
+    (** The top element of the semilattice *)
     val top : t
+
+    (** The bottom element of the semilattice *)
     val bottom : t
+
     val equal : t -> t -> bool
-  end
-
-module BitvRDMake = 
-  struct
-
-    type t = string
-
-    let top = ""
-
-    let bottom = ""
-
-    let cap x y = ""
-
-    let equal x y = true
 
   end
 

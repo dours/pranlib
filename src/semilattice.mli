@@ -37,8 +37,5 @@ module type Sig =
 
   end
 
-(** Richable defenitions semilattice. Bit vectors implementation. *)
-module BitvRDMake : Sig
-
 
 

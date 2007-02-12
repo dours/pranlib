@@ -15,19 +15,44 @@
  * (enclosed in the file COPYING).
  *)
 
-
+(** Representation of DFA flow function *)
 module type Sig =
   sig
-    
-    module L : Semilattice.Sig
+     
+    (** type of node *)
+    type t
 
-    module VA : ViewAdapter.Sig
+    type sl_t
+
+    module L : Semilattice.Sig with type t = sl_t
  
-    val flow : VA.nt -> (L.t -> L.t)
+    val flow : t -> (sl_t -> sl_t)
 
-    val init : VA.nt -> L.t
+    val init : t -> sl_t
 
   end
 
-module RDMake (VA : ViewAdapter.Sig) : Sig with module VA=VA
+type rd_sl = Bitv.t
+
+type rd_node = {def : Bitv.t; kill : Bitv.t}
+
+module CilToDefUseAdapter : ViewAdapter.Sig 
+         with type gnt = string and
+              type nt = rd_node list
+
+module BitvRDSemilattice : Semilattice.Sig 
+         with type t = rd_sl
+           
+module RDMake : Sig 
+         with type t = rd_node and
+              type sl_t = rd_sl
+                       
+
+
+
+
+
+
+
+
 

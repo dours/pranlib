@@ -15,35 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
-
-
-module type Sig =
-  sig
-    
-    (** Type of a node representation for the particular algorithm *)
-    type nt
-    
-    module G : CFG.Sig
-
-    val convert : G.Node.t -> nt
-
-  end
-
-module TestViewAdapter (G :CFG.Sig) =
-  struct 
-      
-    type nt = string 
-
-    module G = G
-
-    let convert n = ""
-  
-  end
-
-
-
-
-
+include ViewAdapter
 
 
 

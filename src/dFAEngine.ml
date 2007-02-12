@@ -14,33 +14,27 @@
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
-
 module type Sig =
-  sig                         
+  sig
 
-    module G : CFG.Sig
+    module PV : ProgramView.Sig
 
-    module L : Semilattice.Sig
-
-    exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+    exception Unreachable of [ `Node of PV.G.Node.t | `Edge of PV.G.Edge.t ] 
 
     exception RangeError  of int
 
-    val analyse : G.t -> G.Node.t -> L.t
+    val analyse : PV.G.t -> PV.G.Node.t -> PV.AV.L.t
 
   end
 
 
-module Forward (AV : AlgView.Sig) =
+
+module Forward (PV : ProgramView.Sig) =
   struct
+
+    module PV = PV
     
-    module PV = ProgramView.Make (AV)
-
-    module G = AV.VA.G
-
-    module L = AV.L
-
-    exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+    exception Unreachable of [ `Node of PV.G.Node.t | `Edge of PV.G.Edge.t ] 
 
     exception RangeError  of int
 
@@ -53,43 +47,28 @@ module Forward (AV : AlgView.Sig) =
 
     (* seems that following code is not completely correct =( *)
 
-      let marking = Urray.make (G.nnodes g) L.bottom in
+      let marking = Urray.make (PV.G.nnodes g) PV.AV.L.bottom in
  
       let markup node =
-        let m = Urray.get marking (G.Node.index node) in
-        if m = L.bottom then raise (Unreachable (`Node node)) else m
+        let m = Urray.get marking (PV.G.Node.index node) in
+        if m = PV.AV.L.bottom then raise (Unreachable (`Node node)) else m
       in
-
       let before v = List.fold_left 
-                       (fun x y -> L.cap x (markup y))
-                       L.bottom
-                       (G.pred v) 
-
-(*
-      let before v =
-        let rec fold before preds =
-          match preds with
-          | [] -> before
-          | h :: t ->
-            fold (L.cap before (markup h)) t
-        in
-        fold L.bottom (G.pred v)
-  *)    
-
-      in
-
+                       (fun x y -> PV.AV.L.cap x (markup y))
+                       PV.AV.L.bottom
+                       (PV.G.pred v) in
       let rec traverse = function
         | [] -> { markup = markup }
         | v :: t ->
           let after = PV.flow v (before v) in
-          if L.equal after (markup v) then (
+          if PV.AV.L.equal after (markup v) then (
             traverse t
           ) else (
-            Urray.set marking (G.Node.index v) after;
-            traverse ((G.succ v) @ t)
+            Urray.set marking (PV.G.Node.index v) after;
+            traverse ((PV.G.succ v) @ t)
           )
       in
-      traverse [G.start]
+      traverse [PV.G.start]
  
     let data g = lazy (dfa g)
 

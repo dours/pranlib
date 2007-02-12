@@ -15,12 +15,36 @@
  * (enclosed in the file COPYING).
  *)
 
+module type Sig =
+  sig
 
-module Make (AV : AlgView.Sig) =
+    module AV : AlgView.Sig 
+
+    module VA : ViewAdapter.Sig with type nt = AV.t 
+
+    module G : CFG.Sig with type Node.info = VA.gnt
+
+    (** [flow node] returns the flow function associated with the given node *)
+    val flow : G.Node.t -> (AV.L.t -> AV.L.t)
+
+    (** [init node] returns initial semilattice element associated with the given node *)
+    val init : G.Node.t -> AV.L.t
+
+  end  
+
+module Make (AV : AlgView.Sig) 
+            (VA : ViewAdapter.Sig with type nt = AV.t) 
+            (G : CFG.Sig with type Node.info = VA.gnt) =
   struct
  
-    let flow n = AV.flow (AV.VA.convert n) 
+    module AV = AV 
 
-    let init n =  AV.init (AV.VA.convert n)
+    module VA = VA 
+
+    module G = G
+
+    let flow n = AV.flow (VA.convert (G.Node.info n)) 
+
+    let init n =  AV.init (VA.convert (G.Node.info n))
               
   end
