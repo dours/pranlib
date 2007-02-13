@@ -38,7 +38,7 @@ type rd_node = {def : Bitv.t; kill : Bitv.t}
 
 module CilToDefUseAdapter : ViewAdapter.Sig 
          with type gnt = string and
-              type nt = rd_node list
+              type nt = rd_node
 
 module BitvRDSemilattice : Semilattice.Sig 
          with type t = rd_sl

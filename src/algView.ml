@@ -37,13 +37,13 @@ module type Sig =
 module CilToDefUseAdapter =
   struct 
       
-    type nt = rd_node list 
+    type nt = rd_node 
 
     type gnt = string
 
     let convert s = match s with 
-                    | "" -> [{def = Bitv.create 1 true; kill = Bitv.create 1 false}]
-                    | _ -> [{def = Bitv.create 1 true; kill = Bitv.create 1 false}]
+                    | "" -> {def = Bitv.create 1 true; kill = Bitv.create 1 false}
+                    | _ -> {def = Bitv.create 1 true; kill = Bitv.create 1 false}
 
   end
 
