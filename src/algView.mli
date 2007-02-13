@@ -32,9 +32,9 @@ module type Sig =
 
   end
 
-type rd_sl = Bitv.t
+type rd_sl
 
-type rd_node = {def : Bitv.t; kill : Bitv.t}
+type rd_node 
 
 module CilToDefUseAdapter : ViewAdapter.Sig 
          with type gnt = string and

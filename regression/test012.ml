@@ -15,11 +15,13 @@
  * (enclosed in the file COPYING).
  *)
 let _ =  
-  let x = Bitv.create 12 true in
+  let x = Bvect.create 12 true in
   let module X = struct type t = string let toString x = x end in
   let module GG = Digraph.Make (X) (X) in
   let g = GG.create () in
   let g, a = GG.insertNode g "a" in
   let module CFG = CFG.Make (GG) (struct let graph = g let start = a end) in
-  let module RDMD = ProgramView.Make (AlgView.RDMake) (AlgView.CilToDefUseAdapter) (CFG) in
+  let module RD = ProgramView.Make (AlgView.RDMake) (AlgView.CilToDefUseAdapter) (CFG) in
+  let module E = DFAEngine.Forward (RD) in
+  E.
   ()

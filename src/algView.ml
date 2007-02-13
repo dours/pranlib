@@ -15,9 +15,9 @@
  * (enclosed in the file COPYING).
  *)
 
-type rd_sl = Bitv.t
+type rd_sl = Bvect.t
 
-type rd_node = {def : Bitv.t; kill : Bitv.t}
+type rd_node = {def : Bvect.t; kill : Bvect.t}
 
 module type Sig =
   sig
@@ -42,8 +42,8 @@ module CilToDefUseAdapter =
     type gnt = string
 
     let convert s = match s with 
-                    | "" -> {def = Bitv.create 1 true; kill = Bitv.create 1 false}
-                    | _ -> {def = Bitv.create 1 true; kill = Bitv.create 1 false}
+                    | "" -> {def = Bvect.create 1 true; kill = Bvect.create 1 false}
+                    | _ -> {def = Bvect.create 1 true; kill = Bvect.create 1 false}
 
   end
 
@@ -52,11 +52,11 @@ module BitvRDSemilattice =
 
     type t = rd_sl
 
-    let top = Bitv.create 1 true
+    let top = Bvect.create 1 true
 
-    let bottom = Bitv.create 1 false
+    let bottom = Bvect.create 1 false
 
-    let cap x y = Bitv.bw_or x y
+    let cap x y = Bvect.bw_or x y
 
     let equal x y = x = y
 
@@ -71,7 +71,7 @@ module RDMake =
     
     module L = BitvRDSemilattice
     
-    let flow nd = fun x -> Bitv.bw_or (Bitv.bw_and x (Bitv.bw_not nd.kill)) nd.def
+    let flow nd = fun x -> Bvect.bw_or (Bvect.bw_and x (Bvect.bw_not nd.kill)) nd.def
 
     let init _ = L.bottom    
 
