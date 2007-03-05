@@ -14,9 +14,16 @@
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
+module type Sig =
+  sig
+    
+    (** Type of node representation for the particular algorithm *)
+    type nt
 
-include ViewAdapter
+    (** Type of statement of original program *)
+    type gnt
+    
+    val convert : gnt -> nt
 
+  end
 
-
- 

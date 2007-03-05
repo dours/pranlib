@@ -20,6 +20,7 @@ open Printf
 open List
 
 module Make (D: Dominance.Sig) =
+
   struct
 
     module T = D.T
@@ -28,104 +29,96 @@ module Make (D: Dominance.Sig) =
     let graph = T.graph
     let start = T.start
 
-    module Region =
+    module Region =  
       struct
+ 
+        module R = Region.Make (G) (T.Post)
 
-	module R = Region.Make (G) (T.Post)
+        module SCS =
+          struct
 
-	module SCS =
-	  struct
-	    
             let all = 
+              let init i = 
+                if T.isValid i then (
+                lazy (snd (R.build (T.Post.node i)) )
+                   ) else (
+                    lazy R.NodeSet.empty
+                   ) in
               lazy (
-              Urray.init (G.nnodes graph) 
-		(fun i -> 
-		  if T.isValid i 
-		  then lazy (snd (R.build (T.Post.node i)) )
-		  else lazy R.NodeSet.empty
-		)
-             )
-		
-            let get node = Lazy.force (Urray.get (Lazy.force all) (T.Post.number node))
-		
-	  end
-        
-	module SCC =
-	  struct
+                Urray.init (G.nnodes graph) init
+            )
+                
+            let get node = 
+              Lazy.force (Urray.get (Lazy.force all) (T.Post.number node))
+
+          end
+          
+        module SCC =
+          struct
 
             let build () =
               let n = G.nnodes graph in
               let rec traverse i visited sccs =
-		LOG (Printf.fprintf stderr "Traversing N=%d\n" i);
-		if i = n 
-		then sccs
-		else 
-		  let node = T.Post.node i in
-		  if not (R.NodeSet.mem node visited) 
-		  then begin
-		    LOG (Printf.fprintf stderr "  Building region for %d\n" i);
-		    let scc = snd (R.build node) in
-		    traverse (i+1) (R.NodeSet.union visited scc) ((node, scc) :: sccs)
-		  end
-		  else traverse (i+1) visited sccs
-              in
+                LOG (Printf.fprintf stderr "Traversing N=%d\n" i);
+                if i = n then
+                  sccs
+                else ( 
+                  let node = T.Post.node i in
+                  if not (R.NodeSet.mem node visited) then (
+                    LOG (Printf.fprintf stderr "  Building region for %d\n" i);
+                    let scc = snd (R.build node) in
+                    traverse 
+                      (i+1)
+                      (R.NodeSet.union visited scc) 
+                      ((node, scc) :: sccs)
+                  ) else (
+                    traverse (i+1) visited sccs
+                  ) 
+                ) in
               traverse 0 R.NodeSet.empty []
-		
+                    
             let data = lazy (build ())
-		
+                    
             let get () = Lazy.force data
-		
-	  end
-
+                    
+          end
+            
       end
+  end
+
+  module NestedLoops = 
+    struct 
+      
+      
+      
+    end
+
+
 
 (*
-    module UFS = Unionfind.Make (G.Node) 
-    module UFSI = Unionfind.Make 
-     (
-      struct 
-
-    type t = int 
-
-    let equal   x y = x = y 
-    let compare x y = x - y 
-    let hash        = Hashtbl.hash 
-
-      end
-     )
-
     module HSHND = Hashtbl.Make(G.Node)
     module HSHEG = Hashtbl.Make(G.Edge)
-    
-    let collapse uf li body header =
-      LOG (printf "collapse: %s\n" (G.Node.toString header));
-      HSHND.iter 
-    (fun x y -> 
-      LOG (printf "    with: %s\n" (G.Node.toString x)); 
-      UFS.union header x uf; 
-      HSHND.add li x header
-    )
-    body
 
+    let collapse uf li body header =
+      HSHND.iter (fun x y -> UFS.union header x uf; HSHND.add li x header ) body
+    
     let find_loop uf li hdr = 
       let loop_body = HSHND.create 10 in
       let worklist = 
-    (fun lst fi fu ->
+        let lst_fun lst fi fu =          
           let t = HSHND.create 9 in
+          let included x = (HSHND.mem t fuh) in
           List.iter 
-        (fun curr -> 
-              let fuh = fu curr in
-              if fi fuh && not (HSHND.mem t fuh) then HSHND.add t fuh fuh
-        ) 
-        lst; 
-      t 
-    )
-        (List.filter 
-       (fun x -> T.sort x = DFST.Back) 
-           (G.ins hdr)
-    )
-        (fun y -> not (G.Node.equal y hdr))
-        (fun x -> UFS.find (G.src x) uf) 
+            (fun cur -> 
+              let cur = fu curr in
+              if fi cur && not included then HSHND.add t cur cur ) 
+            lst; 
+          t in 
+       let front_list = 
+         List.filter (fun x -> T.sort x = DFST.Back) (G.ins hdr) in
+       lst_fun front_list
+         (fun y -> not (G.Node.equal y hdr))
+         (fun x -> UFS.find (G.src x) uf) 
       in 
       let rec iter_front wl =   
     if HSHND.length wl > 0 
@@ -151,6 +144,9 @@ module Make (D: Dominance.Sig) =
       in
       iter_front worklist; 
       if HSHND.length loop_body > 0 then collapse uf li loop_body hdr
+  *)    
+      
+(*
 
     module Havlak =
       struct
@@ -428,7 +424,6 @@ module Make (D: Dominance.Sig) =
 
       end 
 *)
-  end
 
 
 

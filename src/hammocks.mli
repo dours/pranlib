@@ -18,7 +18,7 @@
 (** {1 Hammock hierarchy construction } *)
 
 (** General constructor *)
-
+ 
 module Make (T : DFST.Sig) :
   sig
       

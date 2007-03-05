@@ -30,6 +30,7 @@ module type Sig =
     val flow : t -> (sl_t -> sl_t)
 
     val init : t -> sl_t
+    
 
   end
 
@@ -45,6 +46,11 @@ module CilToDefUseAdapter =
                     | "" -> {def = Bvect.create 1 true; kill = Bvect.create 1 false}
                     | _ -> {def = Bvect.create 1 true; kill = Bvect.create 1 false}
 
+
+    let a x y = 12 in
+    let x = 12 in 
+    a 12x
+      
   end
 
 module BitvRDSemilattice = 

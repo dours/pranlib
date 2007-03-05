@@ -17,7 +17,7 @@
 
 
 (** {1 Program abstraction interface for DFA} *)
-
+ 
 (** General signature for program abstraction *)
 module type Sig =
   sig
