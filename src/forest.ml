@@ -8,11 +8,13 @@ sig
 
     val create : unit -> t
      
-    val join : t -> node_type -> node_type -> t
+    val join : t -> node_type -> node_type ->unit
 
     val root : t -> node_type -> node_type
     
-    val parent : t -> node_type -> node_type    
+    val parent : t -> node_type -> node_type option 
+
+    val toString : t -> string
 
 end 
 
@@ -45,20 +47,35 @@ struct
       let set = Urray.set nodes in   
       let leaf_id = O.number leaf in 
       let parent_id = O.number parent in
-      set leaf_id (parent_id, findRoot nodes parent_id) ;
-      nodes
+      let root_id = findRoot nodes parent_id in
+      set leaf_id (parent_id, root_id)
 
-    let root nodes leaf = O.node (findRoot nodes (O.number leaf))
+    let root nodes leaf = 
+      O.node (findRoot nodes (O.number leaf))
+       
     
     let parent nodes leaf = 
       let get = Urray.get nodes in
       let leaf_id = O.number leaf in
       let (leaf_parent, leaf_root) = get leaf_id in
       if (leaf_parent = -1) then (
-        leaf
+        None
       ) else (
-        O.node leaf_parent
+        Some (O.node leaf_parent)
       )
+
+    let toString nodes = 
+      let rec nodesList i =
+        let (a,b) = (Urray.get nodes i) in
+        let s = Printf.sprintf "(%i, %i)" a b in
+        if i = (Urray.length nodes) - 1 then
+          [s]
+        else
+          s::(nodesList (i+1)) in
+      String.concat "\n" (nodesList 0)
+          
+          
+      
 
 end
 

@@ -1,27 +1,22 @@
-(*
- * Test003: testing dominance tree construction.
- * Copyright (C) 2006
- * Dmitri Boulytchev, St.Petersburg State University
- * 
- * This software is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License version 2, as published by the Free Software Foundation.
- * 
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * 
- * See the GNU Library General Public License version 2 for more details
- * (enclosed in the file COPYING).
- *)
-let _ =  
-  let x = Bvect.create 12 true in
-  let module X = struct type t = string let toString x = x end in
-  let module GG = Digraph.Make (X) (X) in
-  let g = GG.create () in
-  let g, a = GG.insertNode g "a" in
-  let module CFG = CFG.Make (GG) (struct let graph = g let start = a end) in
-  let module RD = ProgramView.Make (AlgView.RDMake) (AlgView.CilToDefUseAdapter) (CFG) in
-  let module E = DFAEngine.Forward (RD) in
-  E.
-  ()
+
+module G = Digraph.Make (struct type t = string let toString x = x end) (struct type t = unit let toString _ = "" end) 
+
+let _ = 
+  let g = G.create () in
+  let g, n1 = G.insertNode g "1" in
+  let g, n2 = G.insertNode g "2" in
+  let g, n3 = G.insertNode g "3" in
+
+  let g, _ = G.insertEdge g n1 n2 () in
+  let g, _ = G.insertEdge g n2 n3 () in
+  let g, _ = G.insertEdge g n2 n1 () in
+  let g, _ = G.insertEdge g n3 n2 () in
+
+  let module L = 
+    Loops.NestedLoops 
+      (DFST.Make (CFG.Make (G) (struct let graph = g let start = n1 end))) in
+  let l = L.buildLoops () in
+    Printf.printf "%s" (L.LOOPS.toString l)
+    
+
+

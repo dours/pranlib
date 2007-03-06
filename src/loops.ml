@@ -86,13 +86,64 @@ module Make (D: Dominance.Sig) =
       end
   end
 
-  module NestedLoops = 
+
+  module NestedLoops (T : DFST.Sig) = 
     struct 
       
+      module G = T.G
       
-      
-    end
+      module PRE = T.Pre
 
+      module POST = T.Post
+
+      module LOOPS = Forest.Make (G) (PRE)
+      
+      let buildLoops () =
+        let loops = LOOPS.create () in
+        let g = G.graph in
+        let n2i = PRE.number in
+        let i2n = PRE.node in
+        let n2ip = POST.number in
+        let i2np = POST.node in
+        let findLoop headPre =
+          let head = i2n headPre in 
+          let headPost = n2ip head in
+          let frontList = 
+            List.map 
+              (fun e -> G.src e) 
+              (List.filter (fun x -> T.sort x = DFST.Back) (G.ins head)) in
+          let rec buildBody = function
+            | [] -> ()
+            | hd::tl ->
+              LOOPS.join loops hd head;
+              let predsFilter pred =
+                let pred = LOOPS.root loops pred in
+                let predPre = n2i pred in
+                let predPost = n2ip pred in
+                predPre > headPre && predPost > headPost in
+              let preds = List.filter 
+                            (predsFilter) 
+                            (List.map (fun e -> G.src e) (G.ins hd)) in
+              let frontList = 
+                List.fold_left 
+                  (fun tl pred -> 
+                     if LOOPS.root loops pred = head then (
+                       tl
+                     ) else (
+                       pred::tl
+                     )) tl preds in
+              buildBody frontList
+          in
+          buildBody frontList
+        in 
+        for headPre = (G.nnodes g) - 1 downto 0 
+        do
+          findLoop headPre
+        done;
+        loops
+        
+    end
+ 
 
 
 (*
@@ -153,8 +204,7 @@ module Make (D: Dominance.Sig) =
 
     let build () =
       let uf = UFS.init (G.nodes g) in
-      let li = HSHND.create (G.nnodes g) in
-      
+      let li = HSHND.create (G.nnodes g) in      
       for i = (G.nnodes g) - 1 downto 0 
       do
         find_loop uf li (T.pre'1 i)
@@ -433,7 +483,7 @@ module Make (D: Dominance.Sig) =
 
 
 
-
+let a = 1 in ()
 
 
 

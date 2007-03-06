@@ -67,6 +67,15 @@ module Make (D: Dominance.Sig) :
   end
 
 
+module NestedLoops (T : DFST.Sig) : 
+sig 
+
+  module LOOPS : Forest.Sig
+      
+  val buildLoops : unit -> LOOPS.t
+
+end
+ 
 
 
 
