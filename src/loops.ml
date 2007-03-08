@@ -114,24 +114,23 @@ module Make (D: Dominance.Sig) =
               (List.filter (fun x -> T.sort x = DFST.Back) (G.ins head)) in
           let rec buildBody = function
             | [] -> ()
-            | hd::tl ->
+            | hd::tl ->                        
               LOOPS.join loops hd head;
               let predsFilter pred =
                 let pred = LOOPS.root loops pred in
                 let predPre = n2i pred in
                 let predPost = n2ip pred in
                 predPre > headPre && predPost > headPost in
-              let preds = List.filter 
-                            (predsFilter) 
-                            (List.map (fun e -> G.src e) (G.ins hd)) in
+              let preds = (List.map (fun e -> G.src e) (G.ins hd)) in
               let frontList = 
                 List.fold_left 
-                  (fun tl pred -> 
-                     if LOOPS.root loops pred = head then (
+                  (fun tl pred ->                          
+                     if not (predsFilter pred) then (                       
                        tl
-                     ) else (
-                       pred::tl
-                     )) tl preds in
+                     ) else (                      
+                       (LOOPS.root loops pred)::tl
+                     )
+                  ) tl preds in
               buildBody frontList
           in
           buildBody frontList

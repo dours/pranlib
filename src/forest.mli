@@ -21,6 +21,7 @@ sig
     
 end 
 
-module Make (G : CFG.Sig ) (O : Order.Sig with type G.Node.t = G.Node.t): Sig 
-      with type node_type = G.Node.t  
+module Make (G : CFG.Sig ) (O : Order.Sig with module G = G): Sig 
+      with type node_type = G.Node.t
+
            

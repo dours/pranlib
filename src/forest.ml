@@ -34,26 +34,27 @@ struct
     let findRoot nodes el_id =
       let rec root el_id rewrite = 
         let (el_parent, el_root) = Urray.get nodes el_id in 
-        if el_root = -1 then (
+        if el_root = -1 then
           el_id
-        ) else (
+        else (
           let root = root el_root true in
           if rewrite then Urray.set nodes el_id (el_parent, root);
           root
         ) in
       root el_id false
-      
+
     let join nodes leaf parent =
       let set = Urray.set nodes in   
+      let get = Urray.get nodes in   
       let leaf_id = O.number leaf in 
       let parent_id = O.number parent in
-      let root_id = findRoot nodes parent_id in
-      set leaf_id (parent_id, root_id)
+      let parent_root_id = findRoot nodes parent_id in
+      let leaf_id = findRoot nodes leaf_id in
+      set leaf_id (parent_id, parent_root_id)
 
     let root nodes leaf = 
       O.node (findRoot nodes (O.number leaf))
-       
-    
+
     let parent nodes leaf = 
       let get = Urray.get nodes in
       let leaf_id = O.number leaf in
@@ -67,12 +68,20 @@ struct
     let toString nodes = 
       let rec nodesList i =
         let (a,b) = (Urray.get nodes i) in
-        let s = Printf.sprintf "(%i, %i)" a b in
+        let b = findRoot nodes i in
+        let parent = 
+          if a >= 0 then
+            O.G.Node.toString (O.node a)
+          else 
+            "no parent" in
+        let root = O.G.Node.toString (O.node b) in
+        let this = O.G.Node.toString (O.node i) in
+        let s = Printf.sprintf "%s: (parent:%s, root:%s)\n" this parent root in
         if i = (Urray.length nodes) - 1 then
           [s]
         else
           s::(nodesList (i+1)) in
-      String.concat "\n" (nodesList 0)
+      String.concat "" (nodesList 0)
           
           
       
