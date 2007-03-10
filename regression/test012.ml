@@ -1,4 +1,3 @@
-
 module G = Digraph.Make (struct type t = string let toString x = x end) (struct type t = unit let toString _ = "" end) 
 
 let _ = 
@@ -26,7 +25,23 @@ let _ =
     Loops.NestedLoops 
       (DFST.Make (CFG.Make (G) (struct let graph = g let start = n1 end))) in
   let l = L.buildLoops () in
-    Printf.printf "%s" (L.LOOPS.toString l)
+  let tree = L.LOOPS.Tree.create l in 
+    Printf.printf "%s" (L.LOOPS.toString l);
+    L.LOOPS.Tree.print tree
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

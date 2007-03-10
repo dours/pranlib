@@ -19,6 +19,17 @@ sig
 
     val toString : t -> string
     
+    module Tree :
+    sig
+      
+      type treeEl
+      
+      val create : t -> treeEl list
+      
+      val print : treeEl list -> unit 
+       
+    end
+    
 end 
 
 module Make (G : CFG.Sig ) (O : Order.Sig with module G = G): Sig 
