@@ -16,13 +16,21 @@ sig
 
     val toString : t -> string
     
+    (** This module provides top-to-down tree view *)
     module Tree :
     sig
       
-      type treeEl
+      (** Type of element of this view of the forest *)
+      type treeEl = Node of node_type 
+                   | Head of node_type * (treeEl list)
       
+      (** Creates top-to-down view of the forset *)
       val create : t -> treeEl list
       
+      (** dotty clusterded representation *)
+      val toDOT : treeEl list -> string 
+      
+      (** Traces forest *)
       val print : treeEl list -> unit 
        
     end
@@ -97,6 +105,27 @@ struct
      
        type treeEl = Node of node_type 
                    | Head of node_type * (treeEl list)
+
+
+       let clusters roots = 
+         let rec tree2dot roots = 
+           let process (els,hds) root =
+             match root with 
+             | Node nd -> 
+               Printf.printf "node to leafs:%s\n" (G.Node.toString nd);
+               (nd::els, hds)             
+             | Head (nd, loops) -> 
+               Printf.printf "node to roots:%s\n" (G.Node.toString nd);
+               (els, (tree2dot loops)::hds)
+             in         
+           let (els, hds) = List.fold_left (process) ([],[]) roots in
+           match hds with 
+           | [] -> G.DOT.Clusters.Leaf els
+           | _ -> G.DOT.Clusters.Node (els, hds) in
+         tree2dot roots         
+        
+       let toDOT roots =  
+         G.Clustered.toDOT (G.graph) (clusters roots)
         
        let create nodes =   
          let length = (G.nnodes G.graph) in         
@@ -139,8 +168,6 @@ struct
          in
          toString roots 0    
          
-       
-       
      
     end
           

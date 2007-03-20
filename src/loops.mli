@@ -38,40 +38,44 @@ module Make (D: Dominance.Sig) :
     module Region :
       sig
 
-	module R : Region.Sig with module G = G and module F = T.Post
-		
+        module R : Region.Sig with module G = G and module F = T.Post
+                
         (** Strongly connected subgraphs formed by region by postorder *)
-	module SCS :
-	  sig
+        module SCS :
+          sig
 
-	    (** [get node] returns the list of nodes which form a region for the [node]. 
-	        This set of nodes is strongly connected 
-	     *)
-	    val get : G.Node.t -> R.NodeSet.t
-	
-	  end
-	    
+            (** [get node] returns the list of nodes which form a region for the [node]. 
+                This set of nodes is strongly connected 
+             *)
+            val get : G.Node.t -> R.NodeSet.t
+        
+          end
+            
         (** Strongly connected components *)
-	module SCC :
-	  sig
-	  			
+        module SCC :
+          sig
+                                
             (** Gets all strongly connected components and their bivertices.
-		Bivertex is the vertex whose region is a strongly connected component 
-	     *)
-	    val get : unit -> (G.Node.t * R.NodeSet.t) list
-		
-	  end
-	    
+                Bivertex is the vertex whose region is a strongly connected component 
+             *)
+            val get : unit -> (G.Node.t * R.NodeSet.t) list
+                
+          end
+            
       end
 
   end
 
 
+
+(** Havlak nested loops *)
 module NestedLoops (T : DFST.Sig) : 
 sig 
 
+  (** Nested loops forest. Inner nodes of forest are loop headers. *)
   module LOOPS : Forest.Sig
       
+  (** Creates nested loops forest. *)
   val buildLoops : unit -> LOOPS.t
 
 end
