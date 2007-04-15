@@ -47,7 +47,7 @@ dnl check for compiler module
 dnl usage:
 dnl library name, modules to open,
 dnl 1st dir <space> 2nd dir <space> etc., library homepage.
-AC_CHECK_OCAML_MODULE(graph, Graph.Flow, ../graph, http://www.lri.fr/~filliatr/ocamlgraph/)
+AC_CHECK_OCAML_MODULE(ocamlgraph, Graph.Flow, ../graph, http://www.lri.fr/~filliatr/ocamlgraph/)
 AC_CHECK_OCAML_MODULE(typeutil, View, ../typeutil/src, http://oops.tepkom.ru/projects/typeutil/)
 dnl more module checks
 dnl AC_CHECK_OCAML_MODULE(libname, Module1 Module2, ../libdir, http://www.example.com/libname)
