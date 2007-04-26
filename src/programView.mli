@@ -22,10 +22,15 @@
 module type Sig =
   sig
 
+    (** Algorithm view --- semilattice, flow functions and initial labeling *)
     module AV : AlgView.Sig 
 
+    (** View adapter --- a convertor from concrete node representation into 
+        abstract node representation
+     *)
     module VA : ViewAdapter.Sig with type nt = AV.t 
 
+    (** Control flow graph to analyze *)
     module G : CFG.Sig with type Node.info = VA.gnt
 
     (** [flow node] returns the flow function associated with the given node *)
@@ -36,10 +41,14 @@ module type Sig =
 
   end  
     
-module Make (AV : AlgView.Sig) 
-            (VA : ViewAdapter.Sig with type nt = AV.t) 
-            (G : CFG.Sig with type Node.info = VA.gnt) : Sig with
-       module AV = AV and
-       module VA = VA and
-       module G = G
+(** Constructor: creates ProgramView for given AlgorithmView, ViewAdapter and 
+    Control Flow Graph
+  *)
+module Make 
+    (AV : AlgView.Sig) 
+    (VA : ViewAdapter.Sig with type nt = AV.t) 
+    (G  : CFG.Sig with type Node.info = VA.gnt) : Sig with
+  module AV = AV and
+  module VA = VA and
+  module G  = G
     

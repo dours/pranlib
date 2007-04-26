@@ -15,16 +15,16 @@
  * (enclosed in the file COPYING).
  *)
 
-(** {1 General semilattice representation} *)
+(** General semilattice representation *)
 
-(** General signature for semilattice *)
-module type Sig =
+(** Basic signature for semilattice *)
+module type Base =
   sig
 
     (** Type of semilattice element *)
     type t
 
-    (** Intrsection operation *)
+    (** Intersection operation *)
     val cap : t -> t -> t
 
     (** The top element of the semilattice *)
@@ -33,9 +33,43 @@ module type Sig =
     (** The bottom element of the semilattice *)
     val bottom : t
 
+    (** Equality function *)
     val equal : t -> t -> bool
 
   end
+
+(** Main semilattice signature *)
+module type Sig =
+  sig
+    
+    include Base
+
+    (** Partial compare function; raises [Invalid_argument "Semilattice.compare"]
+        when called for uncomparable elements
+     *)
+    val compare : t -> t -> int
+
+    (** Tests comparability of elements *)
+    val comparable : t -> t -> bool
+
+    (** {3 Comparison synonyms} *)
+
+    (** Greater *)
+    val gt : t -> t -> bool
+ 
+    (** Greater or equal *)
+    val ge : t -> t -> bool
+
+    (** Less *)
+    val lt : t -> t -> bool
+
+    (** Less or equal *)
+    val le : t -> t -> bool    
+
+  end
+
+(** Instantiation functor *)
+module Make (X : Base) : Sig with type t = X.t
 
 
 

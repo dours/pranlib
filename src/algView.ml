@@ -15,76 +15,27 @@
  * (enclosed in the file COPYING).
  *)
 
-type rd_sl = Bvect.t
+(** Algorithm view defines data-flow environment: semilattice, flow functions and
+    initial graph labeling
+  *)
 
-type rd_node = {def : Bvect.t; kill : Bvect.t}
-
+(** AlgView signature *)
 module type Sig =
   sig
+
+    (** Type of control flow graph node *)
     type t
 
-    type sl_t
-
-    module L : Semilattice.Sig with type t = sl_t
+    (** Semilattice module *)
+    module L : Semilattice.Sig
  
-    val flow : t -> (sl_t -> sl_t)
+    (** Node flow function *)    
+    val flow : t -> (L.t -> L.t)
 
-    val init : t -> sl_t
-    
-
-  end
-
-
-module CilToDefUseAdapter =
-  struct 
-      
-    type nt = rd_node 
-
-    type gnt = string
-
-    let convert s = match s with 
-                    | "" -> {def = Bvect.create 1 true; kill = Bvect.create 1 false}
-                    | _ -> {def = Bvect.create 1 true; kill = Bvect.create 1 false}
-
-
-    let a x y = 12 in
-    let x = 12 in 
-    a 12x
-      
-  end
-
-module BitvRDSemilattice = 
-  struct
-
-    type t = rd_sl
-
-    let top = Bvect.create 1 true
-
-    let bottom = Bvect.create 1 false
-
-    let cap x y = Bvect.bw_or x y
-
-    let equal x y = x = y
+    (** Initial value for node *)
+    val init : t -> L.t    
 
   end
-
-module RDMake =
-  struct
-
-    type t = rd_node
-
-    type sl_t = rd_sl
-    
-    module L = BitvRDSemilattice
-    
-    let flow nd = fun x -> Bvect.bw_or (Bvect.bw_and x (Bvect.bw_not nd.kill)) nd.def
-
-    let init _ = L.bottom    
-
-  end 
-
-
-
 
 
 

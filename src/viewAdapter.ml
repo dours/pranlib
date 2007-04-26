@@ -14,15 +14,22 @@
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
+
+(** ViewAdapter --- a common signature to translate concrete representation of
+    program statements into DFA representation. See DFAEngine for details.
+ *)
+
+(** ViewAdapter signature *)
 module type Sig =
   sig
     
     (** Type of node representation for the particular algorithm *)
     type nt
 
-    (** Type of statement of original program *)
+    (** Type for statements of original program *)
     type gnt
     
+    (** Conversion function *)
     val convert : gnt -> nt
 
   end
