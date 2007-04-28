@@ -14,6 +14,9 @@ val get : 'a t -> int -> 'a
 (** Sets array element *)
 val set : 'a t -> int -> 'a -> unit
 
+(** Create empty array *)
+val empty : unit -> 'a t
+
 (** Makes array (see Array.make for details) *)
 val make : int -> 'a -> 'a t
 

@@ -4,9 +4,9 @@ let bs = Sys.max_array_length
 
 let index i = i / bs, i mod bs
 
-let length a =
+let length a =  
   let i = Array.length a in
-  (i-1) * bs + (Array.length a.(i-1))
+  if i = 0 then 0 else (i-1) * bs + (Array.length a.(i-1))
 
 let get a i = 
   let i, j = index i in
@@ -15,6 +15,8 @@ let get a i =
 let set a i x =
   let i, j = index i in
   a.(i).(j) <- x
+
+let empty () = [||]
 
 let make size x =
   let i, j = index size in

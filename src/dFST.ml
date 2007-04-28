@@ -201,6 +201,7 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
 	    
         let number node  = pre node
         let node num     = pre'1 num
+	let last         = (G.nnodes G.graph) - 1
 	    
       end
 	
@@ -214,6 +215,7 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
 	    
         let number node  = post node
         let node num     = post'1 num
+	let last         = (G.nnodes G.graph) - 1
 	    
       end
 	

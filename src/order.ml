@@ -1,5 +1,5 @@
 (*
- * Order: Represents numeration for directed graphs.
+ * Order: Ordering For Control Flow Graphs.
  * Copyright (C) 2004-2006
  * Gennadiy Sych, St.Petersburg State University
  * 
@@ -17,15 +17,29 @@
 
 module type Sig =
   sig
-		
-    module G : Digraph.Sig
 
+    module G : CFG.Sig
+        
     exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+    exception RangeError of int
+
+    val last : int
+    val number : G.Node.t -> int
+    val node : int -> G.Node.t
+
+  end
+
+module Rev (X : Sig) =
+  struct
+
+    module G = X.G
 	
+    exception Unreachable of [ `Edge of G.Edge.t | `Node of G.Node.t ]
     exception RangeError of int
 	
-    val number : G.Node.t -> int
-	
-    val node : int -> G.Node.t
-	
+    let last        = X.last
+    let number node = last - (X.number node)
+    let node   num  = X.node (last - num)
+
   end
+      

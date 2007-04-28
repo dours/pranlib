@@ -55,15 +55,20 @@ module Make (T : DFST.Sig) =
             for j=0 to i-1 do set (getKiNode j) j done;
             
             let module R = Region.Make (G) 
-                (struct 
-                  exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
-                  exception RangeError  of int
-          
-                  module G = G 
-          
-                  let node   = getKiNode 
-                  let number = getKiNum 
-                end)
+                (
+		 struct 
+
+                   exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+                   exception RangeError  of int
+		       
+                   module G = G 
+		       
+                   let node   = getKiNode 
+                   let number = getKiNum 
+		   let last   = T.Pre.last
+
+                end
+		)
             in
 
             LOG (printf "Building region for K...\n");
@@ -132,8 +137,9 @@ module Make (T : DFST.Sig) =
       
         let data = lazy (build T.graph)
       
-        let number =  (fun node -> (Lazy.force data).number node)
-        let node   =  (fun num  -> (Lazy.force data).node num)
+        let number = (fun node -> (Lazy.force data).number node)
+        let node   = (fun num  -> (Lazy.force data).node num)
+	let last   = T.Pre.last
       
       end
 
@@ -170,15 +176,20 @@ module Make (T : DFST.Sig) =
             List.iter (fun x -> set x (getLiNum x)) (G.nodes graph);
 
             let module R = Region.Make (G) 
-                (struct 
-                  exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
-                  exception RangeError  of int
-          
-                  module G = G 
-          
-                  let node   = getLiNode 
-                  let number = getLiNum 
-                end)
+                (
+		 struct 
+
+                   exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+                   exception RangeError  of int
+		       
+                   module G = G 
+		       
+                   let node   = getLiNode 
+                   let number = getLiNum 
+		   let last   = T.Pre.last
+
+                 end
+		)
             in
 
             LOG (printf "Building region for L...\n");
@@ -353,9 +364,10 @@ module Make (T : DFST.Sig) =
       
         let data = lazy (build T.graph)
       
-        let number =  (fun node -> (Lazy.force data).number node)
-        let node   =  (fun num  -> (Lazy.force data).node num)
- 
+        let number = (fun node -> (Lazy.force data).number node)
+        let node   = (fun num  -> (Lazy.force data).node num)
+	let last   = T.Pre.last
+
       end
   
       let hammocks () =

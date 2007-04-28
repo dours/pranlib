@@ -1,5 +1,5 @@
 (*
- * Order: Numeration For Directed Graph.
+ * Order: Ordering For Control Flow Graphs.
  * Copyright (C) 2004-2006
  * Gennadiy Sych, St.Petersburg State University
  * 
@@ -15,14 +15,14 @@
  * (enclosed in the file COPYING).
  *)
 
-(** {1 Vertecies order for directed graphs} *)
+(** {1 Vertecies order for control flow graphs} *)
 
 (** General signature for Order *)
 module type Sig =
   sig
 
     (** A graph module the numeration is built for *)
-    module G : Digraph.Sig
+    module G : CFG.Sig
         
     (** Exception raised when the Order properties are queried for the 
 	unreachable node/edge 
@@ -33,7 +33,10 @@ module type Sig =
 	the valid range 
     *)
     exception RangeError of int
-	
+
+    (** Last number. All numbers has to be within the range [0..last] *)	
+    val last : int
+
     (** The direct mapping of the numeration. [number node] returns number 
 	of the [node] in the numeration
     *)
@@ -46,3 +49,6 @@ module type Sig =
 
   end
       
+(** Reversing the order *)
+module Rev (X : Sig) : Sig with
+  module G = X.G

@@ -1,6 +1,6 @@
 (*
  * DFAEngine: implements forward, backward and bidirectional DFA engines.
- * Copyright (C) 2004-2007
+ * Copyright (C) 2007
  * Gennadiy Sych, St.Petersburg State University
  * 
  * This software is free software; you can redistribute it and/or
@@ -15,19 +15,54 @@
  * (enclosed in the file COPYING).
  *)
 
+(** {1 DFAEngine : variaous DFA solvers} *)
 
-(**  *)
-module type Sig =
+(** Generic solver: takes program view and order to process nodes *)
+module Generic (P : ProgramView.Sig) (O : Order.Sig with module G = P.G) :
   sig
 
-    module PV : ProgramView.Sig
-
-    exception Unreachable of [ `Node of PV.G.Node.t | `Edge of PV.G.Edge.t ] 
-
-    exception RangeError  of int
-
-    val analyse : PV.G.t -> PV.G.Node.t -> PV.AV.L.t
+    (** Function to get DFA solution for edge *)
+    val get : P.G.Edge.t -> P.L.t
 
   end
 
-module Forward(PV : ProgramView.Sig) : Sig with module PV = PV
+(** Solver which processes nodes in postorder *)
+module Post (P : ProgramView.Sig) (T : DFST.Sig with module G = P.G) :
+  sig
+
+    (** Function to get DFA solution for edge *)
+    val get : P.G.Edge.t -> P.L.t
+
+  end
+
+(** Solver which processes nodes in reversed postorder *)
+module RevPost (P : ProgramView.Sig) (T : DFST.Sig with module G = P.G) :
+  sig
+
+    (** Function to get DFA solution for edge *)
+    val get : P.G.Edge.t -> P.L.t
+
+  end
+
+(** Solver which processes nodes first in postorder then in reversed postorder 
+    on each iteration (for bidirectional analyses)
+  *)
+module PostRevPost (P : ProgramView.Sig) (T : DFST.Sig with module G = P.G) :
+  sig
+
+    (** Function to get DFA solution for edge *)
+    val get : P.G.Edge.t -> P.L.t
+
+  end
+
+(** Solver which processes nodes first in reversed postorder then in postorder 
+    on each iteration (for bidirectional analyses)
+  *)
+module RevPostPost (P : ProgramView.Sig) (T : DFST.Sig with module G = P.G) :
+  sig
+
+    (** Function to get DFA solution for edge *)
+    val get : P.G.Edge.t -> P.L.t
+
+  end
+
