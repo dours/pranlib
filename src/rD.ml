@@ -1,23 +1,32 @@
 module type Set =
   sig
 
-    type t
+    type 'a t
 
-    val empty : t
-    val full  : t
+    val empty : 'a t
+    val full  : 'a t
 
-    val union     : t -> t -> t
-    val intersect : t -> t -> t
-    val diff      : t -> t -> t
+    val union     : 'a t -> 'a t -> 'a t
+    val intersect : 'a t -> 'a t -> 'a t
+    val diff      : 'a t -> 'a t -> 'a t
 
   end
 
-module Abstract =
+module Def (S : Set) =
   struct
 
-    type def  = int
-    type node = 
-    type edge = unit	  
+    type def = int
+
+    val clobbers : def -> def S.t
+
+  end
+
+module P =
+  struct
+
+    type t
+
+    val defs : t -> def list
 
   end
 
