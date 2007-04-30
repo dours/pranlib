@@ -263,7 +263,7 @@ module MakeBuildWeighted
     module WeightedGraph = 
       struct
 	
-	type t = int * int * (((int * int) * int) array)
+	type t = int * int * (((int * int) * int) Urray.t)
     
 	let nBoys (n, _, _) = n
 	let nGirls(_, m, _) = m
@@ -297,7 +297,7 @@ module MakeBuildWeighted
           []
           edges
       in
-      let wg = n, n, (Array.of_list bipartEdges) in
+      let wg = n, n, (Urray.of_list bipartEdges) in
       let module P = PM.Make(WeightedGraph) in
       let matching = P.search wg in
       let ans = List.map (fun (e, w) -> Hashtbl.find eh e) matching in
