@@ -39,7 +39,7 @@ module Make (D: Dominance.Sig) =
 
             let all = 
               let init i = 
-                if T.isValid i then (
+                if T.Post.valid i then (
                 lazy (snd (R.build (T.Post.node i)) )
                    ) else (
                     lazy R.NodeSet.empty

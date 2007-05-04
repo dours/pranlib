@@ -84,9 +84,10 @@ module Generic (P : ProgramView.Sig) (O : Order.Sig with module G = P.G) =
 	collectChanges (collectChanges [] ins insOrig) outs outsOrig
       in
       let continue = ref true in
+      Printf.printf "first=%d, last=%d\n" O.first O.last;
       while !continue do
 	continue := false;
-	for i=0 to O.last do
+	for i=O.first to O.last do
 	  let node = O.node i in
 	  match update node ((flowNode node) (flowArgs node)) with
 	  | [] -> ()
@@ -122,9 +123,11 @@ module Concat (X : Order.Sig) (Y : Order.Sig with module G = X.G) =
     exception Unreachable of [ `Edge of G.Edge.t | `Node of G.Node.t ]
     exception RangeError of int
 	
+    let first       = 0
     let last        = X.last * 2
     let number node = X.number node
     let node   num  = if num > X.last then Y.node (num - X.last) else X.node num
+    let valid  num  = num <= last && num >= first
 
   end
 

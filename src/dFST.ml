@@ -25,8 +25,6 @@ module type Sig =
     val reachedNode : G.Node.t -> bool
     val reachedEdge : G.Edge.t -> bool
 
-    val isValid : int -> bool      
-
     module Pre  : Order.Sig with module G = G
     module Post : Order.Sig with module G = G
   
@@ -56,7 +54,7 @@ module type Sig =
 	
   end
  
-module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edge.t list end) =
+module MakeOrdered (G : CFG.Sig) (O : sig val order : G.Edge.t list -> G.Edge.t list end) =
   struct
 
     open List
@@ -67,7 +65,7 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
     exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
     exception RangeError  of int
 
-    type ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i) s =
+    type ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k) s =
 	{
 	 pre         : 'a;
 	 post        : 'b;
@@ -78,7 +76,8 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
 	 children    : 'g;
 	 reachedNode : 'h;
 	 reachedEdge : 'i;
-	 isValid     : int -> bool;
+	 last        : 'j;
+         n           : 'k;
         }
 
     let build graph =
@@ -103,10 +102,6 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
       let reachedNode node = Urray.get pre (G.Node.index node) <> -1 in
       let reachedEdge edge = reachedNode (G.src edge) in
 
-      let isValid i =   
-	(i >= 0) && (i < n) && (i = 0 || not (G.Node.equal (Urray.get pre' i) start))
-      in
-
       let getPre node = 
 	let m = Urray.get pre (G.Node.index node) in
 	if m = -1 then raise (Unreachable (`Node node)) else m
@@ -121,11 +116,11 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
 	if reachedEdge edge then Urray.get sort (G.Edge.index edge) else raise (Unreachable (`Edge edge))
       in
 
-      let getPre'  num = if isValid num then Urray.get pre'  (num) else raise (RangeError num) in
-      let getPost' num = if isValid num then Urray.get post' (num) else raise (RangeError num) in
+      let getPre'  num = try Urray.get pre'  (num) with Invalid_argument "index out of bounds" ->  raise (RangeError num) in
+      let getPost' num = try Urray.get post' (num) with Invalid_argument "index out of bounds" -> raise (RangeError num) in
       
       let rec visit (currM, currN) = function
-	| [] -> ()
+	| [] -> currM, currN
 	| (node, []) :: tl ->
             setPost node currN;
             Urray.set state (G.Node.index node) `Done;
@@ -139,7 +134,7 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
 		Urray.set state (G.Node.index nextNode) `InProcess;
 		visit 
 		  (currM+1, currN) 
-		  ((nextNode, Order.order (G.outs nextNode)) :: (node, rest) :: tl)
+		  ((nextNode, O.order (G.outs nextNode)) :: (node, rest) :: tl)
 		  
             | `Done -> 
 		setSort 
@@ -155,7 +150,7 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
       in
       Urray.set state (G.Node.index start) `InProcess;
       setPre start 0;
-      visit (1, n-1) [start, G.outs start];
+      let lastM, firstN = visit (1, n-1) [start, G.outs start] in
       {
        pre      = getPre;
        post     = getPost;
@@ -171,14 +166,14 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
        children    = (fun node -> map G.dst (filter (fun e -> getSort e = Tree) (G.outs node)));
        reachedNode = reachedNode;
        reachedEdge = reachedEdge;
-       isValid     = isValid;
+       last        = lastM - 1;
+       n           = n;
       }
 	
     let data = lazy (build G.graph) 
 	      
     let reachedNode = (fun node -> (Lazy.force data).reachedNode node)
     let reachedEdge = (fun edge -> (Lazy.force data).reachedEdge edge)
-    let isValid     = (fun i    -> (Lazy.force data).isValid     i   )
     let pre         = (fun node -> (Lazy.force data).pre         node)
     let post        = (fun node -> (Lazy.force data).post        node)
     let pre'1       = (fun node -> (Lazy.force data).pre'1       node)
@@ -186,7 +181,9 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
     let sort        = (fun edge -> (Lazy.force data).sort        edge)
     let parent      = (fun node -> (Lazy.force data).parent      node)
     let children    = (fun node -> (Lazy.force data).children    node)
-	
+    let last        = (fun ()   -> (Lazy.force data).last            )
+    let n           = (fun ()   -> (Lazy.force data).n               )
+
     let graph = G.graph
     let start = G.start
     let root  = G.start
@@ -201,23 +198,30 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
 	    
         let number node  = pre node
         let node num     = pre'1 num
-	let last         = (G.nnodes G.graph) - 1
+	let first        = 0
+	let last         = last ()
+	let valid num    = num <= last && num >= first
 	    
       end
 	
     module Post = 
-      struct
-	
-        module G = G
-	    
-        exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
-        exception RangeError  of int
-	    
-        let number node  = post node
-        let node num     = post'1 num
-	let last         = (G.nnodes G.graph) - 1
-	    
-      end
+      Order.Normalize 
+	(
+	 struct
+	   
+           module G = G
+	       
+           exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
+           exception RangeError  of int
+	       
+           let number node  = post node
+           let node num     = post'1 num
+           let first        = (n ()) - (last ()) - 1 
+	   let last         = (n ()) - 1
+	   let valid num    = num <= last && num >= first
+		 
+	 end
+	)
 	
     type t = G.Node.t
 	  
@@ -272,6 +276,7 @@ module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edg
 	let nodes = M.nodes
 	    
 	type parm = unit
+
 	let toDOT () = M.toDOT graph
 
 	module Clusters = M.Clusters

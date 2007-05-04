@@ -33,10 +33,6 @@ module type Sig =
     (** [reachedEdge edge] tests whether [edge] is reached after DFST is built *)
     val reachedEdge : G.Edge.t -> bool
 
-    (** [isValid n] checks whether [n] is a valid number to be used as a parameter 
-        for [pre'1] or [post'1] *)
-    val isValid : int -> bool
-
     (** A preorder numeration module  *)
     module Pre : Order.Sig with module G = G
 
@@ -83,7 +79,7 @@ module type Sig =
   end
 
 (** Ordered Depth-First Tree constructor. Order defines the order for outgoing edge processing *)
-module MakeOrdered (G : CFG.Sig) (Order : sig val order : G.Edge.t list -> G.Edge.t list end) : Sig with module G = G
+module MakeOrdered (G : CFG.Sig) (O : sig val order : G.Edge.t list -> G.Edge.t list end) : Sig with module G = G
 
 (** Depth-First Search Tree Constructor; outgoins edges are processed in an arbitrary order *)
 module Make (G : CFG.Sig) : Sig with module G = G

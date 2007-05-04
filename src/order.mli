@@ -34,9 +34,15 @@ module type Sig =
     *)
     exception RangeError of int
 
-    (** Last number. All numbers has to be within the range [0..last] *)	
+    (** Last number. All numbers has to be within the range [first..last] *)	
+    val first : int
+
+    (** Last number. All numbers has to be within the range [first..last] *)	
     val last : int
 
+    (** Checks number to be withing the range [first..last] *)
+    val valid : int -> bool
+     
     (** The direct mapping of the numeration. [number node] returns number 
 	of the [node] in the numeration
     *)
@@ -50,5 +56,9 @@ module type Sig =
   end
       
 (** Reversing the order *)
-module Rev (X : Sig) : Sig with
-  module G = X.G
+module Rev (X : Sig) : Sig with module G = X.G
+
+(** Normalizing the order (transform it to range [0..n]) *)
+module Normalize (X : Sig) : Sig with module G = X.G
+
+

@@ -65,7 +65,9 @@ module Make (T : DFST.Sig) =
 		       
                    let node   = getKiNode 
                    let number = getKiNum 
+		   let first  = T.Pre.first
 		   let last   = T.Pre.last
+		   let valid  = T.Pre.valid
 
                 end
 		)
@@ -139,7 +141,9 @@ module Make (T : DFST.Sig) =
       
         let number = (fun node -> (Lazy.force data).number node)
         let node   = (fun num  -> (Lazy.force data).node num)
+	let first  = T.Pre.first
 	let last   = T.Pre.last
+	let valid  = T.Pre.valid
       
       end
 
@@ -186,7 +190,9 @@ module Make (T : DFST.Sig) =
 		       
                    let node   = getLiNode 
                    let number = getLiNum 
+		   let first  = T.Pre.first
 		   let last   = T.Pre.last
+		   let valid  = T.Pre.valid
 
                  end
 		)
@@ -366,7 +372,9 @@ module Make (T : DFST.Sig) =
       
         let number = (fun node -> (Lazy.force data).number node)
         let node   = (fun num  -> (Lazy.force data).node num)
+	let first  = T.Pre.first
 	let last   = T.Pre.last
+	let valid  = T.Pre.valid
 
       end
   
