@@ -234,16 +234,20 @@ module MakeOrdered (G : CFG.Sig) (O : sig val order : G.Edge.t list -> G.Edge.t 
             type t = G.Edge.t
 		  
             let attrs edge = 
-	      match sort edge with
-              | Tree    -> ["color", "black"; "style", "bold"]
-              | Cross   -> ["color", "blue"]
-              | Forward -> ["color", "green"]
-              | Back    -> ["color", "red"]
+	      try
+		match sort edge with
+		| Tree    -> ["color", "black"; "style", "bold"]
+		| Cross   -> ["color", "blue"]
+		| Forward -> ["color", "green"]
+		| Back    -> ["color", "red"]
+	      with Unreachable _ -> []
 		    
             let label edge = 
-	      sprintf "%s\n%s" 
-		(match sort edge with Tree -> "Tree" | Back -> "Back" | Cross -> "Cross" | Forward -> "Forward") 
-		(G.Edge.toString edge)
+	      try
+		sprintf "%s\n%s" 
+		  (match sort edge with Tree -> "Tree" | Back -> "Back" | Cross -> "Cross" | Forward -> "Forward") 
+		  (G.Edge.toString edge)
+	      with Unreachable _ -> sprintf "*** unreached ***\n%s" (G.Edge.toString edge)
 		
 	  end
 	    
@@ -252,9 +256,15 @@ module MakeOrdered (G : CFG.Sig) (O : sig val order : G.Edge.t list -> G.Edge.t 
             
             type t = G.Node.t
 		  
-            let attrs node = ["shape", if pre node = 0 then "ellipse" else "box"]
-            let label node = sprintf "M=%d, N=%d\n%s" (pre node) (post node) (G.Node.toString node)
-            let name  node = sprintf "node%d" (G.Node.index node)
+            let attrs node = 
+	      try ["shape", if pre node = 0 then "ellipse" else "box"]
+	      with Unreachable _ -> []
+
+            let label node = 
+	      try sprintf "M=%d, N=%d\n%s" (pre node) (post node) (G.Node.toString node)
+	      with Unreachable _ -> sprintf "*** unreachable ***\n%s" (G.Node.toString node)
+
+            let name node = sprintf "node%d" (G.Node.index node)
 		
 	  end
 	    
