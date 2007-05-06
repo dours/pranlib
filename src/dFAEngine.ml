@@ -84,7 +84,6 @@ module Generic (P : ProgramView.Sig) (O : Order.Sig with module G = P.G) =
 	collectChanges (collectChanges [] ins insOrig) outs outsOrig
       in
       let continue = ref true in
-      Printf.printf "first=%d, last=%d\n" O.first O.last;
       while !continue do
 	continue := false;
 	for i=O.first to O.last do
