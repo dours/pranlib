@@ -11,7 +11,7 @@ dnl check for MinGW
 AM_CONDITIONAL(MINGW32, [test x"$build_os" = xmingw32])
 
 dnl project name and version
-AM_INIT_AUTOMAKE(pranlib, 0.1, nodefine)
+AM_INIT_AUTOMAKE(pranlib, 0.3, nodefine)
 
 dnl add custom m4 functions
 m4_sinclude(m4/acinclude.m4)
@@ -26,8 +26,8 @@ dnl ... for parser
 AC_PROG_CAMLP4
 dnl ... for ocamlfind
 AC_PROG_FINDLIB
-dnl set OCAMLFIND_TRUE an OCAMLFIND_FALSE in Makefile
-AM_CONDITIONAL(OCAMLFIND, test "$have_ocamlfind" = "yes")
+dnl set HAVE_OCAMLFIND in Makefile
+AM_CONDITIONAL(HAVE_OCAMLFIND, test "$have_ocamlfind" = "yes")
 dnl ... for ocamldsort
 AC_PROG_OCAMLDSORT
 
@@ -47,10 +47,13 @@ dnl check for compiler module
 dnl usage:
 dnl library name, modules to open,
 dnl 1st dir <space> 2nd dir <space> etc., library homepage.
-AC_CHECK_OCAML_MODULE(ocamlgraph, Graph.Flow, ../ocamlgraph, http://www.lri.fr/~filliatr/ocamlgraph/)
+AC_CHECK_OCAML_MODULE(ocamlgraph, Graph.Flow, ../graph, http://www.lri.fr/~filliatr/ocamlgraph/)
 AC_CHECK_OCAML_MODULE(typeutil, View, ../typeutil/src, http://oops.tepkom.ru/projects/typeutil/)
 dnl more module checks
 dnl AC_CHECK_OCAML_MODULE(libname, Module1 Module2, ../libdir, http://www.example.com/libname)
+AC_CHECK_OCAML_MODULE(BinomialHeap, BinomialHeap, ../BinomialHeap/src, http://oops.tepkom.ru/projects/BinomialHeap/)
+AC_CHECK_OCAML_MODULE(urray, Urray, ../urray/src, http://oops.tepkom.ru/projects/urray/)
+AC_CHECK_OCAML_MODULE(PM, PM, ../PairMatching/src, http://oops.tepkom.ru/projects/PairMatching/)
 AC_SUBST(MODULE_INCLUDES)
 AC_SUBST(EXTRA_CMA)
 

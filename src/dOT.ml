@@ -49,6 +49,13 @@ module type Sig =
     val nodes      : node list -> string
     val attributes : string -> (string * string) list -> string
 
+    module Clusters :
+      sig
+
+	type t = Node of node list * t list | Leaf of node list
+
+      end
+
   end
 
 module Printer (G : Graph) (N : Node) =
@@ -81,5 +88,12 @@ module Printer (G : Graph) (N : Node) =
     let nodes list = 
       let module M = View.ListC (Concat) (struct type t = N.t let toString = node end) in
       M.toString list
+
+    module Clusters =
+      struct
+
+	type t = Node of node list * t list | Leaf of node list
+
+      end
 
   end

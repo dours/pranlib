@@ -25,7 +25,7 @@ module type Sig =
     module T : DFST.Sig
 
     (** Graph module *)
-    module G : Digraph.Sig
+    module G : CFG.Sig
 
     (** Type of the tree node *)
     type t = G.Node.t
@@ -44,7 +44,8 @@ module type Sig =
 	
     (** [dominators x] gets list of all strict dominators for [x]. The list is
         ordered according to the dominance relation (e.g. immediate dominator 
-        comes first) *)
+        comes first) 
+    *)
     val dominators : t -> t list
 
     (** Dominance tree DOT vizualiser *)

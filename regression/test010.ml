@@ -1,74 +1,47 @@
-module NODE_INFO = 
-struct 
-  type t = int
-  let toString x = string_of_int x
-end
-
 open Printf
 
-module G = Digraph.Make (NODE_INFO) (NODE_INFO)
+module G = Digraph.Make (struct type t = string let toString x = x end) (struct type t = unit let toString _ = "" end) 
 
-let g = G.create ();;
-(* Graph nodes *)
-let (g, n1) = G.insertNode g 1;;
-let (g, n2) = G.insertNode g 2;;
-let (g, n3) = G.insertNode g 3;;
-let (g, n4) = G.insertNode g 4;;
-let (g, n5) = G.insertNode g 5;;
-let (g, n6) = G.insertNode g 6;;
-(* Graph edges *)
-let (g, e1) = G.insertEdge g n6 n1 (6);;         (*                      *)
-let (g, e6) = G.insertEdge g n2 n6 (6);;         (*                      *)
-let (g, e7) = G.insertEdge g n3 n2 (7);;         (*                      *)
-let (g, e8) = G.insertEdge g n4 n3 (8);;         (*                      *)
-let (g, e10) = G.insertEdge g n5 n4 (10);;       (*                      *)
-(* tree *)                                               
-let (g, e11) = G.insertEdge g n4 n5 (11);;       (*                      *)
-let (g, e12) = G.insertEdge g n3 n4 (12);;       (*                      *)
-let (g, e13) = G.insertEdge g n2 n3 (13);;       (*                      *)
-let (g, e14) = G.insertEdge g n1 n2 (14);;       (*                      *)
-let (g, e15) = G.insertEdge g n1 n6 (15);;       (*                      *)
+let _ = 
+  let g = G.create () in
+  let g, a = G.insertNode g "a" in
+  let g, b = G.insertNode g "b" in
+  let g, c = G.insertNode g "c" in
+  let g, d = G.insertNode g "d" in
+  let g, e = G.insertNode g "e" in
+  let g, f = G.insertNode g "f" in
+  let g, z = G.insertNode g "g" in
+  let g, h = G.insertNode g "h" in
+  let g, i = G.insertNode g "i" in
+  let g, j = G.insertNode g "j" in
+  let g, k = G.insertNode g "k" in
 
-module Df = Cfa.DFST(G)
+  let g, _ = G.insertEdge g a b () in
+  let g, _ = G.insertEdge g b c () in
+  let g, _ = G.insertEdge g c d () in
+  let g, _ = G.insertEdge g d e () in
+  let g, _ = G.insertEdge g e f () in
+  let g, _ = G.insertEdge g f k () in
+  let g, _ = G.insertEdge g c e () in
+  let g, _ = G.insertEdge g e c () in
+  let g, _ = G.insertEdge g d c () in
+  let g, _ = G.insertEdge g b z () in
+  let g, _ = G.insertEdge g z h () in
+  let g, _ = G.insertEdge g h i () in
+  let g, _ = G.insertEdge g i j () in
+  let g, _ = G.insertEdge g j k () in
+  let g, _ = G.insertEdge g i h () in
+  let g, _ = G.insertEdge g j z () in
 
-let dfs = Df.create (g,n1);;
-
-module Uf = Unionfind.Make(G.Node)
-
-module Ufi = Unionfind.Make(Util.INTEGER)
-
-module Loop = Loops.LOOP (G) (Uf) (Ufi)
-
-module Dm = Doms.DOM (G)
-
-let info = Loop.loops_gao_lee g dfs;;
-
-let info1 = Loop.loops_halvak_i g dfs;;
-
-let rec output_info nd pref = 
-  let childs = info.Loop.INT_TREE_BUILDER.get_childs nd in
-  if childs <> [] then (
-    printf "%sNode %i\n" pref nd
-  )
-  else (
-    printf "%s%i\n" pref nd
-  );
-  List.iter (fun x -> output_info x ((pref^" "))) childs in
-output_info info.Loop.INT_TREE_BUILDER.get_root "";;
-
-let rec output_info nd pref = 
-  let childs = info1.Loop.NODE_TREE_BUILDER.get_childs nd in
-  if childs <> [] then (
-    printf "%sNode %s\n" pref (G.Node.toString nd)
-  )
-  else (
-    printf "%s%s\n" pref (G.Node.toString nd)
-  );
-  List.iter (fun x -> output_info x ((pref^" "))) childs in
-output_info info1.Loop.NODE_TREE_BUILDER.get_root "";;
+  let module L = Loops.Make (Dominance.Make (DFST.Make (CFG.Make (G) (struct let graph = g let start = a end)))) in
+  let comps = 
+    List.map 
+      (fun s -> G.DOT.Clusters.Leaf (L.Region.R.NodeSet.fold (fun x l -> x :: l) s [])) 
+      (snd (List.split (L.Region.SCC.get ()))) 
+  in
   
-
-
+  printf "%s" (G.Clustered.toDOT g (G.DOT.Clusters.Node ([], comps)))
+    
 
 
 

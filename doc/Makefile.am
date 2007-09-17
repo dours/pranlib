@@ -9,8 +9,8 @@ doc: html/style.css
 
 html/style.css:
 	test -d html || mkdir html
-	$(OCAMLDOC) -I $(top_srcdir)/src $(MODULE_INCLUDES) $(P4FLAGS) \
-	-d html -html $(top_srcdir)/src/*.mli $(top_srcdir)/src/*.ml
+	$(OCAMLDOC) $(MODULE_INCLUDES) $(P4FLAGS) -d html -html \
+	-I $(top_srcdir)/src $(top_srcdir)/src/*.mli $(top_srcdir)/src/*.ml
 
 # default clean
 clean-am:

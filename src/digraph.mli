@@ -21,25 +21,25 @@
 module type Item =
   sig
 
-    (** Type of the node *)
+    (** Type of the item *)
     type t
 
-    (** Type of the node label *)
+    (** Type of the item info *)
     type info
 
-    (** [toString node] returns string representation of the [node] *)
+    (** [toString item] returns string representation of the [item] *)
     val toString : t -> string
 
-    (** [hash node] returns hash value of the [node] *)
+    (** [hash item] returns hash value of the [item] *)
     val hash : t -> int
 
-    (** [equal node node'] returns [true] iff [node] is the same as [node'] *)
+    (** [equal item item'] returns [true] iff [item] is the same as [item'] *)
     val equal : t -> t -> bool
 
-    (** [info node] returns label of the [node] *)
+    (** [info item] returns label of the [item] *)
     val info : t -> info
 
-    (** [compare node node'] compares [node] to [node'] *)
+    (** [compare item item'] compares [item] to [item'] *)
     val compare : t -> t -> int
  
     (** Integer key *)
@@ -47,8 +47,71 @@ module type Item =
  
   end
 
-(** Directed graph signature *)
-module type Sig =
+(** Tiny interface to GraphViz graph drawing library. See DOT language specification for details *)
+module DOT :
+  sig
+
+    (** DOT graph node wrapper *)
+    module type Node =
+      sig
+	
+	include DOT.Node
+
+      end
+
+    (** DOT graph edge wrapper *)
+    module type Edge =
+      sig
+
+        (** Type for edge representation *)
+	type t
+
+        (** Gets list of edge attributes *)
+	val attrs : t -> (string * string) list
+
+        (** Gets label of the edge *)
+	val label : t -> string
+          
+      end
+
+    (** Signature of DOT digraph printer *)
+    module type S =
+      sig
+
+	include DOT.Sig
+
+        (** Type of the edge *)
+	type edge
+
+        (** DOT represenation for edge *)
+	val edge  : edge -> string
+
+        (** DOT representation for list of edges *)
+	val edges : edge list -> string
+
+        (** Type of vizualizer parameter *)
+	type parm 
+
+        (** DOT visualizer *)
+	val toDOT : parm -> string
+
+        (** DOT clustered visualizer *)
+	module Clustered :
+	  sig
+
+	    (** Visualizing graph with clusters *)
+	    val toDOT : parm -> Clusters.t -> string
+
+	  end
+
+      end
+
+    module Printer (G : DOT.Graph) (N : Node) : DOT.Sig with type graph = G.t and type node = N.t
+
+  end
+
+(** Basic directed graph signature *)
+module type Base =
   sig
 
     module Node : Item (** Module to denote graph nodes *)
@@ -101,46 +164,74 @@ module type Sig =
     val create : unit -> t
 
     (** [insertNode graph info] inserts new node with label [info] into [graph] and returns
-        updated graph and created node *)
+        updated graph and created node 
+    *)
     val insertNode : t -> Node.info -> t * Node.t
 
     (** [insertEdge graph src dst info] inserts new edge from [src] to [dst] with label [info] 
-        into [graph] and returns updated graph and created edge *)
+        into [graph] and returns updated graph and created edge 
+    *)
     val insertEdge : t -> Node.t -> Node.t -> Edge.info -> t * Edge.t
 
     (** [deleteEdges graph func] deletes all edges satisfying [func] from [graph] and returns
-        updated graph *)
+        updated graph 
+    *)
     val deleteEdges : t -> (Edge.t -> bool) -> t
 
     (** [deleteEdge graph edge] deletes [edge] from [graph] and returns 
-        updated graph. Deleting edge that does not belong to the graph has no effect *)
+        updated graph. Deleting edge that does not belong to the graph has no effect 
+    *)
     val deleteEdge : t -> Edge.t -> t
 
     (** [deleteNodes graph func] deletes all nodes sutisfying [func] from [graph] and returnds
-        updated graph *)
+        updated graph 
+    *)
     val deleteNodes : t -> (Node.t -> bool) -> t
 
     (** [deleteNode graph node] deletes [node] from [graph] and returns 
-        updated graph. Deleting node that does not belong to the graph has no effect *)
+        updated graph. Deleting node that does not belong to the graph has no effect 
+    *)
     val deleteNode : t -> Node.t -> t
 
     (** {2 Update Functions} *)
 
     (** [replaceNode graph node info] replaces [node] in [graph] with fresh node with label [info]
         preserving all adjacent edges. Returns updated graph and created node.  Replacing node that
-        does not belong to the graph raises [Failure "node does not belong to the graph"] *)
+        does not belong to the graph raises [Failure "node does not belong to the graph"] 
+    *)
     val replaceNode : t -> Node.t -> Node.info -> t * Node.t
 
     (** [replaceEdge graph edge info] replaces [edge] in [graph] with fresh edge with label [info]
         preserving adjacent nodes. Returns updated graph and created edge. Replacing edge that
-        does not belong to the graph raises [Failure "edge does not belong to the graph"] *)
+        does not belong to the graph raises [Failure "edge does not belong to the graph"] 
+    *)
     val replaceEdge : t -> Edge.t -> Edge.info -> t * Edge.t
 
     (** Copying function. Beware of mutable node/edge info *)
     val copy : t -> t
 
-    (** DOT vizualizer *)
+  end
+
+(** Directed graph signature *)
+module type Sig =
+  sig
+
+    include Base
+
+    (** DOT printer *)
+    module DOT : DOT.S with type node = Node.t and type graph = t
+
+    (** Exported DOT vizualizer *)
     val toDOT : t -> string
+
+    (** Exported DOT clustered vizualizer *)
+    module Clustered :
+      sig
+
+	(** Clustered DOT printer *)
+	val toDOT : t -> DOT.Clusters.t -> string
+
+      end
 
   end
 
@@ -158,60 +249,17 @@ module type Info =
 
   end
 
-(** Instantiation functor for directed graph *)
+(** Instantiation functor for directed graph. [Make(NodeLabel)(EdgeLabel)] creates {b mutable} 
+    implementation of directed graph with nodes and edges labeled with values of types [NodeLabel] and 
+    [EdgeLabel] correspondingly 
+ *)
 module Make (NodeInfo : Info) (EdgeInfo : Info): Sig with type Node.info = NodeInfo.t and type Edge.info = EdgeInfo.t
-(** [Make(NodeLabel)(EdgeLabel)] creates {b mutable} implementation of directed graph with nodes and edges labeled
-    with values of types [NodeLabel] and [EdgeLabel] correspondingly *)
 
-(** Tiny interface to GraphViz graph drawing library. See DOT language specification for details *)
-module DOT :
-  sig
-
-    (** DOT graph edge wrapper *)
-    module type Edge =
-      sig
-
-        (** Type for edge representation *)
-	type t
-
-        (** Gets list of edge attributes *)
-	val attrs : t -> (string * string) list
-
-        (** Gets label of the edge *)
-	val label : t -> string
-          
-      end
-
-    (** Signature of DOT digraph printer *)
-    module type S =
-      sig
-
-	include DOT.Sig
-
-        (** Type of the edge *)
-	type edge
-
-        (** DOT represenation for edge *)
-	val edge  : edge -> string
-
-        (** DOT representation for list of edges *)
-	val edges : edge list -> string
-
-        (** Type of vizualizer parameter *)
-	type parm 
-
-        (** DOT visualizer *)
-	val toDOT : parm -> string
-
-      end
-
-    (** Simple graph printer *)
-    module Printer 
-	(G : Sig) 
-	(N : DOT.Node with type t = G.Node.t) 
-	(E : Edge     with type t = G.Edge.t) 
-	: S with type graph = G.t and type node = N.t and type edge = E.t and type parm = G.t
-
-  end
+(** Functor to construct graph printers *)
+module Printer 
+    (G : Base) 
+    (N : DOT.Node with type t = G.Node.t) 
+    (E : DOT.Edge with type t = G.Edge.t) : DOT.S with 
+  type graph = G.t and type node = N.t and type edge = E.t and type parm = G.t
 
 

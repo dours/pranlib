@@ -55,5 +55,5 @@ let _ =
   let g, _  = edge g nl nk "" in
   let g, _  = edge g nj nl "" in
   let g, _  = edge g nh nm "" in
-  let module T = DFST.Make (G) (struct let graph = g let start = ns end) in
+  let module T = DFST.Make (CFG.Make (G)(struct let graph = g let start = ns end)) in
   Printf.printf "%s" (T.DOT.toDOT ())

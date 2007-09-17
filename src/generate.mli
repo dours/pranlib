@@ -27,20 +27,21 @@ module Digraph :
     (** Generate random graphs *)
     module Random :
       sig
-
-        (** [create n m] creates random directed graph with [n] nodes and [m] edges *)
+	
+	(** [create n m] creates random directed graph with [n] nodes and [m] edges *)
 	val create : int -> int -> G.t
 
-        (** Generate random control flow graph *)
+	(** Generate random control flow graph *)
 	module ControlFlow :
 	  sig
 
-            (** [create n m] creates random control flow graph with [n] nodes and [m] edges 
-                and returns the graph and its source node *)
+	    (** [create n m] creates random control flow graph with [n] nodes and [m] edges 
+	        and returns the graph and its source node 
+	     *)
 	    val create : int -> int -> G.t * G.Node.t
 
 	  end
 
       end
-
+	
   end

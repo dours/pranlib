@@ -37,18 +37,18 @@ module Make (D : DFST.Sig) (H : Helper with type t = D.G.Node.info) =
     let straightLines () =
       let graph  = D.graph             in
       let nnodes = D.G.nnodes graph    in
-      let ends   = Array.make nnodes 0 in
+      let ends   = Urray.make nnodes 0 in
       let markBegin i =
-	ends.(i) <- ends.(i) lor 1;
-	if i-1 >= 0 then ends.(i-1) <- ends.(i-1) lor 2
+	Urray.set ends i ((Urray.get ends i) lor 1);
+	if i-1 >= 0 then Urray.set ends (i-1) ((Urray.get ends (i-1)) lor 2)
       in
       let markEnd i =
-	ends.(i) <- ends.(i) lor 2;
-	if i+1 < nnodes then ends.(i+1) <- ends.(i+1) lor 1
+	Urray.set ends i ((Urray.get ends i) lor 2);
+	if i+1 < nnodes then Urray.set ends (i+1) ((Urray.get ends (i+1)) lor 1)
       in
       markBegin 0;
       for i=0 to nnodes-1 do
-	let node   = D.pre'1 i in
+	let node   = D.Pre.node i in
 	let outs   = D.G.outs node  in
 	
 	if (length (D.G.ins  node))  > 1 then markBegin i;
@@ -56,29 +56,29 @@ module Make (D : DFST.Sig) (H : Helper with type t = D.G.Node.info) =
 	then markEnd i
 	else 
 	  let [out] = outs in
-	  if D.pre (D.G.dst out) <> i+1 then markEnd i;
+	  if D.Pre.number (D.G.dst out) <> i+1 then markEnd i;
       done;
       let rec convert i curr list =
 	if i = nnodes then list
 	else begin
-	  let node = D.pre'1 i in
-	  match ends.(i) with
+	  let node = D.Pre.node i in
+	  match Urray.get ends i with
 	  | 0 -> convert (i+1) (node :: curr) list
 	  | 1 -> convert (i+1)  [node]        list
 	  | 2 -> convert (i+1)  []           ((rev (node :: curr)) :: list)
-	  | 3 -> convert (i+1)  []           ( [node]              :: list)	      
+	  | 3 -> convert (i+1)  []           ( [node]              :: list)       
 	end
       in
       convert 0 [] [] 
-
+	
     let collapseStraightLines () =
       let lines = straightLines () in
       let graph, edges, start =
 	fold_left 
 	  (fun (graph, edges, start) line ->
-	    match line with
-	    | [_]      -> graph, edges, start
-	    | hd :: tl ->		
+            match line with
+            | [_]      -> graph, edges, start
+            | hd :: tl ->       
 		let graph, edges, hd' =
 		  fold_left 
 		    (fun (graph, edges, hd) node ->  
@@ -103,60 +103,61 @@ module Make (D : DFST.Sig) (H : Helper with type t = D.G.Node.info) =
 	  lines
       in
       (graph, start), edges
-
+	
     let removeUnreachableCode () = 
       let n = ref 0 in
       ((D.G.deleteNodes D.graph (fun node -> if not (D.reachedNode node) then (incr n; true) else false)), D.start), !n
-
+	
     let removeEmptyNodes () =
       let graph, start = D.graph, D.start in
       let n            = D.G.nnodes graph in
       let removed      = ref 0 in
       let graph, start =
-	fold_num 
-	  (fun (g, s) i -> 
-	    LOG (Printf.fprintf stderr "Checking node with N=%d\n" i);
-	    let node = D.post'1 i in
-	    let outs = D.G.outs node   in
-	    let labl = D.G.Node.info node in
-	    match outs with
-	    | [edge] when H.empty labl ->
-		LOG (Printf.fprintf stderr "Deleting node {%s}, N=%d\n" (D.G.Node.toString node) i);
+    fold_num 
+      (fun (g, s) i -> 
+        LOG (Printf.fprintf stderr "Checking node with N=%d\n" i);
+        let node = D.Post.node i in
+        let outs = D.G.outs node   in
+        let labl = D.G.Node.info node in
+        match outs with
+        | [edge] when H.empty labl ->
+            LOG (Printf.fprintf stderr "Deleting node {%s}, N=%d\n" (D.G.Node.toString node) i);
+            let dst = D.G.dst edge in
+            if D.G.Node.equal dst node 
+            then g, s
+            else begin
+              LOG (Printf.fprintf stderr "Take 1: N(dst)=%d\n" (D.Post.number dst));
+              let ins = D.G.ins node in
+              let g   = 
+		fold_left 
+		  (fun g edge ->
+		    let src, info = D.G.src edge, D.G.Edge.info edge in
+		    fst (D.G.insertEdge g src dst info)
+		  ) 
+		  g ins 
+              in
+              LOG (Printf.fprintf stderr "Take 2: N(dst)=%d\n" (D.Post.number dst));
+              incr removed;
+              let g, dst' = D.G.replaceNode g dst (H.merge labl (D.G.Node.info dst)) in
+              LOG (Printf.fprintf stderr "Before replace in DFST...\n");
+              LOG (Printf.fprintf stderr "After replace in DFST...\n");
+              if node == s then (D.G.deleteNode g node, dst')
+              else (D.G.deleteNode g node, s)
+            end
+		
+        | _ -> 
+            LOG (
+            Printf.fprintf stderr "Skipping node {%s}, N=%d\n" (D.G.Node.toString node) i;
+            List.iter 
+              (fun edge -> 
 		let dst = D.G.dst edge in
-		if D.G.Node.equal dst node 
-		then g, s
-		else begin
-		  LOG (Printf.fprintf stderr "Take 1: N(dst)=%d\n" (D.post dst));
-		  let ins = D.G.ins node in
-		  let g   = 
-		    fold_left 
-		      (fun g edge ->
-			let src, info = D.G.src edge, D.G.Edge.info edge in
-			fst (D.G.insertEdge g src dst info)
-		      ) 
-		      g ins 
-		  in
-		  LOG (Printf.fprintf stderr "Take 2: N(dst)=%d\n" (D.post dst));
-		  incr removed;
-		  let g, dst' = D.G.replaceNode g dst (H.merge labl (D.G.Node.info dst)) in
-		  LOG (Printf.fprintf stderr "Before replace in DFST...\n");
-		  LOG (Printf.fprintf stderr "After replace in DFST...\n");
-		  if node == s then (D.G.deleteNode g node, dst')
-		  else (D.G.deleteNode g node, s)
-		end
-		    
-	    | _ -> 
-		LOG (
-		  Printf.fprintf stderr "Skipping node {%s}, N=%d\n" (D.G.Node.toString node) i;
-		  List.iter 
-		  (fun edge -> 
-		    let dst = D.G.dst edge in
-		    Printf.fprintf stderr "  Destination {%s}, N=%d\n" (D.G.Node.toString dst) (D.post dst);
-		  ) outs
-	        );
-		(g, s)
-	  ) (graph, start) n 
+		Printf.fprintf stderr "  Destination {%s}, N=%d\n" (D.G.Node.toString dst) (D.Post.number dst);
+              ) outs
+           );
+            (g, s)
+      ) (graph, start) n 
       in
       (graph, start), !removed 
-
+	
   end    
+    

@@ -25,15 +25,7 @@ module type Sig =
   sig
 
     (** A graph module the DFST is built for *)
-    module G : Digraph.Sig
-
-    (** Exception raised when the DFST properties are queried for the unreachable 
-        node/edge *)
-    exception Unreachable of [ `Node of G.Node.t | `Edge of G.Edge.t ] 
- 
-    (** Exception raised when parameter for the [pre'1] or [post'1] goes out of
-        the valid range *)
-    exception RangeError of int
+    module G : CFG.Sig
 
     (** [reachedNode node] tests whether [node] is reached after DFST is built *)
     val reachedNode : G.Node.t -> bool
@@ -41,26 +33,12 @@ module type Sig =
     (** [reachedEdge edge] tests whether [edge] is reached after DFST is built *)
     val reachedEdge : G.Edge.t -> bool
 
-    (** [isValid n] checks whether [n] is a valid number to be used as a parameter 
-        for [pre'1] or [post'1] *)
-    val isValid : int -> bool
+    (** A preorder numeration module  *)
+    module Pre : Order.Sig with module G = G
 
-    (** [pre node] returns preorder number of the [node] or raises [Unreachable] exception 
-        if [node] is unreachable *)
-    val pre : G.Node.t -> int  
-
-    (** [post node] returns postorder number of the [node] or raises [Unreachable] exception 
-        if [node] is unreachable *) 
-    val post : G.Node.t -> int  
-
-    (** [pre'1 num] returns node whose preorder number is [num]. Raises [RangeError] if
-        no such node exists *)
-    val pre'1 : int -> G.Node.t  
-
-    (** [post'1 num] returns node whose postorder number is [num]. Raises [RangeError] if
-        no such node exists *)
-    val post'1 : int -> G.Node.t  
-
+    (** A postorder numeration module *)
+    module Post : Order.Sig with module G = G
+    
     (** [sort edge] returns DFST sort of the [edge] or raises [Unreachable] exception 
         if [edge] is unreachable*) 
     val sort : G.Edge.t -> sort 
@@ -86,18 +64,22 @@ module type Sig =
     (** DOT visualizer *)
     module DOT :
       sig
-
-        (** Node wrapper *)
+	
+	(** Node wrapper *)
 	module Node : DOT.Node with type t = G.Node.t
 
-        (** Edge wrapper *)
+	(** Edge wrapper *)
 	module Edge : Digraph.DOT.Edge with type t = G.Edge.t
 
-	include Digraph.DOT.S with type graph = G.t and type node = G.Node.t and type edge = G.Edge.t and type parm = unit
+	include Digraph.DOT.S with
+	   type graph = G.t and type node = G.Node.t and type edge = G.Edge.t and type parm = unit
 
       end
 
   end
 
-(** Depth-First Search Tree Constructor *)
-module Make (G : Digraph.Sig) (X : sig val graph : G.t val start : G.Node.t end) : Sig with module G = G
+(** Ordered Depth-First Tree constructor. Order defines the order for outgoing edge processing *)
+module MakeOrdered (G : CFG.Sig) (O : sig val order : G.Edge.t list -> G.Edge.t list end) : Sig with module G = G
+
+(** Depth-First Search Tree Constructor; outgoins edges are processed in an arbitrary order *)
+module Make (G : CFG.Sig) : Sig with module G = G
