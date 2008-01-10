@@ -23,7 +23,11 @@ AC_PROG_OCAML
 dnl ... for supplementary tools
 AC_PROG_OCAML_TOOLS
 dnl ... for parser
+
 AC_PROG_CAMLP4
+AM_CONDITIONAL(CAMLP4, test "$have_camlp4" = "yes")
+AC_PROG_CAMLP5
+AM_CONDITIONAL(CAMLP5, test "$have_camlp5" = "yes")
 dnl ... for ocamlfind
 AC_PROG_FINDLIB
 dnl set HAVE_OCAMLFIND in Makefile
@@ -40,8 +44,18 @@ dnl check for parser module
 dnl usage:
 dnl module name, file name to use with "#load",
 dnl first dir <space> second dir <space> etc., module homepage.
-AC_CHECK_CAMLP4_MODULE(logger, pa_log.cmo, +camlp4 ../logger/src, http://oops.tepkom.ru/projects/logger)
+if test -n "$CAMLP4"; then
+AC_CHECK_CAMLP4_MODULE(pa_extend, pa_extend.cmo, +camlp4)
 AC_SUBST(PARSER_INCLUDES)
+fi
+
+if test -n "$CAMLP5"; then
+AC_CHECK_CAMLP5_MODULE(pa_extend, pa_extend.cmo, +camlp5)
+AC_CHECK_CAMLP5_MODULE(pa_pprintf, pa_pprintf.cmo, +camlp5)
+AC_CHECK_CAMLP5_MODULE(q_MLast, q_MLast.cmo, +camlp5)
+AC_CHECK_CAMLP5_MODULE(Pr_o, pr_o.cmo, +camlp5)
+AC_SUBST(PARSER_INCLUDES)
+fi
 
 dnl check for compiler module
 dnl usage:
