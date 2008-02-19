@@ -54,6 +54,7 @@ AC_CHECK_CAMLP5_MODULE(pa_extend, pa_extend.cmo, +camlp5)
 AC_CHECK_CAMLP5_MODULE(pa_pprintf, pa_pprintf.cmo, +camlp5)
 AC_CHECK_CAMLP5_MODULE(q_MLast, q_MLast.cmo, +camlp5)
 AC_CHECK_CAMLP5_MODULE(Pr_o, pr_o.cmo, +camlp5)
+AC_CHECK_CAMLP5_MODULE(logger, pa_log.cmo, +camlp5 ../logger/camlp5, http://oops.tepkom.ru/projects/logger) dnl GET: svn co svn://oops.tepkom.ru/svn/logger/trunk
 AC_SUBST(PARSER_INCLUDES)
 fi
 
@@ -61,13 +62,13 @@ dnl check for compiler module
 dnl usage:
 dnl library name, modules to open,
 dnl 1st dir <space> 2nd dir <space> etc., library homepage.
-AC_CHECK_OCAML_MODULE(ocamlgraph, Graph.Flow, ../graph, http://www.lri.fr/~filliatr/ocamlgraph/)
-AC_CHECK_OCAML_MODULE(typeutil, View, ../typeutil/src, http://oops.tepkom.ru/projects/typeutil/)
+AC_CHECK_OCAML_MODULE(ocamlgraph, Graph.Flow, ../ocamlgraph, http://ocamlgraph.lri.fr/) dnl GET: sh get-ocamlgraph.sh ../ocamlgraph
+AC_CHECK_OCAML_MODULE(typeutil, View, ../typeutil/src, http://oops.tepkom.ru/projects/typeutil/) dnl GET: svn co svn://oops.tepkom.ru/svn/typeutil/trunk
 dnl more module checks
 dnl AC_CHECK_OCAML_MODULE(libname, Module1 Module2, ../libdir, http://www.example.com/libname)
-AC_CHECK_OCAML_MODULE(BinomialHeap, BinomialHeap, ../BinomialHeap/src, http://oops.tepkom.ru/projects/BinomialHeap/)
-AC_CHECK_OCAML_MODULE(urray, Urray, ../urray/src, http://oops.tepkom.ru/projects/urray/)
-AC_CHECK_OCAML_MODULE(PM, PM, ../PairMatching/src, http://oops.tepkom.ru/projects/PairMatching/)
+AC_CHECK_OCAML_MODULE(BinomialHeap, BinomialHeap, ../BinomialHeap/src, http://oops.tepkom.ru/projects/BinomialHeap/) dnl GET: svn co svn://oops.tepkom.ru/svn/BinomialHeap/trunk
+AC_CHECK_OCAML_MODULE(urray, Urray, ../urray/src, http://oops.tepkom.ru/projects/urray/) dnl GET: svn co svn://oops.tepkom.ru/svn/urray/trunk
+AC_CHECK_OCAML_MODULE(PM, PM, ../PM/src, http://oops.tepkom.ru/projects/PairMatching/) dnl GET: svn co svn://oops.tepkom.ru/svn/PairMatching/trunk
 AC_SUBST(MODULE_INCLUDES)
 AC_SUBST(EXTRA_CMA)
 
