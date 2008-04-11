@@ -253,7 +253,7 @@ module type Info =
     implementation of directed graph with nodes and edges labeled with values of types [NodeLabel] and 
     [EdgeLabel] correspondingly 
  *)
-module Make (NodeInfo : Info) (EdgeInfo : Info): Sig with type Node.info = NodeInfo.t and type Edge.info = EdgeInfo.t
+module Make (NodeInfo : Info) (EdgeInfo : Info) : Sig with type Node.info = NodeInfo.t and type Edge.info = EdgeInfo.t
 
 (** Functor to construct graph printers *)
 module Printer 

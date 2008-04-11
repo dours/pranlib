@@ -51,10 +51,10 @@ module Make (D: DFST.Sig) =
 
         module type Sig = 
           sig
-              val fill : unit -> unit
-              val get : int -> int
-              val dec : int -> unit
-              val inc : int -> unit
+            val fill : unit -> unit
+            val get : int -> int
+            val dec : int -> unit
+            val inc : int -> unit
           end
 
         module Make (Unit : Unit) = 
@@ -296,13 +296,6 @@ module Make (D: DFST.Sig) =
           MA.add n;
           let _ = forward [n] in
           backward ();
-          LOG (
-            Printf.printf "incomings after MA construction:\n";
-            Urray.iteri 
-              (fun i (n, m) -> Printf.printf "  %d: (outer=%d, inner=%d)\n" i n m) 
-              (Lazy.force INS.incoming);
-            Printf.printf "end incomings\n"
-          );
           MA.elements ()
 	    
         let get node = map P.node (getNumbers node)
