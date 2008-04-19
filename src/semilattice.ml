@@ -28,6 +28,8 @@ module type Base =
 
     val equal : t -> t -> bool
 
+    val toString : t -> string
+
   end
 
 module type Sig =

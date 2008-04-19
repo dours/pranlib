@@ -113,7 +113,23 @@ module BackwardAdapter (X : UniAdapter) =
 
     let flow node =
       (fun (ins, outs) ->
-	let x = X.flow node (List.fold_right (fun (_, y) z -> L.cap z y) outs L.top) in
+	LOG (
+	  Printf.printf "BackwardAdapter: outs(%d)=" (List.length outs);
+          List.iter (fun (_, x) -> Printf.printf "%s, " (L.toString x)) outs;
+	  Printf.printf "\n"
+        );
+	let arg = 
+	  List.fold_right 
+	    (fun (_, y) z -> 
+	      let x = L.cap z y in
+	      LOG (Printf.printf "%s cap %s = %s\n" (L.toString z) (L.toString y) (L.toString x));
+	      x
+	    ) 
+	    outs 
+	    L.top 
+	in
+	LOG (Printf.printf "arg=%s\n" (L.toString arg));
+	let x = X.flow node arg in
 	List.map (fun _ -> x) ins, []
       )
 

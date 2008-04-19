@@ -58,11 +58,23 @@ module Generic (P : ProgramView.Sig) (O : Order.Sig with module G = P.G) =
       in
       let flowNode node = Urray.get flows (P.G.Node.index node) in
       let flowArgs node =
-	let combine = List.map (fun edge -> let i = P.G.Edge.index edge in Urray.get infos i, Urray.get labels i) in
+	let combine comm = 
+	  List.map 
+	    (fun edge -> 
+	      LOG (Printf.printf "%s index=%d\n" comm (P.G.Edge.index edge)); 
+	      let i = P.G.Edge.index edge in 
+	      LOG (Printf.printf "%s label=%s\n" comm (P.L.toString (Urray.get labels i)));
+	      Urray.get infos i, Urray.get labels i
+	    ) 
+	in
 	let ins, outs = P.G.ins node, P.G.outs node in
-	(combine ins, combine outs)
+	(combine "ins" ins, combine "outs" outs)
       in
       let update node (ins, outs) =
+	LOG (
+	  let module L = View.List (P.L) in 
+	  Printf.printf "DFAEngine::Generic::update: [%s], [%s]\n" (L.toString ins) (L.toString outs)
+        );
 	let insOrig, outsOrig = P.G.ins node, P.G.outs node in
 	let collectChanges acc labs edges =
 	  if labs != []
@@ -70,8 +82,13 @@ module Generic (P : ProgramView.Sig) (O : Order.Sig with module G = P.G) =
 	    List.fold_left2
 	      (fun acc lab edge ->
 		let i = P.G.Edge.index edge in
-		if P.L.equal (Urray.get labels i) lab then acc
+		LOG (
+		  Printf.printf "Checking equality: %s and %s\n" (P.L.toString lab) (P.L.toString (Urray.get labels i))
+	        );
+		if P.L.equal (Urray.get labels i) lab 
+		then acc
 		else (
+		  LOG (Printf.printf "Not equal, changing.\n");
 		  Urray.set labels i lab;
 		  edge :: acc
 		 )
@@ -87,6 +104,11 @@ module Generic (P : ProgramView.Sig) (O : Order.Sig with module G = P.G) =
       while !continue do
 	continue := false;
 	for i=O.first to O.last do
+	  LOG (
+	    Printf.printf "Begin Labels:\n";
+	    Urray.iteri (fun i x -> Printf.printf "   %d: %s\n" i (P.L.toString x)) labels;
+	    Printf.printf "End Labels\n"
+          );
 	  let node = O.node i in
 	  match update node ((flowNode node) (flowArgs node)) with
 	  | [] -> ()

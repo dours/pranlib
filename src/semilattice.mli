@@ -36,6 +36,9 @@ module type Base =
     (** Equality function *)
     val equal : t -> t -> bool
 
+    (** String representation *)
+    val toString : t -> string
+
   end
 
 (** Main semilattice signature *)
