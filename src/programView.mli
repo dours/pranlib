@@ -130,14 +130,14 @@ module type Sig =
 
     (** Control flow graph to analyze *)
     module G : CFG.Sig with 
-      type Node.info = Abstractor.Concrete.node and
-      type Edge.info = Abstractor.Concrete.edge
+      type Node.t = Abstractor.Concrete.node and
+      type Edge.t = Abstractor.Concrete.edge
 
     (** [flow node] returns the flow function associated with the given node *)
-    val flow : G.Node.info -> Adapter.flow
+    val flow : G.Node.t -> Adapter.flow
 
     (** [init node] returns initial semilattice element associated with the given node *)
-    val init : G.Node.info -> (Adapter.P.edge list * Adapter.P.edge list -> Adapter.L.t list * Adapter.L.t list)
+    val init : G.Node.t -> (Adapter.P.edge list * Adapter.P.edge list -> Adapter.L.t list * Adapter.L.t list)
 
   end  
     
@@ -147,7 +147,7 @@ module type Sig =
 module Make 
     (Adapter    : Adapter) 
     (Abstractor : Abstractor with type Abstract.node = Adapter.P.node and type Abstract.edge = Adapter.P.edge) 
-    (G          : CFG.Sig with type Node.info = Abstractor.Concrete.node and type Edge.info = Abstractor.Concrete.edge) : 
+    (G          : CFG.Sig with type Node.t = Abstractor.Concrete.node and type Edge.t = Abstractor.Concrete.edge) :
   Sig with
     module Adapter    = Adapter    and
     module Abstractor = Abstractor and

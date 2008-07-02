@@ -1,7 +1,7 @@
 
 # type in sources here
-SOURCES = dOT.ml tree.ml digraph.ml breakCycles.ml cFG.ml order.ml generate.ml dFST.ml cFO.ml dominance.ml region.ml forest.ml loops.ml alts.ml regularCFG.ml semilattice.ml programView.ml dFAEngine.ml hammocks.ml 
-MLI = dOT.mli tree.mli digraph.mli breakCycles.mli cFG.mli order.mli generate.mli dFST.mli cFO.mli dominance.mli region.mli forest.mli loops.mli alts.mli regularCFG.mli semilattice.mli programView.mli dFAEngine.mli hammocks.mli 
+SOURCES = dOT.ml tree.ml digraph.ml breakCycles.ml cFG.ml order.ml generate.ml dFST.ml pathCovering.ml cFO.ml dominance.ml region.ml forest.ml loops.ml alts.ml regularCFG.ml semilattice.ml programView.ml dFAEngine.ml hammocks.ml 
+MLI = dOT.mli tree.mli digraph.mli breakCycles.mli cFG.mli order.mli generate.mli dFST.mli pathCovering.ml cFO.mli dominance.mli region.mli forest.mli loops.mli alts.mli regularCFG.mli semilattice.mli programView.mli dFAEngine.mli hammocks.mli 
 
 include $(top_srcdir)/m4/Makefile.am.vars
 

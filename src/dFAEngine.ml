@@ -24,7 +24,7 @@ module Generic (P : ProgramView.Sig) (O : Order.Sig with module G = P.G) =
       let flows  = 
 	let data = Urray.make upbn ((fun _ -> [], []) : P.Adapter.flow) in    
 	List.iter 
-	  (fun node -> Urray.set data (P.G.Node.index node) (P.flow (P.G.Node.info node))) 
+	  (fun node -> Urray.set data (P.G.Node.index node) (P.flow node)) 
 	  (P.G.nodes P.G.graph);
 	data
       in
@@ -32,9 +32,9 @@ module Generic (P : ProgramView.Sig) (O : Order.Sig with module G = P.G) =
 	match P.G.edges P.G.graph with
 	| [] -> Urray.empty ()
 	| (hd :: _) as edges ->
-	    let data = Urray.make upbe (P.Abstractor.edge (P.G.Edge.info hd)) in
+	    let data = Urray.make upbe (P.Abstractor.edge hd) in
 	    List.iter 
-	      (fun edge -> Urray.set data (P.G.Edge.index edge) (P.Abstractor.edge (P.G.Edge.info edge))) 
+	      (fun edge -> Urray.set data (P.G.Edge.index edge) (P.Abstractor.edge edge)) 
 	      edges;
 	    data
       in
@@ -44,7 +44,7 @@ module Generic (P : ProgramView.Sig) (O : Order.Sig with module G = P.G) =
 	  (fun node ->	    
 	    let ins, outs = 
 	      P.init 
-		(P.G.Node.info node) 
+		node 
 		(
 		 List.map (fun e -> Urray.get infos (P.G.Edge.index e)) (P.G.ins  node),
 		 List.map (fun e -> Urray.get infos (P.G.Edge.index e)) (P.G.outs node)
