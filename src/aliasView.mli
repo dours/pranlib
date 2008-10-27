@@ -93,7 +93,7 @@ module Expression :
     (** [value e] denotes dereference of a block to which expression [e] evalutes *)
     val value  : t -> t
  
-    (** [Unspec e] denotes unspecified operation returning any block from region
+    (** [unspec e] denotes unspecified operation returning any block from region
                    to which value of [e] belongs.
      *)
     val unspec : t -> t
@@ -116,7 +116,9 @@ module Statement :
     *)
     val assign : Expression.t -> Expression.t -> t
 
-    (** [Black (rs, es)] stands for ``external function call''. It is presumed that external   	                                         function is any program that can use blocks from regions [rs] and blocks to which                                                          expressions [es] are evaluated, but cannot use expressions [Unspec] and [Any] *)
+    (** [black (rs, es)] stands for ``external function call''. It is presumed that external 
+        function is any program that can use blocks from regions [rs] and blocks to which
+        expressions [es] are evaluated, but cannot use expressions [Unspec] and [Any] *)
     val black  : Region.t list -> Expression.t list -> t
                   
   end
