@@ -76,19 +76,30 @@ module Expression :
   sig
 
     (** Type of the expression *) 
-    type t =
-    | New    of Region.t * Type.t (** [New (r, t)] is a block of type [t] dynamically alocated in region [r] *)
-    | Block  of Block.t (** [Block b] denotes block [b] *)
-    | Sub    of (Block.t -> Block.t option) * t (** [sub (f, e)] applies function [f] to the result of expression [e].
-                                                     [f] is a function returning subblock of a given block or [None]
-                                                    if operation is not applicable to given block
-                                                *)
-    | Value  of t (** [Value e] denotes dereference of block to which expression [e] evalutes *)
-    | Unspec of t (** [Unspec e] denotes unspecified operation returning any block from region
-                      to which value of [e] belongs.
-                  *)
-    | Any (** This expression may be evaluated to any block *)
+    type t 
 
+    (** [alloc r t] creates an expression corresponding to a block of type [t] dynamically alocated in region [r] *)
+    val alloc  : Region.t -> Type.t -> t
+
+    (** [block b] creates an expression evaluating to block [b] *) 
+    val block  : Block.t -> t
+ 
+    (** [sub (f, e)] applies function [f] to the result of expression [e].
+        [f] is a function returning subblock of a given block or
+       [None] if operation is not applicable to given block.
+     *)
+    val sub    : (Block.t -> Block.t option) -> t -> t
+
+    (** [value e] denotes dereference of a block to which expression [e] evalutes *)
+    val value  : t -> t
+ 
+    (** [Unspec e] denotes unspecified operation returning any block from region
+                   to which value of [e] belongs.
+     *)
+    val unspec : t -> t
+
+    (** This expression may be evaluated to any block *)
+    val any    : t
 
   end
 
@@ -97,12 +108,16 @@ module Statement :
   sig 
 
    (** Type of the statement *)
-    type t =
-    | Assign of Expression.t * Expression.t (** [Assign (e1, e2)] lets block to which [e1] evalutes to contain reference
-                                                on block to which [e2] evalutes
-                                            *)
-    | Black of Region.t list * Expression.t list
-     (** [Black (rs, es)] stands for ``external function call''. It is presumed that external   	                                            function is any program that can use blocks from regions [rs] and blocks to which                                                          expressions [es] are evaluated, but cannot use expressions [Unspec] and [Any] *)
+    type t
+
+   (** [assign (e1, e2)] creates assignment statement that
+       lets block to which [e1] evalutes to contain reference
+       on block to which [e2] evalutes
+    *)
+    val assign : Expression.t -> Expression.t -> t
+
+    (** [Black (rs, es)] stands for ``external function call''. It is presumed that external   	                                         function is any program that can use blocks from regions [rs] and blocks to which                                                          expressions [es] are evaluated, but cannot use expressions [Unspec] and [Any] *)
+    val black  : Region.t list -> Expression.t list -> t
                   
   end
 
@@ -146,13 +161,18 @@ module Results (A: ProgramView.Abstractor with
                     type Edge.t = A.Concrete.edge) :
   sig
 
-  (** type of may analysis result:
+  (** type of alias analysis result:
       set of blocks on which an alias may exist and a flag indicating if block value can be undefined
   *)
-  type may = Set.Make(Block).t * bool
+  type aliasInfo = Set.Make(Block).t * bool
 
-  (** [aliases n b] returns result of alias analysis for block [b] in node [n] *)
-  val alias : G.Node.t -> Block.t -> may
+  (** [before n b] returns result of alias analysis for block [b] before execution of the statement
+                   settled in node [n] *)
+  val before : G.Node.t -> Block.t -> aliasInfo
+
+  (** [after b] returns result of alias analysis for block [b] after execution of the statement
+                   settled in node [n] *)  
+  val after  : G.Node.t -> Block.t -> aliasInfo
 
   end
 

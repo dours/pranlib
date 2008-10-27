@@ -110,6 +110,18 @@ module Expression =
       | Unspec of t 
       | Any
 
+    let alloc r t = New (r, t)
+
+    let block b   = Block b
+
+    let sub   f e = Sub (f, e)
+
+    let value e   = Value e
+ 
+    let unspec e  = Unspec e
+
+    let any       = Any
+
   end
 
 module Statement =
@@ -118,6 +130,10 @@ module Statement =
     type t =
 	Assign   of Expression.t * Expression.t
       | Black    of Region.t list * Expression.t list
+
+    let assign e1 e2 = Assign (e1, e2)
+
+    let black  rs es = Black (rs, es)
 
   end
 
@@ -382,14 +398,11 @@ module type AAValue =
 
   end
 
-module ASL (V: AAValue) = 
+module ASL (Value: AAValue) = 
   struct
 
-    module Value = V
+    module Value = Value
 
-    (* TO DO - ADD INCORRECTNESS *)
-    type fail = No | May | Must 
- 
     type t = L of ((Value.t BMap.t) * Region.t) list | Bottom 
  
     let top = L []
@@ -624,7 +637,7 @@ module Results (A : ProgramView.Abstractor with
                     type Edge.t = A.Concrete.edge) =
 struct
  
-  type may  = BSet.t * bool
+  type aliasInfo  = BSet.t * bool
 
   module S = 
     struct
@@ -639,60 +652,65 @@ struct
 
   (* Abstractor wrapper *)
   module A' = 
-  struct
-    module Concrete = A.Concrete
-    
-    module Abstract = 
     struct
-      type node = Repr.node
+      module Concrete = A.Concrete
       
-      type edge = A.Abstract.edge
+      module Abstract = 
+        struct
+          type node = Repr.node
+       
+         type edge = A.Abstract.edge
+        end
+
+      module NodeHash = Hashtbl.Make (G.Node)
+
+      let dynHash = 
+       let module S = Statement in
+       let module E = Expression in
+       let hash = NodeHash.create 100
+       in
+       let rec expr = function
+        | E.New (r, t) -> E.Block (Memory.allocateDynamic t r)
+        | E.Block b as e -> e
+        | E.Sub (sub, e) -> E.Sub (sub, expr e)
+        | E.Value e -> E.Value (expr e)
+        | E.Unspec e -> E.Unspec (expr e)
+        | E.Any -> E.Any
+       in   
+       let stmt = function
+       | S.Assign (e1, e2) -> S.Assign (expr e1, expr e2)
+       | S.Black  (rs, es) -> S.Black  (rs, List.map expr es)
+       in
+       let node x =
+        let s = List.map stmt (A.node x) in
+         let mark = 
+          if x == G.start 
+          then NodeInfo'.Start s
+          else NodeInfo'.General s       
+         in 
+         NodeHash.add hash x mark
+       in  
+       List.iter node (G.nodes G.graph);
+       NodeHash.copy hash
+
+      let node = NodeHash.find dynHash  
+
+      let edge = A.edge
     end
-
-    module NodeHash = Hashtbl.Make (G.Node)
-
-    let dynHash = 
-     let module S = Statement in
-     let module E = Expression in
-     let hash = NodeHash.create 100
-     in
-     let rec expr = function
-      | E.New (r, t) -> E.Block (Memory.allocateDynamic t r)
-      | E.Block b as e -> e
-      | E.Sub (sub, e) -> E.Sub (sub, expr e)
-      | E.Value e -> E.Value (expr e)
-      | E.Unspec e -> E.Unspec (expr e)
-      | E.Any -> E.Any
-     in   
-     let stmt = function
-     | S.Assign (e1, e2) -> S.Assign (expr e1, expr e2)
-     | S.Black  (rs, es) -> S.Black  (rs, List.map expr es)
-     in
-     let node x =
-      let s = List.map stmt (A.node x) in
-       let mark = 
-        if x == G.start 
-        then NodeInfo'.Start s
-        else NodeInfo'.General s       
-       in 
-       NodeHash.add hash x mark
-     in  
-     List.iter node (G.nodes G.graph);
-    NodeHash.copy hash
-
-    let node = NodeHash.find dynHash  
-
-    let edge = A.edge
-  end
   
-  module PView = ProgramView.Make (ProgramView.ForwardAdapter (AAAdapter (SL))) (A') (G) 
+    module PView = ProgramView.Make (ProgramView.ForwardAdapter (AAAdapter (SL))) (A') (G) 
 
-  module Analyse = DFAEngine.RevPost (PView) (DFST.Make (G))
+    module Analyse = DFAEngine.RevPost (PView) (DFST.Make (G))
+
+    let before node block =
+      match List.map Analyse.get (G.ins node) with
+        []       -> raise (Failure "Semilattice element cannot be assigned to the start node.")
+      | hd :: tl  -> V.unwrap (SL.getValue block (List.fold_left SL.cap hd tl))
                 
-  let alias node block =
-    match G.outs node with
-      []       -> raise (Failure "Semilattice element cannot be assigned to the end node.")
-    | hd :: _  -> V.unwrap (SL.getValue block (Analyse.get hd))
+    let after node block =
+      match G.outs node with
+        []       -> raise (Failure "Semilattice element cannot be assigned to the end node.")
+      | hd :: _  -> V.unwrap (SL.getValue block (Analyse.get hd))
 
 end
 
