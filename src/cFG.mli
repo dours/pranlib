@@ -30,9 +30,9 @@ module type Sig =
     (** The starting node *)
     val start : Node.t
 
-  end
+  end 
 
 (** Functor to instantiate CFG *)
 module Make (S : Digraph.Sig) (G: sig val graph : S.t val start : S.Node.t end) : Sig with
-   module Node = S.Node and module Edge = S.Edge and type t = S.t
+   module Node = S.Node and module Edge = S.Edge and type t = S.t 
     

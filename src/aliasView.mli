@@ -50,7 +50,7 @@ module Block :
     (** Relation between two blocks *)
     type rel =
     | Same (** blocks are equal*)
-    | Different (** block do not overlap *)
+    | Different (** blocks do not overlap *)
     | Nested (** blocks are nested *)
     | Containing (** reversed Nested relation *)
 
@@ -84,7 +84,7 @@ module Expression :
     (** [block b] creates an expression evaluating to block [b] *) 
     val block  : Block.t -> t
  
-    (** [sub (f, e)] applies function [f] to the result of expression [e].
+    (** [sub f e] applies function [f] to the result of expression [e].
         [f] is a function returning subblock of a given block or
        [None] if operation is not applicable to given block.
      *)
@@ -93,10 +93,10 @@ module Expression :
     (** [value e] denotes dereference of a block to which expression [e] evalutes *)
     val value  : t -> t
  
-    (** [unspec e] denotes unspecified operation returning any block from region
-                   to which value of [e] belongs.
+    (** [region e] denotes unspecified operation returning any block from the region
+                   (or from some its descendant) to which value of [e] belongs.
      *)
-    val unspec : t -> t
+    val region : t -> t
 
     (** This expression may be evaluated to any block *)
     val any    : t
@@ -118,22 +118,37 @@ module Statement :
 
     (** [black (rs, es)] stands for ``external function call''. It is presumed that external 
         function is any program that can use blocks from regions [rs] and blocks to which
-        expressions [es] are evaluated, but cannot use expressions [Unspec] and [Any] *)
+        expressions [es] are evaluated, but cannot use expressions [Unspec] and [Any]
+     *)
     val black  : Region.t list -> Expression.t list -> t
-                  
+
   end
 
 (** Memory of alias analysis. Contains allocated blocks and regions. *)
 module Memory : 
   sig
-    (** [create name] creates and returns new region named [name] *)
-    val create   : string -> Region.t
 
-    (** [allocate t r] allocates and returns new block of type t in region r *)
-    val allocate : Type.t -> Region.t -> Block.t
+    (** Type of the memory *)
+    type t
 
-   (** [cleanup ()] frees all allocated regions and blocks *)
-    val cleanup  : unit   -> unit  
+    (** Exception that is thrown when a region that does not belong to the memory is being addressed *)
+    exception RegionNotFound
+
+    (** [empty] denotes empty memory *)
+    val empty       : t
+ 
+    (** [createRegion m n f] creates in memory [m] a new region named [n]
+        and a set of son-father relationships between it and regions from the [f] list.
+        Returns updated memory and created region.
+     *)
+    val createRegion : t -> string -> Region.t list -> t * Region.t 
+
+    (** [allocateBlock m t r] allocates in memory [m] in region [r] a new block of type [t]
+        and returns updated memory and the allocated block, or raises RegionNotFound
+        if region [r] is not in the memory [m].
+     *) 
+    val allocateBlock : t -> Type.t -> Region.t -> t * Block.t
+
   end
 
 (** Information in node of the graph needed for alias analysis *)
@@ -159,22 +174,23 @@ module Results (A: ProgramView.Abstractor with
                     type Abstract.node = NodeInfo.t and
                     type Abstract.edge = EdgeInfo.t)
                (G : CFG.Sig with
-                    type Node.t = A.Concrete.node and 
-                    type Edge.t = A.Concrete.edge) :
+                    type Node.t    = A.Concrete.node and 
+                    type Edge.t    = A.Concrete.edge )
+               (M : sig val memory : Memory.t end) :
   sig
 
-  (** type of alias analysis result:
-      set of blocks on which an alias may exist and a flag indicating if block value can be undefined
-  *)
-  type aliasInfo = Set.Make(Block).t * bool
+    (** type of alias analysis result:
+        set of blocks on which an alias may exist and a flag indicating if block value can be undefined
+    *)
+    type aliasInfo = Set.Make(Block).t * bool
 
-  (** [before n b] returns result of alias analysis for block [b] before execution of the statement
-                   settled in node [n] *)
-  val before : G.Node.t -> Block.t -> aliasInfo
+    (** [before n b] returns result of alias analysis for expression [e] before execution of the statement
+                     settled in node [n] *)
+    val before : G.Node.t -> Expression.t -> aliasInfo
 
-  (** [after b] returns result of alias analysis for block [b] after execution of the statement
-                   settled in node [n] *)  
-  val after  : G.Node.t -> Block.t -> aliasInfo
+    (** [after b] returns result of alias analysis for expression [e] after execution of the statement
+                  settled in node [n] *)  
+    val after  : G.Node.t -> Expression.t -> aliasInfo
 
   end
 

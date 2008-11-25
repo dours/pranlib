@@ -43,6 +43,9 @@ module Region =
 
   end
 
+module RSet = Set.Make (Region)
+module RMap = Map.Make (Region)
+
 module Block =
   struct
 
@@ -50,7 +53,7 @@ module Block =
                Compound of Region.t * int * int * t array (* third parameter should be always greater then second *)
 
     type rel = Same | Different | Nested | Containing
-                     
+
     let region = function
     | Simple (r, _) | Compound (r, _, _, _) -> r
 
@@ -66,10 +69,10 @@ module Block =
       match (x, y) with
       | Simple    (r1, xi),        Simple    (r2, yi)
       | Compound (r1, xi, _, _),   Compound (r2, yi, _, _) when r1 = r2 -> if xi = yi then Same else Different
-     
+
       | Simple (r1, xi), Compound (r2, yi, z, _) when r1 = r2 -> if xi >= yi && xi <= z then Nested     else Different
-      | Compound (r1, yi, z, _), Simple (r2, xi) when r1 = r2  -> if xi >= yi && xi <= z then Containing else Different
- 
+      | Compound (r1, yi, z, _), Simple (r2, xi) when r1 = r2 -> if xi >= yi && xi <= z then Containing else Different
+
       | _ -> Different 
 
    let start = function
@@ -85,29 +88,31 @@ module Block =
             | Containing -> 1
             | _ -> 0
           else d
-       else rd      
+       else rd
 
-   
    let toViewer x = 
-   let rec aux = function
-   | Simple   (_, i)        -> View.int i
-   | Compound (_, _, _, bs) -> View.insqbr (View.array (Array.map aux bs))
-   in 
-   View.seq [View.string (Region.name (region x)); View.string ":";  (aux x)]
+     let rec aux = function
+     | Simple   (_, i)        -> View.int i
+     | Compound (_, _, _, bs) -> View.insqbr (View.array (Array.map aux bs))
+     in 
+     View.seq [View.string (Region.name (region x)); View.string ":";  (aux x)]
 
    let toString x = View.toString (toViewer x)
 
   end
 
+module BSet = Set.Make (Block)
+module BMap = Map.Make (Block)
+
 module Expression =
   struct
 
     type t =
-	New    of Region.t * Type.t 
+        New    of Region.t * Type.t 
       | Block  of Block.t
       | Sub    of (Block.t -> Block.t option) * t
       | Value  of t
-      | Unspec of t 
+      | Region of t 
       | Any
 
     let alloc r t = New (r, t)
@@ -117,8 +122,8 @@ module Expression =
     let sub   f e = Sub (f, e)
 
     let value e   = Value e
- 
-    let unspec e  = Unspec e
+
+    let region e  = Region e
 
     let any       = Any
 
@@ -128,7 +133,7 @@ module Statement =
   struct
 
     type t =
-	Assign   of Expression.t * Expression.t
+        Assign   of Expression.t * Expression.t
       | Black    of Region.t list * Expression.t list
 
     let assign e1 e2 = Assign (e1, e2)
@@ -137,109 +142,98 @@ module Statement =
 
   end
 
-module BSet = Set.Make (Block)
-module BMap = Map.Make (Block)
-module RSet = Set.Make (Region)
-module RHash = Hashtbl.Make (Region)
-
-type snapshot =
-  { all       : BSet.t;
-    unwrap    : Region.t -> BSet.t;
-    getSimple : Region.t -> BSet.t
-  }
-
-module type Snapshot = sig
-  (** Memory snapshot type *)
-  type t = snapshot
-
-  val s : t
-end 
-
 module Memory =
   struct
-  
-    let maxRegionId = ref 0 
 
-    (* hash table contains set of blocks for given region *)
-    let regions = RHash.create 10
+    module RegionInfo =
+      struct
+        (** set of static blocks * set of dynamic blocks * children regions * amount of allocated simple blocks *)
+        type t = BSet.t * BSet.t * Region.t list * int
 
-    let create name = 
-      incr maxRegionId;
-      let r = (name, !maxRegionId) in
-       RHash.add regions r BSet.empty;
-    r
+        let empty = (BSet.empty, BSet.empty, [], 0)
 
-    (*allocFrom sp set t r - allocates block of type t in region r starting from sp in set *)
-    let allocFrom startPos set t r  = 
-     let set, next = RHash.find regions r, ref startPos
-     in
-     let rec aux set =
-     let aux' (cells, set) t =
-      let a = aux set t in
-      (BSet.add (fst a) cells, snd a)
-     in function
-       Type.Simple         -> let cell = Block.Simple (r, !next) in                    
-                                incr next;
-                                (cell, BSet.add cell set)
-     | Type.Compound parts -> let start = !next in                         
-                              let (bset, set) = Array.fold_left aux' (BSet.empty, set) parts in                   
-                              let cell = Block.Compound (r, start, !next - 1, Array.of_list (BSet.elements bset)) in
-                                incr next;
-                                (cell, BSet.add cell set)
-     in
-     let (cell, set) = aux set t
-     in
-     RHash.replace regions r set;
-     cell
+        let addEdge (s1, s2, rs, i) toR = (s1, s2, toR :: rs, i)
 
-    let allocate t r =
-     let set = RHash.find regions r in
-     let next =
-      if BSet.is_empty set
-      then 0
-      else ((Block.start (BSet.max_elt (set))) + 1) 
-     in
-     allocFrom next set t r
+        (*alloc info r t - allocates block of type t in region r starting from sp in set *)
+        let alloc (st, dn, rs, cntr) r t =
+         let rec addBlock (set, pos) = function
+         | Type.Simple         ->  let block = Block.Simple (r, pos)
+                                   in (BSet.add block set, pos + 1, block)
+         | Type.Compound tps   ->  let foldFun (set, pos, blocks) t = 
+                                     match addBlock (set, pos) t with
+                                       (set', pos', block) -> (set', pos', block :: blocks)
+                                   in
+                                   let (set, pos, blocks) = Array.fold_left foldFun (set, pos, []) tps
+                                   in
+                                   (set, pos, Block.Compound (r, cntr, pos - 1, Array.of_list (List.rev blocks)))
+         in
+         function
+         | `Static  -> let (st', cntr', block) = addBlock (st, cntr) t in
+                           ((st', dn, rs, cntr'), block)
+         | `Dynamic -> let (dn', cntr', block) = addBlock (dn, cntr) t in
+                           ((st, dn', rs, cntr'), block)
 
-    (** allocates dynamic r t allocates dynamic block of type t in region r*)
-    let allocateDynamic t r = 
-     let set = RHash.find regions r in
-     let less =
-      if BSet.is_empty set
-      then 0
-      else (Block.start (BSet.min_elt (set))) 
-     in
-     let rec size = function
-     | Type.Simple -> 1
-     | Type.Compound parts -> Array.fold_left (fun c t -> c + (size t)) 0 parts
-     in
-     allocFrom (less - (size t)) set t r
+        let isDynamic (_, dn, _, _) block = BSet.mem block dn
 
-    let dynamic = function
-    | Block.Simple (_, i) | Block.Compound (_, i, _, _)
-        when i < 0 -> true
-    | _            -> false   
+        let fold vt rToInfo f reg = 
+         let rec aux (st, dn, rs, _) acc =
+          let res = BSet.fold f dn (BSet.fold f st acc)
+          in match vt with
+          | `Root -> res
+          | `Tree -> List.fold_right (fun r -> aux (rToInfo r)) rs res
+         in aux (rToInfo reg)
 
-    let getMemorySnapshot () = 
-      let isSimple = function
-      | Block.Simple _ -> true | _ -> false
+      end
+
+    (** Type of memory : map from regions to region info * number of allocated regions *)
+    type t = RegionInfo.t RMap.t * int
+
+    exception RegionNotFound = Not_found
+
+    let empty = (RMap.empty, 0)
+
+    let createRegion (map, i) name fathers = 
+      let newRegion = Region.create name i
       in
-      let hash = RHash.copy regions in
-      let hashSimple = RHash.create 10 in
-      RHash.iter (fun k v -> RHash.add hashSimple k (BSet.filter isSimple v)) regions;
-      { all = RHash.fold (fun _ -> BSet.union) regions BSet.empty;
-        unwrap = (fun r ->  if RHash.mem hash r then RHash.find hash r else BSet.empty);
-        getSimple = RHash.find hashSimple 
-      } 
+      ( ( RMap.fold (fun k v -> RMap.add k (RegionInfo.addEdge v newRegion))
+                    map 
+                    (RMap.add newRegion RegionInfo.empty RMap.empty),
+          i + 1),
+        newRegion
+      ) 
 
-    let cleanup () = 
-      maxRegionId := 0;
-      RHash.clear regions
+    let regToRegInfo map region  = 
+      try
+        RMap.find region map
+       with Not_found -> raise RegionNotFound
+
+    let allocAux mode (map, i) typ region  =
+      let (updtInfo, block) = RegionInfo.alloc (regToRegInfo map region) region typ mode
+      in ((RMap.add region updtInfo map, i), block)
+
+    let allocateBlock =
+      allocAux `Static
+
+    let allocateDynamic =
+      allocAux `Dynamic
+
+    let fold f (map, _) =
+      RegionInfo.fold `Tree (regToRegInfo map) f 
+ 
+    let foldAll f (map, _) =
+      RMap.fold (fun r _ -> RegionInfo.fold `Root (regToRegInfo map) f r) map
+
+    let dynamic (map, _) block = 
+      let ri = regToRegInfo map (Block.region block)
+      in RegionInfo.isDynamic ri block
+
   end
 
 module NodeInfo =
   struct
     type t = Statement.t list
+
+    let empty = []
 
     let toString x =  
       let rec typ = function
@@ -253,7 +247,7 @@ module NodeInfo =
         | Expression.Block b    -> "Block (" ^ (block b) ^ ")"
         | Expression.Sub (f, e) -> "Sub (" ^ (expr e) ^ ")"
         | Expression.Value e    -> "Value (" ^ (expr e) ^ ")"
-        | Expression.Unspec e   -> "Unspec (" ^ (expr e) ^ ")"
+        | Expression.Region e   -> "Region (" ^ (expr e) ^ ")"
         | Expression.Any        -> "Any"
       in
       let stmt = function
@@ -287,15 +281,15 @@ module Repr =
     type edge = EdgeInfo.t
   end
 
-module Value (S: Snapshot) =
+module Value (M: sig val memory : Memory.t end) =
   struct
 
     (* V (s, r, u) stands for: set of blocks s + increasing list of regions r + undefined flag *)   
     type t = V of BSet.t * RSet.t * bool | Any
 
-    module S = S
+    module M = M
 
-    let mem = S.s
+    let mem = M.memory
 
     let empty = V (BSet.empty, RSet.empty, false)   
  
@@ -321,13 +315,13 @@ module Value (S: Snapshot) =
        let bs1' = BSet.filter (fun b -> not (RSet.mem (Block.region b) rs2)) bs1
        in
        let bs1'' = BSet.union bs1'
-                             (RSet.fold (fun r -> BSet.union (mem.unwrap r)) rs1Bad BSet.empty)
+                             (RSet.fold (Memory.fold BSet.add mem) rs1Bad BSet.empty)
        in
        V (BSet.diff bs1'' bs2, rs1Good, undf1 & (not undf2))
      in
      match (x, y) with
        _, Any -> empty
-     | Any, v -> diff (V (S.s.all, RSet.empty, true)) v
+     | Any, v -> diff (V (Memory.foldAll BSet.add mem BSet.empty, RSet.empty, true)) v
      | v1, v2 -> diff v1 v2
 
     let toViewer = function  
@@ -350,8 +344,8 @@ module Value (S: Snapshot) =
     | _, _ -> false
 
     let unwrap = function
-    | V (bs, rs, undf) -> (RSet.fold (fun r -> BSet.union (mem.unwrap r)) rs bs, undf ) 
-    | Any -> (mem.all, true)
+    | V (bs, rs, undf) -> (RSet.fold (Memory.fold BSet.add mem) rs bs, undf ) 
+    | Any -> (Memory.foldAll BSet.add mem BSet.empty, true)
 
     let addBlock block = function
     | V (bs, rs, undf) -> V (BSet.add block bs, rs, undf)
@@ -367,7 +361,10 @@ module type AAValue =
     (* value type *)
     type t = V of BSet.t * RSet.t * bool | Any
 
-    module S : Snapshot
+    module M :
+      sig
+        val memory : Memory.t
+      end
 
     (* empty value *)
     val empty : t
@@ -403,8 +400,8 @@ module ASL (Value: AAValue) =
 
     module Value = Value
 
-    type t = L of ((Value.t BMap.t) * Region.t) list | Bottom 
- 
+    type t = L of ((Value.t BMap.t) * Region.t) list | Bottom
+
     let top = L []
 
     let bottom = Bottom
@@ -480,6 +477,58 @@ module ASL (Value: AAValue) =
      | Bottom -> Value.Any
      | L l'   -> findr l'
 
+  let getExprValue e l = 
+    let module E = Expression
+    in
+    let mem = Value.M.memory
+    in
+    let addSub sub block set = match sub block with
+      Some b -> (match (Block.relation b block) with
+                   Block.Same | Block.Nested -> BSet.add b set
+                 | _ -> set
+                )
+    | None -> set
+    in
+    let addVal block value = match block with
+    | Block.Compound _ -> value
+    | simpl -> (getValue simpl l) <@> value
+    in
+    let rec expr = function
+    | E.New (r, typ) -> failwith "Internal: Failure in getExprWidth at E.New"
+    | E.Block b      -> Value.V (BSet.singleton b, RSet.empty, false)
+    | E.Sub (sub, e) -> let addSub' = addSub sub in
+                        (match expr e with
+                          Value.V (bs, rs, undf) ->
+                             Value.V                                        
+                             ( BSet.union (BSet.fold addSub' bs BSet.empty)
+                                          (RSet.fold (Memory.fold addSub' mem) rs BSet.empty),
+                               RSet.empty,
+                               undf  
+                             )
+                         | Value.Any -> Value.V (Memory.foldAll addSub' mem BSet.empty, RSet.empty, true)
+                        )
+    | E.Value e      -> (match expr e with
+                           Value.V (bs, rs, undf) -> 
+                             BSet.fold addVal
+                                       bs
+                                       (RSet.fold (fun r -> Memory.fold addVal mem r)
+                                                  rs
+                                                  (Value.V (BSet.empty, RSet.empty, undf))
+                                       )
+                         | Value.Any -> Memory.foldAll addVal mem Value.empty 
+                        )
+    | E.Region e     -> (match expr e with
+                           Value.V (bs, rs, _) ->
+                           Value.V 
+                           ( BSet.empty,
+                             BSet.fold (fun block -> RSet.add (Block.region block)) bs rs,
+                             true
+                           )
+                         | Value.Any -> Value.Any
+                        )
+    | E.Any          -> Value.Any
+    in expr e
+
   let putValue block value = 
     let reg = Block.region block
     in
@@ -502,6 +551,9 @@ module type AASemilattice =
    (* computes value of block for given semilattice element *)
     val getValue : Block.t -> t -> Value.t
 
+   (* computes value of expression for given semilattice element *)
+    val getExprValue : Expression.t -> t -> Value.t
+
    (* putValue b v l lets block b have value equal to b *)
     val putValue : Block.t -> Value.t -> t -> t
   end
@@ -518,64 +570,18 @@ module AAAdapter (SL : AASemilattice) =
 
     module Value = SL.Value
 
-    let mem = Value.S.s
+    let mem = Value.M.memory
 
     let (<@>) = Value.(<@>)
     let (</>) = Value.(</>)
 
     let flow' =   
-      let expr l = 
-        let addSub sub block set = match sub block with
-          Some b -> (match (Block.relation b block) with
-                       Block.Same | Block.Nested -> BSet.add b set
-                     | _ -> set
-                    )
-        | None -> set
-        in
-        let addVal block value = match block with
-        | Block.Compound _ -> value
-        | simpl -> (SL.getValue simpl l) <@> value
-        in
-        let rec expr' = function
-        | E.New (r, typ)   -> failwith "Internal: Failure in flow' at E.New"
-        | E.Block b -> Value.V (BSet.singleton b, RSet.empty, false)
-        | E.Sub (sub, e) -> let addSub' = addSub sub in
-                            (match expr' e with
-                               Value.V (bs, rs, undf) ->
-                                 Value.V                                        
-                                 ( BSet.union (BSet.fold addSub' bs BSet.empty)
-                                              (RSet.fold (fun r ->  BSet.fold addSub' (mem.unwrap r)) rs BSet.empty),
-                                   RSet.empty,
-                                   undf  
-                                 )
-                             | Value.Any -> 
-                                 Value.V (BSet.fold addSub' mem.all BSet.empty, RSet.empty, true)
-                            )
-        | E.Value e      -> (match expr' e with
-                               Value.V (bs, rs, undf) -> 
-                                 BSet.fold addVal
-                                           bs
-                                           (RSet.fold (fun r -> BSet.fold addVal (mem.getSimple r))
-                                                      rs
-                                                      (Value.V (BSet.empty, RSet.empty, undf))
-                                           )
-                             | Value.Any -> BSet.fold addVal mem.all Value.empty
-                            )
-        | E.Unspec e     -> (match expr' e with
-                               Value.V (bs, rs, _) ->
-                               Value.V 
-                               ( BSet.empty,
-                                 BSet.fold (fun block -> RSet.add (Block.region block)) bs rs,
-                                 true
-                               )
-                             | Value.Any -> Value.Any
-                            )
-                              
-        | E.Any          -> Value.Any
-        in expr'
+      let expr l e = SL.getExprValue e l
       in    
       let flw stmt l = 
-        let add value = fun block -> SL.putValue block ((SL.getValue block l) <@> value)
+        let add value block l = match block with
+        | Block.Compound _ -> l
+        | _                -> SL.putValue block ((SL.getValue block l) <@> value) l
         in
         let exprl = expr l
         in
@@ -583,11 +589,11 @@ module AAAdapter (SL : AASemilattice) =
           S.Assign (e1, e2) ->
             (match (exprl e1), (exprl e2) with
                Value.V (bs, rs, _), value
-                 when BSet.cardinal bs = 1 && RSet.is_empty rs && not (Memory.dynamic (BSet.choose bs)) ->  
+                 when BSet.cardinal bs = 1 && RSet.is_empty rs && not (Memory.dynamic mem (BSet.choose bs)) ->  
                    SL.putValue (BSet.choose bs) value l 
              | Value.V (bs, rs, _), value  -> 
-                 BSet.fold (add value) bs (RSet.fold (fun r -> BSet.fold (add value) (mem.getSimple r)) rs l)                
-             | Value.Any, value -> BSet.fold (add value) mem.all l
+                 BSet.fold (add value) bs (RSet.fold (fun r -> Memory.fold (add value) mem r) rs l)                
+             | Value.Any, value -> Memory.foldAll (add value) mem l
             ) 
         | S.Black (rs, es) ->  
             let value = (List.fold_left (<@>) Value.empty (List.map exprl es)) <@>
@@ -616,15 +622,14 @@ module AAAdapter (SL : AASemilattice) =
       | hd::tl -> aux tl (flw hd l)
       in aux
 
-   let flow node l = match node with
+   let flow node l = match node with 
      NodeInfo'.Start x   -> let undef = Value.V (BSet.empty, RSet.empty, true) in
-                              BSet.fold (function
-                                         | Block.Simple _ as block -> SL.putValue block undef
-                                         | _ -> (fun x -> x))
-                                        mem.all
-                                        SL.top
+                             flow' x (Memory.foldAll (function | Block.Simple _ as block -> SL.putValue block undef
+                                                               | _ -> (fun x -> x))
+                                                      mem
+                                                      SL.top)
    | NodeInfo'.General x ->  flow' x l 
-    
+
     let init _ = L.top
   end
 
@@ -634,83 +639,95 @@ module Results (A : ProgramView.Abstractor with
                     type Abstract.edge = EdgeInfo.t )
                (G : CFG.Sig with
                     type Node.t = A.Concrete.node and 
-                    type Edge.t = A.Concrete.edge) =
+                    type Edge.t = A.Concrete.edge )
+               (M : sig val memory : Memory.t end) =
 struct
- 
+
   type aliasInfo  = BSet.t * bool
 
-  module S = 
-    struct
-      type t = snapshot
-      
-      let s = Memory.getMemorySnapshot ()
-    end
+  module NodeMap = Map.Make (G.Node)
 
-  module V = Value (S)
+  let (memory, map) = 
+    let module E = Expression
+    in
+    let module S = Statement
+    in
+    let map = NodeMap.empty
+    in
+    let rec expr m = function 
+    | E.New (r, t)   -> let (m', block) = Memory.allocateDynamic m t r 
+                        in (m', E.Block block)
+    | E.Sub (sub, e) -> let (m', e') = expr m e
+                        in (m', E.Sub (sub, e'))
+    | E.Value e      -> let (m', e') = expr m e
+                        in (m', E.Value e')
+    | E.Region e     -> let (m', e') = expr m e
+                        in (m',E.Region e')
+    | e -> (m, e)
+    in
+    let stmt m = function
+    | S.Assign (e1, e2) -> let (m', e1')  = expr m e1
+                           in
+                           let (m'', e2') = expr m' e2
+                           in
+                           (m'', S.Assign (e1', e2'))
+    | S.Black  (rs, es) -> let (m', es') =
+                             List.fold_right (fun e (m, es) -> let (m', e') = expr m e
+                                                               in (m', e' :: es)
+                                             )
+                                             es
+                                             (m, [])
+                           in (m', S.Black  (rs, es'))
+    in
+    let stmts m sts = List.fold_right (fun st (m, sts) -> let (m', st') = stmt m st
+                                                          in (m', st' :: sts)
+                                      ) 
+                                      sts
+                                      (m, [])
+    in
+    List.fold_left (fun (mem, map) node -> let (mem', info) = stmts mem (A.node node) in
+                                               (mem', NodeMap.add node info map)
+                    )
+                    (M.memory, map)
+                    (G.nodes G.graph)
+
+
+  module V = Value (struct let memory = memory end)
 
   module SL = ASL (V)
 
-  (* Abstractor wrapper *)
-  module A' = 
-    struct
-      module Concrete = A.Concrete
-      
-      module Abstract = 
-        struct
-          type node = Repr.node
-       
-         type edge = A.Abstract.edge
-        end
+  module PView = ProgramView.Make
+                  (ProgramView.ForwardAdapter (AAAdapter (SL)))
+                  (struct
+                     module Concrete = A.Concrete
 
-      module NodeHash = Hashtbl.Make (G.Node)
+                     module Abstract = 
+                       struct
+                         type node = Repr.node
 
-      let dynHash = 
-       let module S = Statement in
-       let module E = Expression in
-       let hash = NodeHash.create 100
-       in
-       let rec expr = function
-        | E.New (r, t) -> E.Block (Memory.allocateDynamic t r)
-        | E.Block b as e -> e
-        | E.Sub (sub, e) -> E.Sub (sub, expr e)
-        | E.Value e -> E.Value (expr e)
-        | E.Unspec e -> E.Unspec (expr e)
-        | E.Any -> E.Any
-       in   
-       let stmt = function
-       | S.Assign (e1, e2) -> S.Assign (expr e1, expr e2)
-       | S.Black  (rs, es) -> S.Black  (rs, List.map expr es)
-       in
-       let node x =
-        let s = List.map stmt (A.node x) in
-         let mark = 
-          if x == G.start 
-          then NodeInfo'.Start s
-          else NodeInfo'.General s       
-         in 
-         NodeHash.add hash x mark
-       in  
-       List.iter node (G.nodes G.graph);
-       NodeHash.copy hash
+                         type edge = A.Abstract.edge
+                       end
 
-      let node = NodeHash.find dynHash  
+                     let node x = if x == G.start 
+                                  then NodeInfo'.Start (NodeMap.find x map)
+                                  else NodeInfo'.General (NodeMap.find x map)
 
-      let edge = A.edge
-    end
-  
-    module PView = ProgramView.Make (ProgramView.ForwardAdapter (AAAdapter (SL))) (A') (G) 
+                     let edge = A.edge
+                   end
+                  )
+                  (G) 
 
-    module Analyse = DFAEngine.RevPost (PView) (DFST.Make (G))
+  module Analyse = DFAEngine.RevPost (PView) (DFST.Make (G))
 
-    let before node block =
-      match List.map Analyse.get (G.ins node) with
-        []       -> raise (Failure "Semilattice element cannot be assigned to the start node.")
-      | hd :: tl  -> V.unwrap (SL.getValue block (List.fold_left SL.cap hd tl))
-                
-    let after node block =
-      match G.outs node with
-        []       -> raise (Failure "Semilattice element cannot be assigned to the end node.")
-      | hd :: _  -> V.unwrap (SL.getValue block (Analyse.get hd))
+  let before node expr =
+    match List.map Analyse.get (G.ins node) with
+      []       -> raise (Failure "Semilattice element cannot be assigned to the start node.")
+    | hd :: tl  -> V.unwrap (SL.getExprValue expr (List.fold_left SL.cap hd tl))
+               
+  let after node expr =
+    match G.outs node with
+      []       -> raise (Failure "Semilattice element cannot be assigned to the end node.")
+    | hd :: _  -> V.unwrap (SL.getExprValue expr (Analyse.get hd))
 
 end
 
