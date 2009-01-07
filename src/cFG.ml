@@ -15,12 +15,10 @@
  * (enclosed in the file COPYING).
  *)
 
-
-
 module type Sig =
   sig
 
-    include Digraph.Sig (*with type t = (Digraph.Make (Node) (Edge)).t*)
+    include Digraph.Sig
 
     val graph : t
     val start : Node.t

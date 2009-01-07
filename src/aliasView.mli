@@ -17,17 +17,6 @@
 
 (** {1 Alias analysis interface} *)
 
-(** Block kind *)
-module Type :
-  sig
-
-    (** Kind of the block *)
-    type t = 
-    | Simple (** indivisible cell of memory *)
-    | Compound of t array (** ordered set of blocks *)
-
-  end
-
 (** Region type *)
 module Region :
   sig
@@ -37,6 +26,17 @@ module Region :
 
     (** [name r] returns the name of region [r] *)
     val name : t -> string
+
+  end
+
+(** Block kind *)
+module Type :
+  sig
+
+    (** Kind of the block *)
+    type t = 
+    | Simple of Region.t(** indivisible cell of memory *)
+    | Compound of Region.t * t array (** ordered set of blocks *)
 
   end
 
@@ -78,8 +78,8 @@ module Expression :
     (** Type of the expression *) 
     type t 
 
-    (** [alloc r t] creates an expression corresponding to a block of type [t] dynamically alocated in region [r] *)
-    val alloc  : Region.t -> Type.t -> t
+    (** [alloc t] creates an expression which evaluates to a dynamically alocated block of type [t]*)
+    val alloc  : Type.t -> t
 
     (** [block b] creates an expression evaluating to block [b] *) 
     val block  : Block.t -> t
@@ -94,9 +94,13 @@ module Expression :
     val value  : t -> t
  
     (** [region e] denotes unspecified operation returning any block from the region
-                   (or from some its descendant) to which value of [e] belongs.
+                   (or from some of its subregions) to which value of [e] belongs.
      *)
     val region : t -> t
+
+    (** [some r] denotes unspecified operation returning any block from the region [r]
+        or some of its subregions *)
+    val some : Region.t -> t 
 
     (** This expression may be evaluated to any block *)
     val any    : t
@@ -143,11 +147,10 @@ module Memory :
      *)
     val createRegion : t -> string -> Region.t list -> t * Region.t 
 
-    (** [allocateBlock m t r] allocates in memory [m] in region [r] a new block of type [t]
-        and returns updated memory and the allocated block, or raises RegionNotFound
-        if region [r] is not in the memory [m].
+    (** [allocateBlock m t] allocates in memory [m] a new block of type [t]
+        and returns updated memory and the allocated block.
      *) 
-    val allocateBlock : t -> Type.t -> Region.t -> t * Block.t
+    val allocateBlock : t -> Type.t -> t * Block.t
 
   end
 
