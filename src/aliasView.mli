@@ -188,11 +188,13 @@ module Results (A: ProgramView.Abstractor with
     type aliasInfo = Set.Make(Block).t * bool
 
     (** [before n b] returns result of alias analysis for expression [e] before execution of the statement
-                     settled in node [n] *)
+                     settled in node [n] 
+     *)
     val before : G.Node.t -> Expression.t -> aliasInfo
 
     (** [after b] returns result of alias analysis for expression [e] after execution of the statement
-                  settled in node [n] *)  
+                  settled in node [n] 
+      *)  
     val after  : G.Node.t -> Expression.t -> aliasInfo
 
   end
