@@ -17,7 +17,45 @@
 
 (** {1 Alias analysis interface} *)
 
-(** Region type *)
+
+(** Representation of a tree with marked nodes *) 
+module Tree :
+  sig
+  
+    (** Tree signature *)
+    module type Sig = 
+      sig
+
+        (** type of the node marks *)
+        type mark
+
+        (** type of the tree *)
+        type t
+
+        (** [makeLeaf i] creates a tree consisting of a single node with mark [i] *)
+        val makeLeaf : mark -> t
+
+        (** [makeNode i sl] creates a node with mark [i] having nodes from list [sl] as sons *)
+        val makeNode : mark -> t list -> t
+ 
+        (** [mark t] returns mark of a root of the tree [t] *)
+        val mark : t -> mark
+
+        (* [isLeaf t] returns if a tree is a leaf *)
+        val isLeaf : t -> bool
+
+        (** [children t] returns children of a root of the tree [t] *)
+        val children : t -> t list
+
+      end  
+
+    (** Functor to construct marked tree module *)
+    module Make (M : sig type mark end) : Sig with type mark = M.mark
+end
+
+(** {2 Alias Language. *)
+
+(** Region representation *)
 module Region :
   sig
 
@@ -29,22 +67,34 @@ module Region :
 
   end
 
-(** Block kind *)
-module Type :
+(** Block info signature *)
+module type BlockInfo =
   sig
 
-    (** Kind of the block *)
-    type t = 
-    | Simple of Region.t(** indivisible cell of memory *)
-    | Compound of Region.t * t array (** ordered set of blocks *)
+    (** Type of the info *)
+    type t
 
-  end
+    (** [toString info] returns string representation of [info] *)
+    val toString : t -> string
 
-(** Block type *)
-module Block :
+    (** [region info] returns region associated with a block information [info] *)
+    val region   : t -> Region.t
+ end
+
+(** Block type representation *)
+module Type : Tree.Sig with type mark = Region.t
+
+(** Memory block signature *)
+module type BlockSig =
   sig
 
-    (** Type of the block *)
+    (** Underlying block info module *)
+    module Info : BlockInfo
+
+    (** Repesentation of a tree with nodes marked by block info *)
+    module InfoTree : Tree.Sig with type mark = Info.t
+
+    (** Type of the memory block *)
     type t  
 
     (** Relation between two blocks *)
@@ -57,33 +107,36 @@ module Block :
     (** [subblocks b] returns array consisting of all subblocks of block [b] *)
     val subblocks : t -> t array 
 
-    (** [region b] returns region to which block [b] belongs to *)
-    val region : t -> Region.t
-
-    (** [typ b] returns kind of block [b] *)
+    (** [typ b] returns type of block [b] *)
     val typ : t -> Type.t
+
+    (** [info b] returns information bound with the block [b] *)
+    val info : t -> Info.t
 
     (** [relation b1 b2] returns relation between [b1] and [b2] *)
     val relation : t -> t -> rel
 
     (** [compare b1 b2] provides order on blocks *)
-    val compare : t -> t -> int
-
+     val compare : t -> t -> int
   end
 
-(** Expression type *)
-module Expression :
+
+(** Expression signature *)
+module type ExprSig =
   sig
+
+    (** Underlying block module *)
+    module Block : BlockSig
 
     (** Type of the expression *) 
     type t 
 
     (** [alloc t] creates an expression which evaluates to a dynamically alocated block of type [t]*)
-    val alloc  : Type.t -> t
+    val alloc  : Block.InfoTree.t -> t
 
     (** [block b] creates an expression evaluating to block [b] *) 
     val block  : Block.t -> t
- 
+
     (** [sub f e] applies function [f] to the result of expression [e].
         [f] is a function returning subblock of a given block or
        [None] if operation is not applicable to given block.
@@ -92,7 +145,7 @@ module Expression :
 
     (** [value e] denotes dereference of a block to which expression [e] evalutes *)
     val value  : t -> t
- 
+
     (** [region e] denotes unspecified operation returning any block from the region
                    (or from some of its subregions) to which value of [e] belongs.
      *)
@@ -102,45 +155,61 @@ module Expression :
         or some of its subregions *)
     val some : Region.t -> t 
 
-    (** This expression may be evaluated to any block *)
+   (** [undef] creates an expression, with undefined element as a value *)
+    val undef  : t
+
+    (** [any] creates an expression which may be evaluated to any block *)
     val any    : t
-
   end
 
-(** Statement type *)
-module Statement :
-  sig 
 
-   (** Type of the statement *)
-    type t
+(** Statement signature *)
+module type StmtSig =
+  sig
+ 
+    (** Underlying expression module *) 
+    module Expr : ExprSig 
 
-   (** [assign (e1, e2)] creates assignment statement that
-       lets block to which [e1] evalutes to contain reference
-       on block to which [e2] evalutes
-    *)
-    val assign : Expression.t -> Expression.t -> t
+    (** Type of the statement *)
+     type t
 
-    (** [black (rs, es)] stands for ``external function call''. It is presumed that external 
-        function is any program that can use blocks from regions [rs] and blocks to which
-        expressions [es] are evaluated, but cannot use expressions [Unspec] and [Any]
+    (** [assign (e1, e2)] creates assignment statement that
+        lets block to which [e1] evalutes to contain reference
+        on block to which [e2] evalutes
      *)
-    val black  : Region.t list -> Expression.t list -> t
+     val assign : Expr.t -> Expr.t -> t
 
+     (** [black (rl, el)] stands for ``external function call''. 
+         A set of open blocks is defined as a set of blocks which
+         are created in the function or
+         can be accessed by operations of subblock or value taking
+         from a block belonging to a region from [rl] list or to
+         a value of expression from [el] list.
+         Black can create blocks in regions [rl] and assign a refererence
+         on an open block to an open block.
+      *)
+     val black  : Region.t list -> Expr.t list -> t
   end
+
+
+(** {2 Memory model} *)
 
 (** Memory of alias analysis. Contains allocated blocks and regions. *)
-module Memory : 
+module type MemorySig =
   sig
 
-    (** Type of the memory *)
-    type t
+    (** Underlying block module *)
+    module Block : BlockSig
 
     (** Exception that is thrown when a region that does not belong to the memory is being addressed *)
     exception RegionNotFound
 
+    (** Type of the memory *)
+    type t
+
     (** [empty] denotes empty memory *)
-    val empty       : t
- 
+    val empty : t
+
     (** [createRegion m n f] creates in memory [m] a new region named [n]
         and a set of son-father relationships between it and regions from the [f] list.
         Returns updated memory and created region.
@@ -148,54 +217,60 @@ module Memory :
     val createRegion : t -> string -> Region.t list -> t * Region.t 
 
     (** [allocateBlock m t] allocates in memory [m] a new block of type [t]
-        and returns updated memory and the allocated block.
+       and returns updated memory and the allocated block.
      *) 
-    val allocateBlock : t -> Type.t -> t * Block.t
-
+    val allocateBlock : t -> Block.InfoTree.t -> t * Block.t
   end
 
-(** Information in node of the graph needed for alias analysis *)
-module NodeInfo :
+
+(** {2 Alias analysis representation} *)
+
+(** Signature of alias analysis framework *)
+module type Sig = 
   sig
 
-    (** Node information type *)
-    type t = Statement.t list
+    (** Underlying block module *)
+    module S : StmtSig
+
+    (** Underlying memory module *)
+    module M : MemorySig with module Block = S.Expr.Block
+
+    (** Functor to create and run analyser *)
+    module Analyse (MI : sig val memory : M.t end)
+                   (A: ProgramView.Abstractor with
+                        type Abstract.node = S.t list) 
+                   (G: CFG.Sig with
+                        type Node.t = A.Concrete.node and 
+                        type Edge.t = A.Concrete.edge ) :
+      sig
+        (* Abstract type of alias analysis results *)
+        type aliasInfo 
+    
+        (** [before n b] returns result of alias analysis for expression [e] before execution of the statement
+                         settled in node [n].
+            Expression [e] must not contain dynamic memory allocation.
+         *)
+        val before : G.Node.t -> S.Expr.t -> aliasInfo
+    
+        (** [after b] returns result of alias analysis for expression [e] after execution of the statement
+                      settled in node [n].
+            Expression [e] must not contain dynamic memory allocation.
+         *)  
+        val after  : G.Node.t -> S.Expr.t -> aliasInfo
+    
+        (** [may a1 a2] is [true] if and only if [a1] and [a2] may alias *)  
+        val may    : aliasInfo -> aliasInfo -> bool
+        
+        (** [must a1 a2] is [true] if and only if [a1] and [a2] must alias *)  
+        val must   : aliasInfo -> aliasInfo -> bool
+
+      end
 
   end
 
-(** Information in edge of the graph needed for alias analysis *)
-module EdgeInfo :
-  sig
-
-    (** Edge information type *)
-    type t = Empty
-
-  end
-
-(** Alias analysis constuructor. *)
-module Results (A: ProgramView.Abstractor with
-                    type Abstract.node = NodeInfo.t and
-                    type Abstract.edge = EdgeInfo.t)
-               (G : CFG.Sig with
-                    type Node.t    = A.Concrete.node and 
-                    type Edge.t    = A.Concrete.edge )
-               (M : sig val memory : Memory.t end) :
-  sig
-
-    (** type of alias analysis result:
-        set of blocks on which an alias may exist and a flag indicating if block value can be undefined
-    *)
-    type aliasInfo = Set.Make(Block).t * bool
-
-    (** [before n b] returns result of alias analysis for expression [e] before execution of the statement
-                     settled in node [n] 
-     *)
-    val before : G.Node.t -> Expression.t -> aliasInfo
-
-    (** [after b] returns result of alias analysis for expression [e] after execution of the statement
-                  settled in node [n] 
-      *)  
-    val after  : G.Node.t -> Expression.t -> aliasInfo
-
-  end
+(** Alias analysis framework creator *)
+module Make (BI: BlockInfo) : Sig with
+   module S.Expr.Block.Info = BI
+  
+  
 
