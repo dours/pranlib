@@ -43,19 +43,7 @@ module Make (T : DFST.Sig) :
     (** DOT visualizer *)
     module DOT :
       sig
-
-	(** Node wrapper *)
-	module Node : DOT.Node with type t = T.G.Node.t
-
-        (** Edge wrapper *)
-	module Edge : Digraph.DOT.Edge with type t = T.G.Edge.t
-              
-	include Digraph.DOT.S with 
-	  type graph = T.G.t      and 
-	  type node  = T.G.Node.t and 
-	  type edge  = T.G.Edge.t and 
-	  type parm  = unit
-
+        include DOT.Sig with type parm = unit
       end
 	
   end

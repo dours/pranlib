@@ -17,78 +17,103 @@
 
 (** {1 Simple interface to GraphViz graph drawing toolset} *)
 
-(** Interface to graph attributes *)
+(** Signature of an object information representation *)
+module type Info = 
+  sig
+    (** Type of the object *)
+    type t
+
+    (** Label of the object *)
+    val label : t -> string  
+
+    (** List of object attributes *)
+    val attrs : t -> (string * string) list
+  end
+
+(** Extended object information signature *)
+module type ExtInfo =
+  sig
+    (** Underying information module *)
+    include Info
+
+    (** Name of the object *)
+    val name  : t -> string 
+  end
+
+(** Module to provide no information *)
+module Empty : Info with type t = unit
+
+(** Module to provide type for cluster structure within a graph  *)
+module Clusters : 
+  sig
+    (** type for a cluster forest *)
+    type 'a t = 'a cluster list 
+    and 'a cluster = Node of 'a * 'a t | Leaf of 'a
+  end
+
+(** Graph representation *)
 module type Graph =
   sig
-    
-    (** Type of the graph *)
-    type t
+    (** Graph node representation *)
+    module Node : ExtInfo
 
-    (** Keyword (e.g. "digraph", see DOT language description) *)
-    val keyword : t -> string
-
-    (** Name of the graph *)
-    val name : t -> string 
-
-    (** List of graph attributes *)
-    val attrs : t -> (string * string) list
+    (** Graph edge representation*)
+    module Edge :
+      sig
+        (** Underying information module *)
+        include Info
         
+        (** [nodes e] return a pair of nodes (s, d) forming the edge *)
+        val nodes : t -> Node.t * Node.t
+      end
+
+    (** Underying information module *)
+    include ExtInfo
+
+    (** Kind of the graph (directed or undirected) *)
+    val kind : t -> [`Digraph | `Graph]
+    
+    (** [nodes g] returns a list of graph nodes *)
+    val nodes : t -> Node.t list
+
+    (** [edges g] returns a list of graph edges *)
+    val edges : t -> Edge.t list
   end
-      
-(** Interface to node attributes *)
-module type Node =
+
+(** Representation of a graph with clusters *)
+module type ClusteredGraph = 
   sig
-    
-    (** Type of the node *)
-    type t
+    (** Underlying graph *)
+    include Graph
 
-    (** List of node attributes *)
-    val attrs : t -> (string * string) list        
+    (** Cluster information *)
+    module Cluster :
+      sig
+        (** Underying information module *)
+        include ExtInfo
+   
+        (** [nodes c] returns a list of nodes settled directly on the clusters top level *)
+        val nodes : t -> Node.t list
+      end
 
-    (** Label of the node *)
-    val label : t -> string        
-
-    (** Name of the node *)
-    val name  : t -> string
-        
   end
-
+ 
 (** General signature for DOT printer helper *)
 module type Sig =
   sig
 
-    (** Type of the graph *)
-    type graph
+    (** Type of vizualizer parameter*)
+    type parm
 
-    (** Type of the graph node*)
-    type node
-
-    (** Graph header *)
-    val header : graph -> string
-
-    (** Graph footer *)
-    val footer : graph -> string
-
-    (** Node representation *)
-    val node : node -> string
-
-    (** Node list representation *)
-    val nodes : node list -> string
-
-    (** Attribute printer: [attributes label attrs] returns a string 
-        representation of [attrs] and [label] *)
-    val attributes : string -> (string * string) list -> string
-
-    (** Module to provide type for cluster structure within a graph *)
-    module Clusters :
-      sig
-
-        (** Type for cluster tree; clusters have to form a nested structure *)
-	type t = Node of node list * t list | Leaf of node list
-
-      end
+    (** DOT visualizer *)
+    val toDOT : parm -> string
 
   end
 
-(** Printer --- a functor to instantiate basic graph printing methods *)
-module Printer (G : Graph) (N : Node) : Sig with type graph = G.t and type node = N.t
+(** A functor to create graph printer *)
+module Printer (G : Graph) : Sig with
+  type parm = G.t 
+
+(** A functor to create clustered graph printer *)
+module ClusteredPrinter (CG : ClusteredGraph) : Sig with
+  type parm = CG.t * (CG.Cluster.t Clusters.t)

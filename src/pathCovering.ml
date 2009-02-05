@@ -62,32 +62,34 @@ module Make
       let edges = fold_left (fun set edge -> EdgeSet.add edge set) EdgeSet.empty (edges ()) in
       let nodes = fold_left (fun set node -> NodeSet.add node set) NodeSet.empty (nodes ()) in
 
-      let module P = Digraph.Printer (D.G) 
-      (
-       struct
-
-        include D.DOT.Node
-
-        let attrs node = 
-          if NodeSet.mem node nodes 
-          then ("color", "magenta") :: (attrs node)
-          else attrs node
-
-       end
-      )
-      (struct
-
-        include D.DOT.Edge
-
-        let attrs edge = 
-          if EdgeSet.mem edge edges 
-          then map (function ("color", _) -> "color", "magenta" | x -> x ) (attrs edge)
-          else attrs edge
-
-       end
-      )
+      let module GInfo = Digraph.DotInfo
+        (D.G)
+        (
+         struct
+  
+          include D.DOT.Node
+  
+          let attrs node = 
+            if NodeSet.mem node nodes 
+            then ("color", "magenta") :: (attrs node)
+            else attrs node
+  
+         end
+        )
+        (struct
+  
+          include D.DOT.Edge
+  
+          let attrs edge = 
+            if EdgeSet.mem edge edges 
+            then map (function ("color", _) -> "color", "magenta" | x -> x ) (attrs edge)
+            else attrs edge
+  
+         end
+        )
       in
-      P.toDOT D.graph
+      let module P = DOT.Printer (GInfo) in
+        P.toDOT D.graph
 
     type path = Single of D.G.Node.t | Path of (D.G.Node.t * D.G.Edge.t) list * D.G.Node.t
 
@@ -238,7 +240,7 @@ module MakeBuildSimple (D : DFST.Sig) = struct
 	(D.G.edges graph)
     in
     
-    LOG (Printf.fprintf stderr "Flow Graph:\n%s\n" (Aux.toDOT aux));
+    LOG (Printf.fprintf stderr "Flow Graph:\n%s\n" (Aux.DOT.toDOT aux));
     
     let flows, _ = MaxFlow.maxflow aux source sink in
     List.fold_left 

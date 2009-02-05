@@ -49,30 +49,10 @@ module type Sig =
     val dominators : t -> t list
 
     (** Dominance tree DOT vizualiser *)
-    module Tree :
-      sig
-
-	include DOT.Sig with type graph = unit and type node = t
-
-	(** Entry point *)
-	val toDOT : unit -> string
-
-      end
+    module Tree : DOT.Sig with type parm = unit
 
     (** DOT visualizer: shows graph + its dominance tree *)
-    module DOT :
-      sig
-
-        (** Node wrapper *)
-	module Node : DOT.Node with type t = G.Node.t
-
-        (** Edge wrapper *)
-	module Edge : Digraph.DOT.Edge with type t = G.Edge.t
-
-	include Digraph.DOT.S with 
-	   type graph = G.t and type node = G.Node.t and type edge = G.Edge.t and type parm = unit
-
-      end
+    module DOT  : DOT.Sig with type parm = unit
 	
   end
 

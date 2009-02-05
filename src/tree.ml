@@ -29,33 +29,44 @@ module type Sig =
 module DOT =
   struct
 
-    module Printer (T : Sig) (N : DOT.Node with type t = T.t) =
+    module Printer (T : Sig) (N : DOT.ExtInfo with type t = T.t) =
       struct
 
-	include DOT.Printer (struct type t = unit let keyword _ = "digraph" let name _ = "X" let attrs _ = [] end) (N)
-	
-	open List
-	open Printf
+        module G = 
+          struct
+            module Node = N
 
-	let toDOT () =
-	  sprintf "%s %s %s" 
-	    (header ()) 
-	    (
-	     let rec inner acc n =
-	       fold_left
-		 inner
-		 (fold_left 
-		    (fun acc child -> 
-		      acc ^ (sprintf "%s -> %s;\n  " (N.name n) (N.name child))
-		    ) 
-		    (acc ^ "\n  " ^ (node n) ^ "\n  ") 
-		    (T.children n)
-		 )		 
-		 (T.children n)
-	     in
-	     inner "" T.root
-	    )
-	    (footer ())
+            module Edge = 
+              struct
+                type t = N.t * N.t
+                let label _ = ""
+                let attrs _ = []
+                let nodes x = x
+              end
+
+           include DOT.Empty
+
+           let name () = "Tree"
+           let kind () = `Digraph
+
+           let nodes () =
+             let rec aux acc node = 
+               List.fold_left aux (node :: acc) (T.children node)
+             in aux [] T.root
+
+           let edges () = 
+             let rec aux acc node = 
+               List.fold_left aux
+                              (List.fold_left (fun acc dst -> (node, dst) :: acc) acc (T.children node))
+                              (T.children node)
+             in aux [] T.root
+
+          end
+
+	module DOTPrinter = DOT.Printer (G)
+
+        type parm = unit
+        let toDOT () = DOTPrinter.toDOT ()
 	
       end
 

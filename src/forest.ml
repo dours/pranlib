@@ -106,26 +106,39 @@ struct
        type treeEl = Node of node_type 
                    | Head of node_type * (treeEl list)
 
+       module Cluster = 
+         struct
+           type t = int * G.Node.t list
+           let name (i, _) = Printf.sprintf "cluster_%d" i
+           let label _ = ""
+           let attrs _ = []
+           let nodes   = snd
+         end
 
        let clusters roots = 
-         let rec tree2dot roots = 
-           let process (els,hds) root =
+         let rec tree2dot i roots = 
+           let process (els, hds, i) root =
              match root with 
-             | Node nd -> 
-               Printf.printf "node to leafs:%s\n" (G.Node.toString nd);
-               (nd::els, hds)             
+             | Node nd -> nd::els, hds, i
              | Head (nd, loops) -> 
-               Printf.printf "node to roots:%s\n" (G.Node.toString nd);
-               (els, (tree2dot loops)::hds)
+                let c, j = (tree2dot i loops)
+                in els, c::hds, j
              in         
-           let (els, hds) = List.fold_left (process) ([],[]) roots in
+           let (els, hds, j) = List.fold_left (process) ([], [], i + 1) roots in
            match hds with 
-           | [] -> G.DOT.Clusters.Leaf els
-           | _ -> G.DOT.Clusters.Node (els, hds) in
-         tree2dot roots         
-        
-       let toDOT roots =  
-         G.Clustered.toDOT (G.graph) (clusters roots)
+           | [] -> DOT.Clusters.Leaf (i, els), j
+           | _  -> DOT.Clusters.Node ((i, els), hds), j
+         in
+         fst (tree2dot 0 roots)
+ 
+       module Printer = DOT.ClusteredPrinter 
+         (struct
+            include G.DOT.Info
+            module Cluster = Cluster
+          end
+         ) 
+
+       let toDOT roots = Printer.toDOT ((G.graph), [clusters roots])
         
        let create nodes =   
          let length = (G.nnodes G.graph) in         

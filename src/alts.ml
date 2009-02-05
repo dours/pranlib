@@ -465,32 +465,65 @@ module Make (D: DFST.Sig) =
 	    
         (* Hierarchy printer *)
         open Printf
-        let toDOT () = 
-          let printNode nd = 
-            sprintf "node%d [label=\"%s\"];" (G.Node.hash nd) (G.Node.toString nd)
-          in
-          let printEdge e = 
-            let src = G.src e and dst = G.dst e in
-            sprintf "node%d -> node%d [label=\"%s\"];" 
-              (G.Node.hash src) (G.Node.hash dst) (G.Edge.toString e)
-          in
-          let printList printElem lst = 
-            fold_left (fun res el -> res ^ "\n" ^ (printElem el)) "" lst
-          in
-          let rec printAlt node = 
-            let children = Tree.children node in
-            let isLeaf nd = 
-              let ch = Tree.children node in
-              length ch == 0
-            in
-            let leaves, rest = partition isLeaf children in
-            sprintf "subgraph cluster_%d {\n%s\n%s}\n" (G.Node.hash node)
-              (printList printNode (node :: leaves)) 
-              (printList printAlt rest)
-          in
-          sprintf "digraph G {\n%s%s\n}" (printAlt Tree.root)
-            (printList printEdge (G.edges graph))
+
+        module Dot =
+          struct
+            module CG = 
+              struct
+                module Node = 
+                  struct
+                    type t = G.Node.t
+                    let name nd  = sprintf "node%d" (G.Node.hash nd)
+                    let label nd =  sprintf "\"%s\"" (G.Node.toString nd)
+                    let attrs _  = []
+                  end
+  
+                module Edge = 
+                  struct
+                    type t = G.Edge.t
+                    let label ed =  sprintf "\"%s\"" (G.Edge.toString ed)
+                    let attrs _  = []
+                    let nodes ed = (G.src ed, G.dst ed)
+                  end
+               
+               include DOT.Empty
+
+               let name () = "Alts"
+               let kind () = `Digraph
+               let nodes () = G.nodes graph
+               let edges () = G.edges graph
+
+               module Cluster =
+                 struct
+                   type t = G.Node.t
+
+                   let name c = sprintf "cluster_%d" (G.Node.hash c)
+
+                   let label _ = ""
+
+                   let attrs _ = []
+
+                   let nodes c = 
+                     let isLeaf nd = length (Tree.children nd) == 0 in
+                     let leaves = filter isLeaf (Tree.children c)
+                     in  c :: leaves
+                 end
+              end
+  
+            module Printer = DOT.ClusteredPrinter (CG)
+
+            let cluster = 
+              let isLeaf nd = length (Tree.children nd) == 0
+              in
+              let rec aux node = match (filter (fun child -> not (isLeaf child)) (Tree.children node)) with
+                []        -> DOT.Clusters.Leaf node
+              | notLeaves -> DOT.Clusters.Node (node, List.map aux notLeaves)
+              in aux Tree.root
             
+          end
+
+        let toDOT () = Dot.Printer.toDOT ((), [Dot.cluster])
+           
       end
 	
   end

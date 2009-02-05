@@ -526,44 +526,30 @@ module Make (T : DFST.Sig) =
             type t = G.Node.t
           
             let attrs node = ["shape", "ellipse"]
-            let label node = sprintf "N=%d, K=%d, L=%d\n%s" (T.Post.number node) (K.number node) (L.number node) (G.Node.toString node)
+            let label node = sprintf "N=%d, K=%d, L=%d\\n%s" (T.Post.number node) (K.number node) (L.number node) (G.Node.toString node)
             let name  node = sprintf "node%d" (G.Node.index node)
 
           end
 
-        module M = Digraph.Printer (G) (Node) (Edge)
+        include DOT.Printer
+         (struct
+            module Node = Node
+            module Edge = 
+              struct
+                include Edge
+                let nodes e = (G.src e, G.dst e)
+              end
+            include DOT.Empty
+            let kind () = `Digraph
+            let name ()    = "Hammocks"
+            let nodes ()   = G.nodes T.graph
+            let edges ()   = G.edges T.graph
+          end
+         )
+
     
-        type graph = M.graph
-        type node  = M.node
-        type edge  = M.edge
-
-        let header = M.header
-        let footer = M.footer
-
-        let attributes = M.attributes
-
-        let node  = M.node
-        let edge  = M.edge
-
-        let edges = M.edges
-        let nodes = M.nodes
-
-        type parm = unit
-
-        let toDOT () = M.toDOT T.graph
-
-        module Clusters = M.Clusters
-
-	module Clustered =
-	  struct
-
-	    let toDOT () tree = M.Clustered.toDOT T.graph tree
-
-	  end
 
       end
-
-    (* module L : Order.Sig with module G = T.G *)
  
 
   end

@@ -14,6 +14,7 @@
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
+
 module Tree = 
   struct
     module type Sig = 
@@ -210,26 +211,17 @@ module type Sig =
                         type Node.t = A.Concrete.node and 
                         type Edge.t = A.Concrete.edge ) :
       sig
-        (* Abstract type of alias analysis results *)
         type aliasInfo 
     
-        (** [before n b] returns result of alias analysis for expression [e] before execution of the statement
-                         settled in node [n].
-            Expression [e] must not contain dynamic memory allocation.
-         *)
         val before : G.Node.t -> S.Expr.t -> aliasInfo
-    
-        (** [after b] returns result of alias analysis for expression [e] after execution of the statement
-                      settled in node [n].
-            Expression [e] must not contain dynamic memory allocation.
-         *)  
         val after  : G.Node.t -> S.Expr.t -> aliasInfo
-    
-        (** [may a1 a2] is [true] if and only if [a1] and [a2] may alias *)  
         val may    : aliasInfo -> aliasInfo -> bool
-        
-        (** [must a1 a2] is [true] if and only if [a1] and [a2] must alias *)  
         val must   : aliasInfo -> aliasInfo -> bool
+
+        module DOT : 
+          sig
+            val toDOT : unit -> string
+          end
       end
 
   end
@@ -444,7 +436,8 @@ module Make (BI: BlockInfo) =
 
         let empty = {map = RMap.empty; ps = PseudoStorage.empty; rCounter = 0; bCounter = 0}
 
-        let createRegion mem name fathers = 
+        let createRegion mem name fathers =
+          LOG (Printf.printf "Created region %s\n" name); 
           let newRegion = Region.create name mem.rCounter
           in
           ( { map = RMap.fold (fun k v -> RMap.add k (RegionInfo.addChild v newRegion))
@@ -466,7 +459,7 @@ module Make (BI: BlockInfo) =
 
         let allocAux mode mem aT =
           let (map, block) = RegionInfo.alloc mode mem.map aT mem.bCounter
-          in ({map = map; ps = mem.ps; rCounter = mem.rCounter; bCounter = (Block.id block)}, block)
+          in ({map = map; ps = mem.ps; rCounter = mem.rCounter; bCounter = (Block.id block) + 1}, block)
 
         let allocateBlock   = allocAux `Static
 
@@ -841,8 +834,10 @@ module Make (BI: BlockInfo) =
               end
           end 
 
+        module Adapter = AAdapter (A.Abstract) (SL)
+
         module PView = ProgramView.Make
-                        (ProgramView.ForwardAdapter (AAdapter (A.Abstract) (SL)))
+                        (ProgramView.ForwardAdapter (Adapter))
                         (struct
                            module Concrete = A.Concrete
       
@@ -863,16 +858,18 @@ module Make (BI: BlockInfo) =
         module Analyse = DFAEngine.RevPost (PView) (DFST.Make (G))
         
         type aliasInfo = SL.Value.t
+
+        let slBefore node = match List.map Analyse.get (G.ins node) with
+          []       -> SL.top
+        | hd :: tl -> List.fold_left SL.cap hd tl
+
+        let slAfter node = match G.outs node with
+            []       -> Adapter.flow (PView.Abstractor.node node) (slBefore node)
+          | hd :: _  -> Analyse.get hd
       
-        let before node expr =
-          match List.map Analyse.get (G.ins node) with
-            []       -> raise (Failure "Semilattice element cannot be assigned to the start node.")
-          | hd :: tl  -> SL.Eval.getExprValue expr (List.fold_left SL.cap hd tl)
+        let before node expr = SL.Eval.getExprValue expr (slBefore node) 
                      
-        let after node expr =
-          match G.outs node with
-            []       -> raise (Failure "Semilattice element cannot be assigned to the end node.")
-          | hd :: _  -> SL.Eval.getExprValue expr (Analyse.get hd)
+        let after node expr = SL.Eval.getExprValue expr (slAfter node) 
           
         let may a1 a2 = 
           let (s1, _), (s2, _) = (SL.Value.unwrap a1), (SL.Value.unwrap a2)
@@ -888,7 +885,183 @@ module Make (BI: BlockInfo) =
            in
            not (S.Expr.Block.dynamic b1) && (S.Expr.Block.relation b1 b2 = S.Expr.Block.Same)
           )
+ 
+        module DOT = 
+          struct
+            module NodeInfo =
+              struct
+                (* block * id of graph cluster * may be undefined *)
+                type t = Block.t * int * bool
 
+                let toString (b, i, _) = Printf.sprintf "%s:%d" (Block.toString b) i
+              end
+
+            module EdgeInfo = 
+              struct
+                type t = Contains | Points | Clustered of string * string
+ 
+                let toString = function
+                | Contains -> "Contains"
+                | Points   -> "Points"
+                | Clustered (src, dst) -> Printf.sprintf "Clustered : %s -> %s" src dst
+              end
+
+            module BG = Digraph.Make (NodeInfo) (EdgeInfo)
+
+            module DotNode =
+              struct
+                type t = BG.Node.t
+
+                let color node = match (BG.Node.info node) with
+                  (_, _, true) -> "color", "green"
+                | (_, _, false) -> "color", "blue"
+
+                let attrs node =
+                  (color node) ::
+                  (match (BG.Node.info node) with
+                     ((Block.Pseudo _), _, _) -> [("shape", "diamond")]
+                   | (b, _, _) when not (Block.dynamic b)
+                                              -> [("shape", "box")]
+                   | _                        -> [])
+          
+                let label node = match (BG.Node.info node) with
+                  (Block.Pseudo (_, r), _, _) -> "Pseudo: " ^ Region.name r
+                | (block, _, _)               -> BI.toString (Block.info block)
+          
+                let name node = match BG.Node.info node with
+                  (block, id, _) -> Printf.sprintf "block_%d_%d" (Block.id block) id
+             end
+          
+            module DotEdge =
+              struct
+                type t = BG.Edge.t
+          
+                let attrs e = match (BG.Edge.info e) with
+                  EdgeInfo.Points               -> [("style", "dotted")]
+                | EdgeInfo.Contains             -> [("style", "solid")]
+                | EdgeInfo.Clustered (src, dst) -> [ ("minlen", "3");
+                                                     ("style", "solid"); ("color", "red");
+                                                     ("lhead", dst);     ("ltail", src) ]
+
+                let label _ = ""
+              end
+
+            module DotCluster =
+              struct
+                type t = string * string * DotNode.t list
+                let name = function | (n, _, _) -> n
+                let label = function | (_, s, _) -> s
+                let nodes = function | (_, _, list) -> list
+                let attrs _ = []
+              end
+
+            module PR = DOT.ClusteredPrinter (
+              struct
+                include Digraph.DotInfo (BG) (DotNode) (DotEdge)
+                let attrs x = ("compound", "true") :: (attrs x)
+                module Cluster = DotCluster
+              end
+            )
+
+            let addNodeCluster graph label id sl =
+             let rec addBlock block (graph, map) =
+               let aux block subs =  
+                 try BMap.find block map, (graph, map)
+                 with Not_found ->
+                   let (graph, node) = BG.insertNode graph (block, id, false)
+                   in
+                   let map = BMap.add block node map
+                   in
+                   node, List.fold_left (fun (g, m) b -> let n, (g', m') = addBlock b (g, m) in
+                                                         (fst (BG.insertEdge g' node n EdgeInfo.Contains), m')
+                                        ) (graph, map) subs
+               in match block with
+                 Block.Simple _                -> aux block []
+               | Block.Compound (_, _, _, sub) -> aux block (Array.to_list sub)
+               | Block.Pseudo _                -> let ps = M.takePseudos block memory in
+                                                  let pl = BSet.fold (fun b acc -> b :: acc) ps []
+                                                  in aux block pl
+             in  
+             (* creating graph with all blocks contained in memory and adding edges corresponding
+                to a containing relationship *)
+             let (graph, map) = M.foldAll (fun b gm -> snd (addBlock b gm)) memory (graph, BMap.empty)
+             in 
+             let name = Printf.sprintf "cluster%d" id
+             in
+             let rec sub node = List.fold_right sub (BG.succ node)
+             in
+             (* building cluster structure *)
+             let (clusters, other) =
+               BMap.fold (fun _ node (cs, bs) -> match (sub node []) with 
+                                                   [] -> (cs, node :: bs)
+                                                 | ns -> let clusterName = Printf.sprintf "%s_%d" name (BG.Node.hash node)
+                                                         in
+                                                         ((DOT.Clusters.Leaf (clusterName, "", ns)) :: cs, bs)
+                         ) map ([], [])
+             in
+            (* adding edges corresponding to a point-to relationship *)
+             let graph = 
+               BMap.fold
+                (fun b n g -> match b with
+                              | Block.Pseudo _ | Block.Simple _ ->
+                                 let (bs, undef) = SL.Value.unwrap (SL.Eval.getExprValue (Expr.Value (Expr.Block b)) sl)
+                                 in
+                                 let (b, i, _) = BG.Node.info n
+                                 in
+                                 let (g, n) = BG.replaceNode g n (b, i, undef)
+                                 in
+                                 BSet.fold (fun b' g -> fst (BG.insertEdge g n (BMap.find b' map) EdgeInfo.Points)) bs g
+                              | _ -> g
+                ) map graph
+             in
+             (graph, DOT.Clusters.Node ((name, label, other),  clusters)) 
+
+            let toDOT () = 
+             let rec takeClusterNode = function
+             | DOT.Clusters.Leaf c        -> List.hd (DotCluster.nodes c)
+             | DOT.Clusters.Node (c, sub) -> (match DotCluster.nodes c with
+                                                []      -> takeClusterNode (List.hd sub)
+                                              | hd :: _ -> hd
+                                             )
+             in 
+             let (graph, cMap, _) =
+              List.fold_left
+                (fun (g, cMap, i) node ->
+                   let label =  G.Node.toString node 
+                   and name  = Printf.sprintf "cluster%d" i
+                   and labelAfter = "after" 
+                   and slAfter    =  slAfter node
+                   and labelBefore = "before" 
+                   and slBefore    =  slBefore node in
+                   let (g, cb) = addNodeCluster g labelBefore (i + 1) slBefore in
+                   let (g, ca) = addNodeCluster g labelAfter (i + 2) slAfter in
+                   let c = DOT.Clusters.Node ((name, label, []), [cb; ca]) in
+                   (g, NodeMap.add node c cMap, i + 3)
+                )
+               (BG.create (), NodeMap.empty, 0)
+               (G.nodes G.graph)
+             in (* adding edges between clusters *)
+             let clusterName = function
+             | DOT.Clusters.Leaf c | DOT.Clusters.Node (c, _) -> DotCluster.name c
+             in
+             let graph = 
+              NodeMap.fold
+                (fun node cluster graph ->
+                   let src = takeClusterNode cluster in
+                     List.fold_right
+                       (fun node' graph ->
+                          let cluster' = NodeMap.find node' cMap in
+                          let dst = takeClusterNode cluster' in
+                            fst (BG.insertEdge graph src dst (EdgeInfo.Clustered ((clusterName cluster),
+                                                                                  (clusterName cluster'))))
+                       )
+                       (G.succ node)
+                       graph
+                ) cMap graph
+             in 
+             PR.toDOT (graph, NodeMap.fold (fun _ c l -> c :: l) cMap [])  
+
+          end
       end
   end
 

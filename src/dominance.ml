@@ -29,26 +29,10 @@ module type Sig =
     val dominates  : t -> t -> bool
     val dominators : t -> t list
 
-    module Tree :
-      sig
+    module Tree : DOT.Sig with type parm = unit
+	
+    module DOT  : DOT.Sig with type parm = unit
 
-	include DOT.Sig with type graph = unit and type node = t
-	      
-	val toDOT : unit -> string
-	    
-      end
-	
-    module DOT :
-      sig
-	
-	module Node : DOT.Node with type t = G.Node.t
-	module Edge : Digraph.DOT.Edge with type t = G.Edge.t
-	      
-	include Digraph.DOT.S with 
-	  type graph = G.t and type node = G.Node.t and type edge = G.Edge.t and type parm = unit
-
-      end
-	
   end
       
 module Make (D: DFST.Sig) = 
@@ -258,7 +242,7 @@ module Make (D: DFST.Sig) =
 	  | None -> []
 	  | Some y -> y :: (dominators y)
 			    
-      end
+      end       
 	
     include Inner
 	
@@ -272,31 +256,36 @@ module Make (D: DFST.Sig) =
     module DOT =
       struct
 	
-	include D.DOT
-	    
-	let toDOT () = 
-	  Printf.sprintf "%s%s%s%s%s" 
-            (header T.graph) 
-            (nodes (G.nodes T.graph)) 
-            (edges (G.edges T.graph)) 
-            (List.fold_left 
-               (fun acc node ->
-		 acc ^ 
-		 (List.fold_left 
-		    (fun acc child -> 
-		      acc ^ (Printf.sprintf "%s -> %s [color=brown, style=bold];\n  " (Node.name node) (Node.name child))
-		    ) 
-		    "" 
-		    (children node)
-		 )
-               )
-               "\n  "
-               (G.nodes T.graph)
-            )
-            (footer T.graph)
-            
+        module Edge' = 
+          struct
+            include D.DOT.Edge
+
+            let nodes edge =  D.G.src edge, D.G.dst edge
+
+            let attrs edge = 
+              let src, dst = nodes edge in
+              if List.mem dst (children src)
+              then [("color", "brown"); ("style", "bold")]
+              else attrs edge
+
+          end
+
+        module Graph = 
+          struct
+            module Node = D.DOT.Node
+            module Edge = Edge'
+
+            include DOT.Empty
+            let kind () = `Digraph
+            let name ()    = "Dominance"
+            let nodes ()   = D.G.nodes T.graph
+            let edges ()   = D.G.edges T.graph
+          end            
+
+        include DOT.Printer (Graph)
       end
-	
+
+
   end
 
 

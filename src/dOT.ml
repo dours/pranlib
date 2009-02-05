@@ -15,85 +15,200 @@
  * (enclosed in the file COPYING).
  *)
 
+module type Info = 
+  sig
+    type t
+
+    val label : t -> string  
+    val attrs : t -> (string * string) list
+  end
+
+module type ExtInfo =
+  sig
+    include Info
+
+    val name  : t -> string 
+  end
+
+module Empty =
+  struct
+    type t = unit
+            
+    let label _ = ""
+    let attrs _ = []
+    let name _ = ""
+  end
+
+module Clusters =
+  struct
+    type 'a t = 'a cluster list 
+    and 'a cluster = Node of 'a * 'a t | Leaf of 'a
+  end
+
 module type Graph =
   sig
-    
-    type t
-
-    val keyword : t -> string
-    val name    : t -> string          
-    val attrs   : t -> (string * string) list
+    module Node : ExtInfo
+    module Edge :
+      sig
+        include Info
         
+        val nodes : t -> Node.t * Node.t
+      end
+
+    include ExtInfo
+
+    val kind : t -> [`Digraph | `Graph]
+    val nodes : t -> Node.t list
+    val edges : t -> Edge.t list
   end
-      
-module type Node =
+
+module type ClusteredGraph = 
   sig
-    
-    type t
+    include Graph
 
-    val attrs : t -> (string * string) list        
-    val label : t -> string        
-    val name  : t -> string
-        
+    module Cluster :
+      sig
+        include ExtInfo
+
+        val nodes : t -> Node.t list
+      end
   end
-
+ 
 module type Sig =
   sig
 
-    type graph
-    type node
+    type parm
 
-    val header     : graph -> string
-    val footer     : graph -> string
-    val node       : node -> string
-    val nodes      : node list -> string
-    val attributes : string -> (string * string) list -> string
-
-    module Clusters :
-      sig
-
-	type t = Node of node list * t list | Leaf of node list
-
-      end
+    val toDOT : parm ->  string
 
   end
 
-module Printer (G : Graph) (N : Node) =
+module ClusteredPrinter (CG : ClusteredGraph) =
   struct
 
-    open Printf
+    type parm = CG.t * (CG.Cluster.t Clusters.t)
 
-    type graph = G.t
-    type node  = N.t
+    open Ostap.Pretty
+
+    let semicolon = string ";"
+
+    let sboxed x = seq [string "["; x; string "]"]
+
+    let quote = string "\""
+
+    let quoted x = seq [quote; x; quote]
 
     let attributes label attrs =
-      let module M = View.List (
-	struct 
-	      
-	  type t = string * string 
-		
-	  let toString (x, y) = sprintf "%s=%S" x y
-	      
-	end
-       ) 
-      in
-      M.toString (match label with "" -> attrs | _ -> ("label", label) :: attrs)
+             (List.fold_right (fun (attr, value) acc -> if value = ""
+                                                        then acc
+                                                        else (seq [string attr; string "="; quoted (string value)]) :: acc
+                              )
+                              (("label", label) :: attrs)
+                              []
+             )
 
-    module Concat = struct let concat = View.concatWithDelimiter "\n  " end 
+    let wrapped g f = function
+    | [] -> string ""
+    | l  -> f (g l)
 
-    let header g = sprintf "%s %s {  %s\n" (G.keyword g) (G.name g) (attributes "" (G.attrs g))
-    let footer g = sprintf "\n}\n"
+    let wrappedByComma = wrapped listByComma 
 
-    let node n = sprintf "%s [%s];" (N.name n) (attributes (N.label n) (N.attrs n))
-    let nodes list = 
-      let module M = View.ListC (Concat) (struct type t = N.t let toString = node end) in
-      M.toString list
+    let wrappedBySemicolon = wrapped listBySemicolon
 
-    module Clusters =
-      struct
+    let keyword= function
+    | `Digraph ->  string "digraph"
+    | `Graph   ->  string "graph"
 
-	type t = Node of node list * t list | Leaf of node list
+    let shift = string  "  "
 
+    let shifted x = seq [shift; x]
+
+    let shSemicolonedNL p = seq [newline; shift; p; semicolon; newline]
+
+    let header g = listBySpace [(keyword (CG.kind g));
+                                 string (CG.name g);
+                                 string "{";
+                                 wrappedBySemicolon shSemicolonedNL (attributes (CG.label g) (CG.attrs g));
+                               ]
+
+   let cHeader c = listBySpace [ string "subgraph";
+                                 string (CG.Cluster.name c);
+                                 string "{";
+                                 wrappedBySemicolon shSemicolonedNL (attributes (CG.Cluster.label c) (CG.Cluster.attrs c));
+                               ]
+
+    let footer = string "}"
+
+    let node n = listBySpace [string (CG.Node.name n); wrappedByComma sboxed (attributes (CG.Node.label n) (CG.Node.attrs n))]
+
+    let nodes = function
+    | []   -> empty
+    | list -> shifted (seq [vboxed (listBySemicolonBreak (List.map node list)); semicolon; newline; newline])
+
+    let edge e =
+      let src, dst = CG.Edge.nodes e in
+       listBySpace [string (CG.Node.name src);
+                    string "->";
+                    string (CG.Node.name dst);
+                    wrappedByComma sboxed (attributes (CG.Edge.label e) (CG.Edge.attrs e))
+                   ]
+
+    let edges = function
+    | []   -> empty
+    | list -> shifted (seq [vboxed (listBySemicolonBreak (List.map edge list)); semicolon; newline; newline;])
+
+    let rec cluster = 
+      let nodes list = listBySemicolon (List.map (fun node -> string (CG.Node.name node)) list)
+      in function
+    | Clusters.Leaf c        -> seq [cHeader c; nodes (CG.Cluster.nodes c); footer]
+    | Clusters.Node (c, sub) -> vboxed (seq [cHeader c; break;
+                                             (match (CG.Cluster.nodes c) with
+                                                []    -> empty
+                                              | list -> seq [shifted (nodes list) ; semicolon; break]
+                                             );
+                                             (clusters sub); break;
+                                             footer
+                                            ]
+                                       )
+    and clusters list = (vboxed (listBy (seq [break; break])
+                                         (List.map (fun c -> shifted (cluster c)) list)
+                                        )
+                        )
+ 
+    let toDOTPrinter (graph, list) = 
+      vboxed (seq [ header graph; newline;
+                    (match list with 
+                      [] -> empty
+                     | _  -> seq [clusters list; newline]
+                    );
+                    nodes (CG.nodes graph);
+                    edges (CG.edges graph);
+                    footer
+                  ]
+             )
+
+    let toDOT prm = toString (toDOTPrinter prm)
+  end
+
+module Printer (G : Graph) =
+  struct
+    type parm = G.t
+
+    module CG =
+      struct 
+        include G
+  
+        module Cluster =
+          struct
+            include Empty
+            let nodes _ = []
+          end
+         
       end
 
+    module CP = ClusteredPrinter (CG)
+
+    let toDOT g = CP.toDOT (g, [])
   end
+
+

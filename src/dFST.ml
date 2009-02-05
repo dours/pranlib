@@ -40,15 +40,10 @@ module type Sig =
 	
     module DOT :
       sig
+        module Node : DOT.ExtInfo with type t = G.Node.t
+        module Edge : DOT.Info with type t = G.Edge.t
 
-	module Node  : DOT.Node          with type t = G.Node.t
-	module Edge  : Digraph.DOT.Edge  with type t = G.Edge.t
-	      
-	include Digraph.DOT.S with 
-	  type graph = G.t      and 
-	  type node  = G.Node.t and 
-          type edge  = G.Edge.t and 
-	  type parm  = unit
+	include DOT.Sig with type parm = unit
 
       end
 	
@@ -244,10 +239,10 @@ module MakeOrdered (G : CFG.Sig) (O : sig val order : G.Edge.t list -> G.Edge.t 
 		    
             let label edge = 
 	      try
-		sprintf "%s\n%s" 
+		sprintf "%s\\n%s" 
 		  (match sort edge with Tree -> "Tree" | Back -> "Back" | Cross -> "Cross" | Forward -> "Forward") 
 		  (G.Edge.toString edge)
-	      with Unreachable _ -> sprintf "*** unreached ***\n%s" (G.Edge.toString edge)
+	      with Unreachable _ -> sprintf "*** unreached ***\\n%s" (G.Edge.toString edge)
 		
 	  end
 	    
@@ -261,42 +256,28 @@ module MakeOrdered (G : CFG.Sig) (O : sig val order : G.Edge.t list -> G.Edge.t 
 	      with Unreachable _ -> []
 
             let label node = 
-	      try sprintf "M=%d, N=%d\n%s" (pre node) (post node) (G.Node.toString node)
-	      with Unreachable _ -> sprintf "*** unreachable ***\n%s" (G.Node.toString node)
+	      try sprintf "M=%d, N=%d\\n%s" (pre node) (post node) (G.Node.toString node)
+	      with Unreachable _ -> sprintf "*** unreachable ***\\n%s" (G.Node.toString node)
 
             let name node = sprintf "node%d" (G.Node.index node)
 		
 	  end
 	    
-	module M = Digraph.Printer (G) (Node) (Edge)
-	    
-	type graph = M.graph
-	type node  = M.node
-	type edge  = M.edge
-	      
-	let header = M.header
-	let footer = M.footer
-	    
-	let attributes = M.attributes
-	    
-	let node  = M.node
-	let edge  = M.edge
-	    
-	let edges = M.edges
-	let nodes = M.nodes
-	    
-	type parm = unit
-
-	let toDOT () = M.toDOT graph
-
-	module Clusters = M.Clusters
-
-	module Clustered =
-	  struct
-	    
-	    let toDOT () tree = M.Clustered.toDOT graph tree
-
-	  end
+	include DOT.Printer
+         (struct
+            module Node = Node
+            module Edge = 
+              struct
+                include Edge
+                let nodes e = (G.src e, G.dst e)
+              end
+            include DOT.Empty
+            let kind ()  = `Digraph
+            let name ()  = "DFST"
+            let nodes () = G.nodes graph
+            let edges () = G.edges graph
+          end
+         )
             
       end
 	

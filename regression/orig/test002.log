@@ -1,44 +1,31 @@
-digraph X {  
- 
+digraph Tree {   
+  node12 [label="M=2, N=8\nl", shape="box"]; 
+  node10 [label="M=4, N=10\nj", shape="box"]; 
+  node11 [label="M=3, N=9\nk", shape="box"]; 
+  node9 [label="M=5, N=11\ni", shape="box"]; 
+  node13 [label="M=7, N=13\nm", shape="box"]; 
+  node8 [label="M=6, N=12\nh", shape="box"]; 
+  node6 [label="M=10, N=4\nf", shape="box"]; 
+  node5 [label="M=9, N=3\ne", shape="box"]; 
+  node7 [label="M=11, N=7\ng", shape="box"]; 
+  node4 [label="M=13, N=6\nd", shape="box"]; 
+  node3 [label="M=12, N=5\nc", shape="box"]; 
+  node2 [label="M=8, N=2\nb", shape="box"]; 
+  node1 [label="M=1, N=1\na", shape="box"]; 
   node0 [label="M=0, N=0\nstart", shape="ellipse"];
-  node0 -> node1;
-  
-  node1 [label="M=1, N=1\na", shape="box"];
-  node1 -> node2;
-  node1 -> node8;
-  node1 -> node9;
-  node1 -> node11;
-  node1 -> node12;
-  
-  node2 [label="M=8, N=2\nb", shape="box"];
-  node2 -> node3;
-  node2 -> node7;
-  node2 -> node5;
-  
-  node3 [label="M=12, N=5\nc", shape="box"];
-  node3 -> node4;
-  
-  node4 [label="M=13, N=6\nd", shape="box"];
-  
-  node7 [label="M=11, N=7\ng", shape="box"];
-  
-  node5 [label="M=9, N=3\ne", shape="box"];
-  node5 -> node6;
-  
-  node6 [label="M=10, N=4\nf", shape="box"];
-  
-  node8 [label="M=6, N=12\nh", shape="box"];
-  node8 -> node13;
-  
-  node13 [label="M=7, N=13\nm", shape="box"];
-  
-  node9 [label="M=5, N=11\ni", shape="box"];
-  
-  node11 [label="M=3, N=9\nk", shape="box"];
-  node11 -> node10;
-  
-  node10 [label="M=4, N=10\nj", shape="box"];
-  
-  node12 [label="M=2, N=8\nl", shape="box"];
-   
+
+  node11 -> node10 ; 
+  node8 -> node13 ; 
+  node5 -> node6 ; 
+  node3 -> node4 ; 
+  node2 -> node5 ; 
+  node2 -> node7 ; 
+  node2 -> node3 ; 
+  node1 -> node12 ; 
+  node1 -> node11 ; 
+  node1 -> node9 ; 
+  node1 -> node8 ; 
+  node1 -> node2 ; 
+  node0 -> node1 ;
+
 }

@@ -1,0 +1,770 @@
+diff -r -c -N cil_orig/Makefile.in cil_oops/Makefile.in
+*** cil_orig/Makefile.in	2007-02-06 00:10:29.000000000 +0300
+--- cil_oops/Makefile.in	2009-01-27 20:33:11.000000000 +0300
+***************
+*** 90,96 ****
+  # ww: we don't want "main" in an external cil library (cil.cma),
+  # otherwise every program that links against that library will get
+  # main's argument checking and whatnot ...
+! CILLY_MODULES = $(CILLY_LIBRARY_MODULES) main
+  CILLY_CMODULES = perfcount
+  CILLY_LIBS     = unix str
+  
+--- 90,99 ----
+  # ww: we don't want "main" in an external cil library (cil.cma),
+  # otherwise every program that links against that library will get
+  # main's argument checking and whatnot ...
+! CILLY_MODULES = $(CILLY_LIBRARY_MODULES) \
+!                 cilCFGPrinter \
+!                 cil2Pranlib cilPranlibAA \
+!                 main
+  CILLY_CMODULES = perfcount
+  CILLY_LIBS     = unix str
+  
+***************
+*** 109,122 ****
+  
+     # Now the rule to make cilly
+  
+! cilly: $(OBJDIR)/cilly$(EXE)
+! $(OBJDIR)/cilly$(EXE) : $(CILLY_MODULES:%=$(OBJDIR)/%.$(CMO)) \
+!                         $(CILLY_CMODULES:%=$(OBJDIR)/%.$(CMC))
+! 	@$(NARRATIVE) "Linking $(COMPILETOWHAT) $@ $(LINKMSG)"
+! 	$(AT)$(CAMLLINK) -verbose -o $@ \
+!                     $(CILLY_LIBS:%=%.$(CMXA)) \
+!                     $(CILLY_LIBS:%=-cclib -l%) \
+!                     $^
+  
+  
+  quickbuild: cilversion machdep cilly
+--- 112,126 ----
+  
+     # Now the rule to make cilly
+  
+! PROJECT_EXECUTABLE = $(OBJDIR)/cilly$(EXE)
+! PROJECT_MODULES    = $(CILLY_MODULES)
+! PROJECT_CMODULES   = perfcount $(CILLY_CMODULES)
+! PROJECT_LIBS       = $(CILLY_LIBS)
+! OOPS_LIBS_NAMES    = typeutil checked urray BinomialHeap PM pranlib
+! OOPS_PACKAGES      = $(OOPS_LIBS_NAMES) ocamlgraph
+! OOPS_FILES         = $(OOPS_LIBS_NAMES) graph
+! cilly: $(PROJECT_EXECUTABLE)
+! include ocamlutil/Makefile.ocaml.build
+  
+  
+  quickbuild: cilversion machdep cilly
+diff -r -c -N cil_orig/ocamlutil/Makefile.ocaml cil_oops/ocamlutil/Makefile.ocaml
+*** cil_orig/ocamlutil/Makefile.ocaml	2007-02-06 00:10:29.000000000 +0300
+--- cil_oops/ocamlutil/Makefile.ocaml	2009-01-27 20:31:28.000000000 +0300
+***************
+*** 173,179 ****
+  CAMLYACC= ocamlyacc -v
+  CAMLDEP = ocamldep
+  
+! COMPILEFLAGS += -I $(OBJDIR)
+  
+  # sm: two styles for echoing compilation progress:
+  #   style 1, by George:
+--- 173,179 ----
+  CAMLYACC= ocamlyacc -v
+  CAMLDEP = ocamldep
+  
+! COMPILEFLAGS = -I $(OBJDIR) -I `ocamlfind -query pranlib`
+  
+  # sm: two styles for echoing compilation progress:
+  #   style 1, by George:
+diff -r -c -N cil_orig/ocamlutil/Makefile.ocaml.build cil_oops/ocamlutil/Makefile.ocaml.build
+*** cil_orig/ocamlutil/Makefile.ocaml.build	1970-01-01 03:00:00.000000000 +0300
+--- cil_oops/ocamlutil/Makefile.ocaml.build	2009-01-27 20:21:23.000000000 +0300
+***************
+*** 0 ****
+--- 1,55 ----
++ # -*- Mode: makefile -*-
++ # Copyright (c) 2001-2002, 
++ #  George C. Necula    <necula@cs.berkeley.edu>
++ #  Scott McPeak        <smcpeak@cs.berkeley.edu>
++ #  Wes Weimer          <weimer@cs.berkeley.edu>
++ # All rights reserved.
++ # 
++ # Redistribution and use in source and binary forms, with or without
++ # modification, are permitted provided that the following conditions are
++ # met:
++ #
++ # 1. Redistributions of source code must retain the above copyright
++ # notice, this list of conditions and the following disclaimer.
++ #
++ # 2. Redistributions in binary form must reproduce the above copyright
++ # notice, this list of conditions and the following disclaimer in the
++ # documentation and/or other materials provided with the distribution.
++ #
++ # 3. The names of the contributors may not be used to endorse or promote
++ # products derived from this software without specific prior written
++ # permission.
++ #
++ # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
++ # IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
++ # TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
++ # PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
++ # OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
++ # EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
++ # PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
++ # PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++ # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ 
++   # Auxiliary Makefile for building Ocaml project. See the documentation in
++   # the associated Makefile.ocaml for how to use this file.
++   # Written by necula@cs.berkeley.edu
++   # 
++ 
++ 
++ $(PROJECT_EXECUTABLE) : $(PROJECT_MODULES:%=$(OBJDIR)/%.$(CMO)) \
++                         $(PROJECT_CMODULES:%=$(OBJDIR)/%.$(CMC))
++ 	@$(NARRATIVE) "Linking $(COMPILETOWHAT) $@ $(LINKMSG)"
++ 	@LIBPATHS= ;\
++ 	for F in $(OOPS_PACKAGES) ;\
++ 	do \
++ 	  LIBPATH="$$LIBPATH -I `ocamlfind -query $$F`" ;\
++ 	done ; \
++ 	$(CAMLLINK) -verbose -o $@ \
++ 	            $(LINK_FLAGS) \
++                     $$LIBPATH \
++                     $(OOPS_FILES:%=%.$(CMXA)) \
++                     $(PROJECT_LIBS:%=%.$(CMXA)) \
++                     $(PROJECT_LIBS:%=-cclib -l%) \
++                     $^
+diff -r -c -N cil_orig/src/cilutil.ml cil_oops/src/cilutil.ml
+*** cil_orig/src/cilutil.ml	2007-02-06 00:10:29.000000000 +0300
+--- cil_oops/src/cilutil.ml	2009-01-27 20:30:03.000000000 +0300
+***************
+*** 36,41 ****
+--- 36,45 ----
+   *)
+  
+  (* Keep here the globally-visible flags *)
++ let doPranlibAA = ref false (* Whether to run pranlib alias analysis *)
++ 
++ let doCilCFGPrinter = ref false   (* Whether to run cil2CFG *)
++ 
+  let doCheck= ref false   (* Whether to check CIL *)
+  let strictChecking= ref false   (* If doCheck is true and warnings are found,
+                                  * treat them as errors. *)
+diff -r -c -N cil_orig/src/ext/cil2Pranlib.ml cil_oops/src/ext/cil2Pranlib.ml
+*** cil_orig/src/ext/cil2Pranlib.ml	1970-01-01 03:00:00.000000000 +0300
+--- cil_oops/src/ext/cil2Pranlib.ml	2009-01-25 19:39:49.000000000 +0300
+***************
+*** 0 ****
+--- 1,123 ----
++ (** current module can be used for conversion from cil flow graph to pranlib graph *)
++ 
++ (** module for Node representation *)
++ module Node = struct
++ 
++     type lval    = Cil.lval
++     type exp     = Cil.exp
++     let  d_instr = Cil.d_instr
++     let  d_exp   = Cil.d_exp
++     let  d_lval  = Cil.d_lval
++    
++     type t = Start |
++              Empty |
++              Call of lval option * exp * exp list |
++              Set  of lval * exp |
++              Return of (exp option) |
++              If of exp  
++    
++     let toString x = 
++ 	let pr d = (Pretty.sprint 50 d) in
++ 	let printEList l = String.concat ";\\n" (List.map (fun e -> pr (d_exp () e)) l) in
++ 	match x with
++ 	| Start ->  "Start"
++ 	| Empty -> "Empty"
++         | Call (lval, e, el) -> String.concat ""
++             ( (match lval with None -> [""] | Some (lv) -> [pr (d_lval () lv); " = "]) @
++               ["Call"; pr (d_exp () e); printEList el]
++             )
++         | Set (lval, e) -> String.concat ""
++             [pr (d_lval () lval); "="; pr (d_exp () e)]
++ 	| Return r -> String.concat "" 
++ 	    ["Return "; (match r with  None -> "" | Some e -> pr (d_exp () e)); ";\\n" ]
++ 	| If e -> String.concat "" 
++ 	    ["Branch ("; pr (d_exp () e); ")"]
++       | _ -> "unsupported construction"
++ 
++ end
++ 
++ module Edge =
++     struct
++ 	
++     type t = True | False | FallThrough | GoTo
++ 	     
++    
++     let toString typ = 
++ 	String.concat "; " 
++ 	[
++ 	    (match typ with
++ 	      | True        -> "true"
++     	      | False       ->  "false"
++ 	      | FallThrough -> "fallthrough"
++ 	      | GoTo        -> "goto")
++ 	
++ 	]
++ 		
++ end
++ 
++ module Graph = Digraph.Make(Node)(Edge)
++ 
++ open Cil
++ 
++ type c = [`Stmt of stmt | `Node of Node.t ]
++ 
++ (** conversion function: receives cil flow graph as an argument and returns pranlinb flow graph *)
++ let create stmts  = 
++     let graph, start = Graph.insertNode (Graph.create ()) Node.Start in
++     let h = Hashtbl.create 100 in
++     let rec dep from etype graph stmt = 
++ 	if Hashtbl.mem h stmt then 
++         fst (Graph.insertEdge graph from (Hashtbl.find h stmt) etype)
++         else match stmt.skind with 
++         | Instr [] -> let graph, fi = Graph.insertNode graph Node.Empty in
++                       let graph = fst (Graph.insertEdge graph from fi etype) in
++                       dep fi Edge.GoTo graph (List.hd stmt.succs)
++         | Instr il -> let gnode = function
++                        | Set (lval, expr, _) -> Node.Set (lval, expr)
++                        | Call (lval , exp , expl, _) -> Node.Call (lval , exp , expl)
++                        | Asm _ -> raise (Failure "didn't expect this construction")
++                       in
++                       let graph, fi = Graph.insertNode graph (gnode (List.hd il)) in
++                       let graph = fst (Graph.insertEdge graph from fi etype) in
++                       Hashtbl.add h stmt fi;
++                       let graph, li =
++                         List.fold_left 
++                          (fun (graph, ci) el ->
++                            let graph, ni = Graph.insertNode graph (gnode el) in
++                              let graph = fst (Graph.insertEdge graph ci ni Edge.FallThrough) in
++                           graph, ni
++                          )    
++                          (graph, fi)
++                          (List.tl il)
++                       in  
++                       dep li Edge.GoTo graph (List.hd stmt.succs)
++         | _       -> let getnode = function
++   		     | Block b | Loop (b, _, _, _) -> `Stmt (List.hd b.bstmts)
++ 		     | Instr _ | Break _ | Continue _ | Switch _ | TryFinally _ | TryExcept _
++                                     -> raise (Failure "didn't expect this construction")
++                      | If (expr, _, _, _) -> if List.length stmt.succs < 2 then 
++ 			                     `Node Node.Empty (* we use an information, that CIL expression HAS NO SIDE-EFFECTS here *)  
++ 			                     else `Node (Node.If (expr))
++         	     | Goto _ -> `Node Node.Empty (* this goto instruction will be represented as an edge *)
++ 		     | Return (e, _) -> `Node (Node.Return e)
++                      in match getnode stmt.skind with
++                        `Stmt s -> dep from etype graph s
++                      | `Node node  ->                     
++                          let graph, node = Graph.insertNode graph node
++                          in
++ 	                 Hashtbl.add h stmt node;
++ 		         let graph = fst (Graph.insertEdge graph from node etype) in		
++ 		         match stmt.skind with
++ 		         | If (expr, b1, b2, _) when (List.length stmt.succs = 2) ->
++ 			    let [s1; s2] = stmt.succs in (* first element in the succs list corresponds to false *)
++             	            dep node Edge.False (dep node Edge.True graph s2) s1
++ 		         | _ -> (match stmt.succs with
++ 			           [] -> graph
++ 			         | [st] -> dep node Edge.GoTo graph st)
++ 		    
++     in
++     (dep start Edge.GoTo graph (List.hd stmts)), start
++ 
++ 
++ 
++ 
+diff -r -c -N cil_orig/src/ext/cilCFGPrinter.ml cil_oops/src/ext/cilCFGPrinter.ml
+*** cil_orig/src/ext/cilCFGPrinter.ml	1970-01-01 03:00:00.000000000 +0300
+--- cil_oops/src/ext/cilCFGPrinter.ml	2009-01-25 19:39:40.000000000 +0300
+***************
+*** 0 ****
+--- 1,161 ----
++ open Cil
++ 
++ let proj13 (x, _, _) = x
++ let proj23 (_, x, _) = x
++ let proj33 (_, _, x) = x
++ 
++ module Node = struct
++ 
++     type t = Start | Empty | Instr of instr list | Return of (instr list) * (exp option) | If of (instr list) * exp
++     
++     let toString x = 
++ 	let protect s = Str.global_replace (Str.regexp "\n") "\\n" 
++ 			      (Str.global_replace (Str.regexp "\"") "\\\"" s) in
++ 	let pr d = protect (Pretty.sprint 50 d) in
++ 	let printIList l = String.concat ";\\n" (List.map (fun i -> pr (d_instr () i)) l) in
++ 	
++ 	match x with
++ 	| Instr l ->  printIList l
++ 	| Return (l, r) -> String.concat "" 
++ 	    [printIList l; if not (l = []) then ";\\n\\n" else ""; 
++ 		"Return "; (match r with | None -> "" | Some e -> pr (d_exp () e)); ";\\n" ]
++ 	| Start -> "Start"
++ 	| Empty -> "Empty"
++ 	| If (l, e) -> String.concat "" 
++ 	    [printIList l; if not (l = []) then ";\\n\\n" else ""; "Branch ("; pr (d_exp () e); ")"]
++ 
++ 
++     let empty = function
++ 	| Empty | Instr [] -> true
++ 	| _ -> false
++ 	
++ 
++     let merge a b = match a, b with
++ 	| Start, _ | _, Start -> raise (Failure "why merging with start? We'll loose it!")
++ 	| Empty, b -> b
++ 	| a, Empty -> a
++ 	| Return _, _ | If _, _ -> raise (Failure "why merging If or Return with x? x becomes unreachable this case!")
++ 	| Instr l1, Instr l2 -> Instr (List.append l1 l2)
++ 	| Instr l1, Return (l2, e) -> Return ((List.append l1 l2), e)
++ 	| Instr l1, If (l2, e) -> If ((List.append l1 l2), e)
++ 	
++ 
++ end
++ 
++ module Helper = struct
++     type t = Node.t
++     let empty = Node.empty
++     let merge = Node.merge
++ end
++ 
++ module Edge =
++     struct
++ 	
++     type typ = True | False | FallThrough | GoTo
++     type t = typ * int * int (* type of an edge and its number in the graph and its frequency *)
++ 	  
++     let typ = proj13
++     let id = proj23
++     let freq = proj33
++     
++     let next typ id = 
++ 	id := !id + 1;
++ 	typ, !id, 0
++     
++     let toString (typ, id, freq) = 
++ 	String.concat "; " 
++ 	[
++ 	    (match typ with
++ 	      | True        -> "true"
++     	      | False       -> "false"
++ 	      | FallThrough -> "fallthrough"
++ 	      | GoTo        -> "goto")
++ 	;
++ 	    Printf.sprintf "n%i" id
++ 	;
++ 	    Printf.sprintf "w%i" freq
++ 	]
++ 		
++ end
++ 
++ module Graph = Digraph.Make(Node)(Edge)
++  
++ let rec printcalls stmts = 
++  let printinstr = function
++   | Call (_, Lval ((Var i), o)  , _, _) -> Printf.printf "%s\n" i.vname
++   | Call (_, _, _, _) -> Printf.printf "%s\n" "Unknown call"
++   | _ -> ()
++  in  
++  match stmts with
++   | hd :: tl -> (match hd.skind with
++                    Instr l -> List.map printinstr l; printcalls tl
++                  | _       -> printcalls (List.tl stmts)
++                 )
++   | [] -> ()
++   
++   
++ 
++   let create stmts = 
++     Printf.printf "%s" "XZzzzzzzzzzzzz";
++     let h = Hashtbl.create 100 in
++     let graph, start = Graph.insertNode (Graph.create ()) Node.Start in
++     let eid = ref (-1) in 
++     let rec dep from etype graph stmt = 
++ 		if Hashtbl.mem h stmt then 
++                 fst (Graph.insertEdge graph from (Hashtbl.find h stmt) etype) else
++ 		let graph, node = Graph.insertNode graph (
++ 			match stmt.skind with
++ 				| Block _ | Loop   _ -> Node.Empty
++ 				| Break _ | Continue _ | Switch _ | TryFinally _ | TryExcept _
++                                                      -> raise (Failure "didn't expect this construction")
++ 				| If (expr, _, _, _) -> if List.length stmt.succs < 2 then 
++ 				    Node.Empty (* we use an information, that CIL expression HAS NO SIDE-EFFECTS here *)  
++ 				    else Node.If ([], expr)
++ 				| Goto _ ->  Node.Empty (* this goto instruction will be represented as an edge *)
++ 				| Instr l -> Node.Instr l
++ 				| Return (e, _) -> Node.Return ([], e)
++ 		) in
++ 		Hashtbl.add h stmt node;
++ 		let graph = fst (Graph.insertEdge graph from node etype) in		
++ 		match stmt.skind with
++ 		    | If (expr, b1, b2, _) when (List.length stmt.succs = 2) ->
++ 			let [s1; s2] = stmt.succs in
++ (*!!!!!!!: It's not written anywhere, that the first element in the succs list corresponds to false :( *)
++ 			dep node (Edge.next Edge.False eid) (dep node (Edge.next Edge.True eid) graph s2) s1
++ 		    | _ -> Printf.printf "zzzzzzzzzzzzzz%d\n" (List.length stmt.succs);
++ 			(match stmt.succs with
++ 			    | [] -> graph
++ 			    | [st] -> dep node (Edge.next Edge.GoTo eid) graph st)
++ 		    
++     in
++     (dep start (Edge.next Edge.GoTo eid) graph (List.hd stmts)), start
++ 
++ 
++ let megaFun ({ fileName = fname; globals = g } as fl) = 
++ 	Printf.fprintf stderr "%s" "cfgPrinter working\n";
++         iterGlobals fl (function
++ 	| GFun (f, _) -> 
++ 	    prepareCFG f;
++ 	    computeCFGInfo f true;
++             printcalls f.sbody.bstmts;
++ 	    let graph, start = create f.sbody.bstmts in   
++ 	    let module G = CFG.Make(Graph)(struct let graph = graph let start = start end) in
++ 	    let module D = DFST.Make(G) in 
++ 	    let module O = CFO.Make(D)(Helper) in
++ 	    let (graph, start), _ = O.removeEmptyNodes () in 
++ 	    let och = open_out (String.concat "" [f.svar.vname; ".dot"]) in
++ 	    Printf.fprintf och "%s" (Graph.DOT.toDOT graph);
++ 	    close_out och  
++ 	| _ -> ()
++     )
++     
++ 
++ let feature : featureDescr = 
++   { fd_name = "cfgPrinter";              
++     fd_enabled = Cilutil.doCilCFGPrinter;
++     fd_description = "build the pranlib's CFG of the program and write it to <func name>.dot files";
++     fd_extraopt = [];
++     fd_doit = megaFun;
++     fd_post_check = true 
++   } 
++ 
+diff -r -c -N cil_orig/src/ext/cilPranlibAA.ml cil_oops/src/ext/cilPranlibAA.ml
+*** cil_orig/src/ext/cilPranlibAA.ml	1970-01-01 03:00:00.000000000 +0300
+--- cil_oops/src/ext/cilPranlibAA.ml	2009-01-25 19:56:39.000000000 +0300
+***************
+*** 0 ****
+--- 1,302 ----
++ open Cil
++ open Cil2Pranlib
++ open AliasView
++ open Printf
++ 
++ let (>>) g f = (fun x -> f (g x))
++ 
++ let iteri l f = fst ( List.fold_right (fun el (tail, i) -> ((f i el) :: tail, i + 1))           
++                                       l 
++                                       ([], (List.length l) - 1)
++                     )
++ 
++ module BI = 
++   struct
++     type t = Region.t
++ 
++     let toString = Region.name
++ 
++     let region x = x
++   end
++ 
++ module FW = Make (BI)
++ 
++ module Memory = FW.M
++ module Block = Memory.Block
++ module Statement = FW.S
++ module Expression = Statement.Expr
++ 
++ module type Declarations = sig
++  (** returns block allocated for variable denoted by varinfo*)
++  val getBlock  : varinfo -> Block.t 
++  
++  (** returns region allocated for given name *)
++  val getRegion : string  ->  Region.t
++ 
++  (** returns block type by a cil type *)
++  val typeToBlockType : Region.t -> typ -> Block.InfoTree.t option
++ end
++ 
++ (** module containing all declarations of program *)
++ module Decls (D: sig val decls : varinfo list end)  = struct
++ 
++  let rec vars = Hashtbl.create 100
++  let rec regs = Hashtbl.create 5
++ 
++  let rec typeToBlockType region = function
++   | TInt _ | TFloat _ | TPtr _ | TEnum _ | TArray _ -> Some (Block.InfoTree.makeLeaf region)
++   | TComp (info, _)  when not(info.cstruct) -> Some (Block.InfoTree.makeLeaf region)
++  (* | TArray (bt, Some (Const (CInt64 (i64, _, _))), _) 
++                                          -> let i = Int64.to_int i64 in
++                                              Type.Compound (Array.make i (typeToBlockType bt)) *)
++   | TNamed (info, _) -> typeToBlockType region info.ttype                    
++   | TComp (info, _) -> let fieldsInfo = Array.of_list info.cfields in
++                         Some ( Block.InfoTree.makeNode
++                                  region
++                                  (Array.fold_right (fun el acc -> match typeToBlockType region (el.ftype) with    
++                                                                     Some t -> t :: acc
++                                                                   | None ->  raise (Failure "typeToBlockType")
++                                                    ) fieldsInfo []
++                                  )
++                              )               
++   | _ -> None
++ 
++  
++  let regionName info = match info.vstorage with
++   | NoStorage -> if info.vglob then "Global" else "Local"
++   | Static    -> "Static"
++   | Register  -> "Register"
++   | Extern    -> "Extern"
++    
++  let init = fun () ->
++              let mr = List.fold_left
++                        (fun m name ->
++                           let (m, r) = Memory.createRegion m name []
++                           in
++                           Hashtbl.add regs name r;
++                           m
++                        )
++                        Memory.empty
++                        ["Global"; "Local"; "Static"; "Register"; "Extern"; "Heap"]
++              in
++              List.fold_left
++                (fun m info -> let rname = regionName info in 
++                                 let (m, r) = if Hashtbl.mem regs rname
++                                              then (m, Hashtbl.find regs rname)
++                                              else let (m, reg) = Memory.createRegion m rname []
++                                                   in Hashtbl.add regs rname reg;
++                                                      (m, reg)
++                               in
++                               match typeToBlockType r info.vtype with
++                                 Some typ ->
++                                   let (m, b) = Memory.allocateBlock m typ
++                                    in Hashtbl.add vars info.vid b;
++                                       m
++                               | None -> m
++                 )
++                 mr
++                 D.decls
++  
++  let getBlock info = Hashtbl.find vars info.vid
++ 
++  let getRegion name = Hashtbl.find regs name 
++                           
++ end
++ 
++ module Abstractor (D:Declarations) = struct
++  
++  module Concrete =
++    struct
++     type node = Graph.Node.t 
++     type edge = Graph.Edge.t
++    end
++ 
++  module Abstract =
++    struct
++      type node = Statement.t list
++ (*     type edge = EdgeInfo.t*)
++     type edge = Graph.Edge.t
++    end
++   
++  type pos = Left | Right
++ 
++  let node x =   
++   let rec testLvalue = function   (* Assigments can be made for structures containing pointers!!!! *)
++    | Var (info), _ -> (match info.vtype with TPtr _ -> true | _ -> false)
++    | Mem (AddrOf l), _ -> testLvalue l
++    | _ -> true
++   in
++   let getField' i = function
++     | Some b -> let sbs = (Block.subblocks b) in
++                  if i < Array.length sbs
++                   then Some (sbs.(i))
++                   else None
++     | None -> None
++   in 
++   let getField i b = getField' i (Some b)
++   in
++   let findFieldNumber fld = 
++     let rec find n = function
++       | (hd :: tl) -> if hd == fld then n else find (n + 1) tl
++       | [] -> raise (Failure "structure field not found")
++     in find 0 fld.fcomp.cfields
++   in
++   let rec lvalue = 
++     let rec makeOffset bl = function 
++       | NoOffset | Index _ ->  bl 
++       | Field (info, _) when not(info.fcomp.cstruct) -> bl 
++       | Field (info, off) -> makeOffset (Expression.sub (getField (findFieldNumber info))  bl)  off 
++     (*  | Index (Const(CInt64(i64, _, _)), off)  ->
++            
++          makeOffset (Expression.Sub (getF ield (Int64.to_int i64), bl)) off
++       | Index (_, _) -> Expression.Unspec bl  *)
++     in function
++     | Var (info), off -> makeOffset (Expression.block (D.getBlock info)) off   
++     | Mem (Lval l), off  -> makeOffset (Expression.value (lvalue l)) off
++     | Mem (AddrOf l), off -> makeOffset (lvalue l) off 
++     | Mem e, _ -> Expression.region (expr Left e)
++   and expr = fun x y -> match (x, y) with
++     | Left,  Lval l    -> lvalue l | Right,  AddrOf l ->  (lvalue l)
++     | Right, Lval l    -> Expression.value (lvalue l)
++     | _, UnOp (_, e, _) | _, BinOp (_, Const _, e, _) | _, BinOp (_, e, Const _, _)
++                        -> Expression.region (expr Left e) 
++     | x, CastE (_,  e) -> expr x e
++     | _                -> Expression.any
++   in
++   let rec getLType drfs = 
++     let rec deref = function
++     | t, 0 -> t
++     | TPtr (t, _) , i -> (deref (t, (i - 1))) 
++     | _ -> raise (Failure "incorrect dereference")
++     in
++     let rec makeOffset t = function
++     | Field (finfo, off) when finfo.fcomp.cstruct -> makeOffset (finfo.ftype) off
++     | NoOffset | Field _ -> t
++     | Index (_, off) -> makeOffset t off    
++     in function
++     | Var info, off       -> Some (deref ((makeOffset info.vtype off), drfs)) 
++     | Mem (Lval v), off   -> (match (getLType (drfs + 1) v) with
++                                 Some t -> Some (makeOffset t off)
++                               | None   ->  None
++                              )
++     | Mem (AddrOf v), off -> (match (getLType drfs v) with
++                                 Some t -> Some (makeOffset t off)
++                               | None   -> None
++                              )
++     | Mem _, _ -> None     
++   in                     
++   let exprsl = List.map (expr Left)
++   in
++   let node' = function
++   | Node.Call (Some lv, Lval (Var info, _), args)(* when
++      (match info.vtype with TFun _ -> true | _ -> false) &&
++      (match info.vname with "alloca" | "calloc" | "malloc" | "free" -> true | _ -> false) *)
++                    -> 
++       (
++         let getr = function
++          | "alloca" -> "Local" | _ -> "Heap"
++         in
++         let createAlloc t = 
++          [Statement.assign (lvalue lv) (Expression.alloc t)]
++         in
++         match info.vname with                                  
++           (*| "calloc" -> (match (List.hd args) with
++               Const (CInt64 (i64, x, y)) -> let i = Int64.to_int i64 in
++                                               if i > 100 then (* for example *)
++                                                 createAlloc (D.typeToBlockType info.vtype)
++                                               else createAlloc (Type.Compound (Array.make i (D.typeToBlockType info.vtype)))*)
++          | "malloc" | "alloca" | "calloc"  -> let t =
++                                                match (getLType 0 lv) with
++                                                | Some t' -> t'
++                                                | None    -> info.vtype
++                                               in
++                                               ( match D.typeToBlockType (D.getRegion (getr info.vname)) t with 
++                                                   Some t -> createAlloc t
++                                                 | None   -> raise (Failure "incorrect type of allocated block")
++                                               )
++          | "free" -> [Statement.assign (expr Left (List.hd args)) Expression.any]
++       )
++   | Node.Call (lv, f, args)
++       -> let black = Statement.black [(D.getRegion "Extern") ; (D.getRegion "Global")] (exprsl args) in
++            ( match lv with
++                Some v -> (Statement.assign (lvalue v) Expression.any) :: [black]
++              | _      -> [black]
++            )
++  | Node.Set (lv, e) -> 
++        let sAssignment lv e t = 
++         let cover = fun x -> Some x 
++         in
++         let rec aux subf = function
++           | TComp (info, _) -> List.concat
++                                 (iteri info.cfields
++                                        (fun i fld -> aux (subf >> (getField' i))  fld.ftype)
++                                 )
++           | _ -> [Statement.assign (Expression.sub (cover >> subf) lv) (Expression.sub (cover >> subf) e)] 
++         in aux (fun x -> x) t
++       in
++       (match (getLType 0 lv) with
++         | Some (TComp (info, _) as t) -> sAssignment (lvalue lv) (expr Right e) t
++         | _                           -> if testLvalue lv
++                                          then [Statement.assign (lvalue lv) (expr Right e)]
++                                          else []
++       )
++   | _ -> []
++   in node' (Graph.Node.info x)
++ 
++ 
++   let edge x = x
++ 
++ 
++ end
++ 
++ 
++ let createGlobalsList fl =  
++   foldGlobals fl (fun tl -> function
++    | GVarDecl (info, _) | GVar (info, _, _) ->  info :: tl
++    | _ -> tl
++   )
++   []
++ 
++ 
++ let start ({ fileName = fname; globals = g } as fl) = 
++        Printf.fprintf stderr "%s" "cfgPrinter working\n";
++        let gdecls = createGlobalsList fl in
++        iterGlobals fl (function
++ 	| GFun (f, _) -> 
++ 	    prepareCFG f; 
++ 	    computeCFGInfo f true;
++             let vars = gdecls @ f.sformals @ f.slocals in
++             let graph, start = Cil2Pranlib.create f.sbody.bstmts  in
++             let module D = Decls (struct let decls = vars end) in
++             let memory = D.init () in
++             let module A = Abstractor (D) in 
++             let module G = 
++               struct
++                 let graph = graph
++ 
++                 let start = start
++               end
++             in 
++             let module Analysis = FW.Analyse (struct let memory = memory end)
++                                              (A)
++                                              (CFG.Make (Graph) (G))
++             in
++             let och = open_out (String.concat "" [f.svar.vname; ".dot"]) in
++ 	    Printf.fprintf och "%s" (Graph.DOT.toDOT graph);
++ 	    close_out och 
++ 
++ 	| _ -> ()
++     )
++     
++ 
++ let feature : featureDescr = 
++   { fd_name = "pranlibAA";              
++     fd_enabled = Cilutil.doPranlibAA;
++     fd_description = "build the pranlib's CFG of the program and performs alias analysis on it";
++     fd_extraopt = [];
++     fd_doit = start;
++     fd_post_check = true
++   } 
++ 
++ 
++ 
+diff -r -c -N cil_orig/src/main.ml cil_oops/src/main.ml
+*** cil_orig/src/main.ml	2007-02-06 00:10:29.000000000 +0300
+--- cil_oops/src/main.ml	2009-01-27 20:27:58.000000000 +0300
+***************
+*** 105,110 ****
+--- 105,112 ----
+      Logcalls.feature;
+      Ptranal.feature;
+      Liveness.feature;
++     CilCFGPrinter.feature;
++     CilPranlibAA.feature;
+    ] 
+    @ Feature_config.features 
+  

@@ -47,68 +47,6 @@ module type Item =
  
   end
 
-(** Tiny interface to GraphViz graph drawing library. See DOT language specification for details *)
-module DOT :
-  sig
-
-    (** DOT graph node wrapper *)
-    module type Node =
-      sig
-	
-	include DOT.Node
-
-      end
-
-    (** DOT graph edge wrapper *)
-    module type Edge =
-      sig
-
-        (** Type for edge representation *)
-	type t
-
-        (** Gets list of edge attributes *)
-	val attrs : t -> (string * string) list
-
-        (** Gets label of the edge *)
-	val label : t -> string
-          
-      end
-
-    (** Signature of DOT digraph printer *)
-    module type S =
-      sig
-
-	include DOT.Sig
-
-        (** Type of the edge *)
-	type edge
-
-        (** DOT represenation for edge *)
-	val edge  : edge -> string
-
-        (** DOT representation for list of edges *)
-	val edges : edge list -> string
-
-        (** Type of vizualizer parameter *)
-	type parm 
-
-        (** DOT visualizer *)
-	val toDOT : parm -> string
-
-        (** DOT clustered visualizer *)
-	module Clustered :
-	  sig
-
-	    (** Visualizing graph with clusters *)
-	    val toDOT : parm -> Clusters.t -> string
-
-	  end
-
-      end
-
-    module Printer (G : DOT.Graph) (N : Node) : DOT.Sig with type graph = G.t and type node = N.t
-
-  end
 
 (** Basic directed graph signature *)
 module type Base =
@@ -212,25 +150,22 @@ module type Base =
 
   end
 
+
 (** Directed graph signature *)
 module type Sig =
   sig
 
     include Base
 
-    (** DOT printer *)
-    module DOT : DOT.S with type node = Node.t and type graph = t
-
-    (** Exported DOT vizualizer *)
-    val toDOT : t -> string
-
-    (** Exported DOT clustered vizualizer *)
-    module Clustered :
+    (** Graph DOT visualizer *)
+    module DOT :
       sig
+        (** module to provide graph information *)
+        module Info : DOT.Graph with type t = t and
+                                     type Node.t = Node.t and
+                                     type Edge.t = Edge.t
 
-	(** Clustered DOT printer *)
-	val toDOT : t -> DOT.Clusters.t -> string
-
+        include DOT.Sig with type parm = t
       end
 
   end
@@ -249,17 +184,20 @@ module type Info =
 
   end
 
+(** Functor to construct DOT graph information module *)
+module DotInfo (G : Base)
+               (N : DOT.ExtInfo with type t = G.Node.t) 
+               (E : DOT.Info with type t = G.Edge.t) :
+  DOT.Graph with type t = G.t and
+                 type Node.t = N.t and
+                 type Edge.t = E.t
+
+
 (** Instantiation functor for directed graph. [Make(NodeLabel)(EdgeLabel)] creates {b mutable} 
     implementation of directed graph with nodes and edges labeled with values of types [NodeLabel] and 
     [EdgeLabel] correspondingly 
  *)
 module Make (NodeInfo : Info) (EdgeInfo : Info) : Sig with type Node.info = NodeInfo.t and type Edge.info = EdgeInfo.t
 
-(** Functor to construct graph printers *)
-module Printer 
-    (G : Base) 
-    (N : DOT.Node with type t = G.Node.t) 
-    (E : DOT.Edge with type t = G.Edge.t) : DOT.S with 
-  type graph = G.t and type node = N.t and type edge = E.t and type parm = G.t
 
 

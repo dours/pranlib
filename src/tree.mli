@@ -40,13 +40,10 @@ module DOT :
   sig
 
     (** Printer instantiator *)
-    module Printer (T : Sig) (N : DOT.Node with type t = T.t) :
+    module Printer (T : Sig) (N : DOT.ExtInfo with type t = T.t) :
       sig
 
-	include DOT.Sig with type graph = unit and type node = N.t
-
-        (** Printing function *)
-	val toDOT : unit -> string
+        include DOT.Sig with type parm = unit 
 
       end
 

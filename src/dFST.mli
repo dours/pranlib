@@ -64,16 +64,14 @@ module type Sig =
     (** DOT visualizer *)
     module DOT :
       sig
-	
-	(** Node wrapper *)
-	module Node : DOT.Node with type t = G.Node.t
+             
+        (** Node wrapper *)
+        module Node : DOT.ExtInfo with type t = G.Node.t
+ 	
+        (** Edge wrapper *)
+        module Edge : DOT.Info with type t = G.Edge.t
 
-	(** Edge wrapper *)
-	module Edge : Digraph.DOT.Edge with type t = G.Edge.t
-
-	include Digraph.DOT.S with
-	   type graph = G.t and type node = G.Node.t and type edge = G.Edge.t and type parm = unit
-
+	include DOT.Sig with type parm = unit
       end
 
   end

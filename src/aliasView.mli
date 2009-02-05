@@ -53,7 +53,7 @@ module Tree :
     module Make (M : sig type mark end) : Sig with type mark = M.mark
 end
 
-(** {2 Alias Language. *)
+(** {2 Alias Language.} *)
 
 (** Region representation *)
 module Region :
@@ -263,6 +263,13 @@ module type Sig =
         
         (** [must a1 a2] is [true] if and only if [a1] and [a2] must alias *)  
         val must   : aliasInfo -> aliasInfo -> bool
+
+        (** Analysis results visualizer *)
+        module DOT : 
+          sig
+            (** [toDOT ()] returns graph representation of the analysis result *)
+            val toDOT : unit -> string
+          end
 
       end
 

@@ -41,52 +41,6 @@ module type Info =
 	
   end
 
-module DOT =
-  struct
-
-    module type Node =
-      sig
-
-	include DOT.Node
-
-      end
-
-    module type Edge =
-      sig
-
-	type t
-         
-	val attrs : t -> (string * string) list
-	val label : t -> string
-          
-      end
-
-    module type S =
-      sig
-
-	include DOT.Sig
-
-	type edge
-
-	val edge  : edge -> string
-	val edges : edge list -> string
-
-	type parm
-
-	val toDOT : parm -> string
-
-	module Clustered :
-	  sig
-
-	    val toDOT : parm -> Clusters.t -> string
-
-	  end
-
-      end
-
-    module Printer = DOT.Printer
-
-  end
 
 module type Base =
   sig
@@ -137,70 +91,36 @@ module type Sig =
 
     include Base
 
-    module DOT : DOT.S with type node = Node.t and type graph = t
-
-    val toDOT : t -> string
-
-    module Clustered :
+    module DOT :
       sig
+        module Info : DOT.Graph with type t = t and
+                                     type Node.t = Node.t and
+                                     type Edge.t = Edge.t
 
-	val toDOT : t -> DOT.Clusters.t -> string
-
+        include DOT.Sig with type parm = t
       end
 	
   end
 
-module Printer 
-    (G : Base) 
-    (N : DOT.Node with type t = G.Node.t) 
-    (E : DOT.Edge with type t = G.Edge.t) =
+module DotInfo (G : Base)
+               (N : DOT.ExtInfo with type t = G.Node.t) 
+               (E : DOT.Info with type t = G.Edge.t) = 
   struct
-    
-    open Printf
-      
-    include DOT.Printer (struct type t = G.t let keyword _ = "digraph" let name _ = "X" let attrs _ = [] end) (N)
-	
-    type edge = E.t
-	  
-    let edge e = 
-      sprintf "%s -> %s [%s];" (N.name (G.src e)) (N.name (G.dst e)) (attributes (E.label e) (E.attrs e))
-	
-    let edges list = 
-      let module M = View.ListC 
-	  (struct let concat = View.concatWithDelimiter "\n  " end) 
-	  (struct type t = G.Edge.t let toString = edge end) 
-      in
-      M.toString list
-	
-    type parm = G.t
-	  
-    let toDOT g = sprintf "%s  %s\n  %s%s" (header g) (nodes (G.nodes g)) (edges (G.edges g)) (footer g)
-	
-    module Clustered =
-      struct
-	
-	let toDOT g tree = 
-	  let module NS = View.ListC 
-	      (struct let concat = View.concatWithDelimiter "; " end) (struct type t = N.t let toString = N.name end) 
-	  in
-	  let module SS = View.ListC 
-	      (struct let concat = View.concatWithDelimiter "\n" end) (View.String) 
-	  in
-	  let rec subs i = 
-	    function
-	      | Clusters.Node (nodes, gs) ->
-		  sprintf "subgraph cluster%d {\n  %s\n  %s}\n"
-		    i
-		    (NS.toString nodes)
-		    (SS.toString (fst (List.fold_left (fun (l, j) g -> (subs j g)::l, j+1) ([], (i+1)) gs)))
-		    
-	      | Clusters.Leaf  nodes -> sprintf "subgraph cluster%d {%s}\n" i (NS.toString nodes)		    
-	  in
-	  sprintf "%s  %s  %s\n %s%s" (header g) (subs 0 tree) (nodes (G.nodes g)) (edges (G.edges g)) (footer g)
-	    
-      end
-	
+    module Node = N
+    module Edge = 
+    struct
+      include E
+      let nodes edge = (G.src edge, G.dst edge)
+    end
+    type t = G.t
+    let kind _  = `Digraph
+    let name _ = "X"
+    let label _ = ""
+    let attrs _ = []
+    let nodes = G.nodes
+    let edges = G.edges
   end
+
     
 module Make (NodeInfo : Info) (EdgeInfo : Info) =
   struct
@@ -442,37 +362,36 @@ module Make (NodeInfo : Info) (EdgeInfo : Info) =
 
     open Printf
 
-    module DOT = Printer (Inner)
-        (
-	 struct
-	   
-	   type t = Node.t
-		 
-	   let attrs _ = []
-	   let label node = sprintf "index=%d, info=%s" (Node.index node) (Node.toString node)
-	   let name  node = sprintf "node%d" (Node.index node)
-	       
-         end
-	)
-        (
-	 struct
-	   
-	   type t = Inner.Edge.t
-		 
-	   let attrs _ = []
-	   let label edge = sprintf "info=%s" (Edge.toString edge)
-	       
-         end
-	)
-	
-    let toDOT = DOT.toDOT
-
-    module Clustered = 
+    module DOT =
       struct
 
-	let toDOT = DOT.Clustered.toDOT
+        module Info =
+          DotInfo (Inner)
+                  (
+                   struct
+                     
+                     type t = Node.t
+                           
+                     let attrs _ = []
+                     let label node = sprintf "index=%d, info=%s" (Node.index node) (Node.toString node)
+                     let name  node = sprintf "node%d" (Node.index node)
+                         
+                   end
+                  )
+                  (
+                   struct
+                     
+                     type t = Inner.Edge.t
+                           
+                     let attrs _ = []
+                     let label edge = sprintf "info=%s" (Edge.toString edge)
+                         
+                   end
+                  )
 
+        include DOT.Printer (Info) 
       end
+
 
   end
     

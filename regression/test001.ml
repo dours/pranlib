@@ -26,19 +26,19 @@ let _ =
   let g, z = G.insertNode g "z" in
   let g, t = G.insertNode g "t" in
 
-  printf "Graph:\n\n%s\n" (G.toDOT g);
+  printf "Graph:\n\n%s\n" (G.DOT.toDOT g);
   printf "Number of edges: %d\n" (G.nedges g);
   printf "Number of nodes: %d\n" (G.nnodes g);
   printf "lastNode: %d\n" (G.lastNode g);
   printf "lastEdge: %d\n" (G.lastEdge g);
-  printf "Copy:\n\n%s\n" (G.toDOT (G.copy g));
+  printf "Copy:\n\n%s\n" (G.DOT.toDOT (G.copy g));
 
   let g, a = G.insertEdge g x y "a" in
   let g, b = G.insertEdge g y z "b" in
   let g, c = G.insertEdge g z t "c" in
   let g, d = G.insertEdge g t x "d" in
 
-  printf "Graph:\n\n%s\n" (G.toDOT g);
+  printf "Graph:\n\n%s\n" (G.DOT.toDOT g);
   printf "Number of edges: %d\n" (G.nedges g);
   printf "Number of nodes: %d\n" (G.nnodes g);
   printf "lastNode: %d\n" (G.lastNode g);
@@ -47,35 +47,35 @@ let _ =
   let g'  = G.copy g  in
   let g'' = G.copy g' in
 
-  printf "Copy:\n\n%s\n" (G.toDOT g');
+  printf "Copy:\n\n%s\n" (G.DOT.toDOT g');
 
   let g = G.deleteEdge g a in
 
-  printf "Deleted edge \"a\":\n\n%s\n" (G.toDOT g);
+  printf "Deleted edge \"a\":\n\n%s\n" (G.DOT.toDOT g);
 
   let g = G.deleteEdge g a in
 
-  printf "Deleted edge \"a\" again:\n\n%s\n" (G.toDOT g);
+  printf "Deleted edge \"a\" again:\n\n%s\n" (G.DOT.toDOT g);
 
   let x :: _ = G.nodes g' in
   let g' = G.deleteNode g' x in
 
-  printf "Deleted node %s:\n\n%s\n" (G.Node.toString x) (G.toDOT g');
+  printf "Deleted node %s:\n\n%s\n" (G.Node.toString x) (G.DOT.toDOT g');
 
   let g' = G.deleteNode g' x in
 
-  printf "Deleted node %s again:\n\n%s\n" (G.Node.toString x) (G.toDOT g');
+  printf "Deleted node %s again:\n\n%s\n" (G.Node.toString x) (G.DOT.toDOT g');
 
   let g = g'' in
   let x :: _ = G.nodes g in
 
   let g, _ = G.replaceNode g x "replaced" in
   
-  printf "Replaced node %s:\n\n%s\n" (G.Node.toString x) (G.toDOT g);
+  printf "Replaced node %s:\n\n%s\n" (G.Node.toString x) (G.DOT.toDOT g);
 
   begin try
     let g, _ = G.replaceNode g x "replaced again" in
-    printf "Oops, replaced node %s replaced again:\n\n%s\n" (G.Node.toString x) (G.toDOT g)
+    printf "Oops, replaced node %s replaced again:\n\n%s\n" (G.Node.toString x) (G.DOT.toDOT g)
   with
   | Failure "node does not belong to the graph" -> printf "Exception raised on trying to replace detached node.\n"
   end;
@@ -84,11 +84,11 @@ let _ =
 
   let g, _ = G.replaceEdge g e "replaced" in
   
-  printf "Replaced edge %s:\n\n%s\n" (G.Edge.toString e) (G.toDOT g);
+  printf "Replaced edge %s:\n\n%s\n" (G.Edge.toString e) (G.DOT.toDOT g);
 
   begin try
     let g, _ = G.replaceEdge g e "replaced again" in
-    printf "Oops, replaced edge %s replaced again:\n\n%s\n" (G.Edge.toString e) (G.toDOT g)
+    printf "Oops, replaced edge %s replaced again:\n\n%s\n" (G.Edge.toString e) (G.DOT.toDOT g)
   with
   | Failure "edge does not belong to the graph" -> printf "Exception raised on trying to replace detached edge.\n"
   end
