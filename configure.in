@@ -86,6 +86,6 @@ Makefile
 doc/Makefile
 src/Makefile
 regression/Makefile
-src/cil/Makefile
+cil/Makefile
 ])
 AC_OUTPUT
