@@ -62,13 +62,13 @@ dnl check for compiler module
 dnl usage:
 dnl library name, modules to open,
 dnl 1st dir <space> 2nd dir <space> etc., library homepage.
-AC_CHECK_OCAML_MODULE(ocamlgraph, Graph.Flow, ../ocamlgraph, http://ocamlgraph.lri.fr/) dnl GET: sh get-ocamlgraph.sh ../ocamlgraph
-AC_CHECK_OCAML_MODULE(typeutil, View, ../typeutil/src, http://oops.tepkom.ru/projects/typeutil/) dnl GET: svn co svn://oops.tepkom.ru/svn/typeutil/trunk
+AC_CHECK_OCAML_LIBRARY(ocamlgraph, Graph.Flow, ../ocamlgraph, http://ocamlgraph.lri.fr/) dnl GET: sh get-ocamlgraph.sh ../ocamlgraph
+AC_CHECK_OCAML_LIBRARY(typeutil, View, ../typeutil/src, http://oops.tepkom.ru/projects/typeutil/) dnl GET: svn co svn://oops.tepkom.ru/svn/typeutil/trunk
 dnl more module checks
 dnl AC_CHECK_OCAML_MODULE(libname, Module1 Module2, ../libdir, http://www.example.com/libname)
-AC_CHECK_OCAML_MODULE(BinomialHeap, BinomialHeap, ../BinomialHeap/src, http://oops.tepkom.ru/projects/BinomialHeap/) dnl GET: svn co svn://oops.tepkom.ru/svn/BinomialHeap/trunk
-AC_CHECK_OCAML_MODULE(urray, Urray, ../urray/src, http://oops.tepkom.ru/projects/urray/) dnl GET: svn co svn://oops.tepkom.ru/svn/urray/trunk
-AC_CHECK_OCAML_MODULE(PM, PM, ../PM/src, http://oops.tepkom.ru/projects/PairMatching/) dnl GET: svn co svn://oops.tepkom.ru/svn/PairMatching/trunk
+AC_CHECK_OCAML_LIBRARY(BinomialHeap, BinomialHeap, ../BinomialHeap/src, http://oops.tepkom.ru/projects/BinomialHeap/) dnl GET: svn co svn://oops.tepkom.ru/svn/BinomialHeap/trunk
+AC_CHECK_OCAML_LIBRARY(urray, Urray, ../urray/src, http://oops.tepkom.ru/projects/urray/) dnl GET: svn co svn://oops.tepkom.ru/svn/urray/trunk
+AC_CHECK_OCAML_LIBRARY(PM, PM, ../PM/src, http://oops.tepkom.ru/projects/PairMatching/) dnl GET: svn co svn://oops.tepkom.ru/svn/PairMatching/trunk
 AC_SUBST(MODULE_INCLUDES)
 AC_SUBST(EXTRA_CMA)
 
