@@ -47,10 +47,17 @@ module Tree :
         (** [children t] returns children of a root of the tree [t] *)
         val children : t -> t list
 
-      end  
+      end
+
+    (** Nodes mark signature *)
+    module type Mark =
+      sig
+        (** type of the node mark *)
+        type mark
+      end
 
     (** Functor to construct marked tree module *)
-    module Make (M : sig type mark end) : Sig with type mark = M.mark
+    module Make (M : Mark) : Sig with type mark = M.mark
 end
 
 (** {2 Alias Language.} *)
@@ -235,8 +242,15 @@ module type Sig =
     (** Underlying memory module *)
     module M : MemorySig with module Block = S.Expr.Block
 
+    (** Memory instance module signature *)
+    module type MemoryInstance =
+      sig
+        (** memory instance value*)
+        val memory : M.t
+      end
+
     (** Functor to create and run analyser *)
-    module Analyse (MI : sig val memory : M.t end)
+    module Analyse (MI : MemoryInstance)
                    (A: ProgramView.Abstractor with
                         type Abstract.node = S.t list) 
                    (G: CFG.Sig with

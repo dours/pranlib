@@ -9,12 +9,9 @@
 
  5. Set value of the variable CILHOME to the full path to CIL directory.
 
- 6. Set value of the CIL_VERSION variable to that version of CIL library, which you want to use.
-    (If value is not set, than a patch for the latest known version will be used).
+ 6. To apply OOPS patch to CIL run 'make install'. (To revert made changes run 'make uninstall')
 
- 7. To apply OOPS patch to CIL run 'make install'. (To revert made changes run 'make uninstall')
-
- 8. Build CIL.
+ 7. Build CIL.
 
 
 
