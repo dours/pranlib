@@ -65,7 +65,7 @@ dnl 1st dir <space> 2nd dir <space> etc., library homepage.
 AC_CHECK_OCAML_LIBRARY(ocamlgraph, Graph.Flow, ../ocamlgraph, http://ocamlgraph.lri.fr/) dnl GET: sh get-ocamlgraph.sh ../ocamlgraph
 AC_CHECK_OCAML_LIBRARY(typeutil, View, ../typeutil/src, http://oops.tepkom.ru/projects/typeutil/) dnl GET: svn co svn://oops.tepkom.ru/svn/typeutil/trunk
 AC_CHECK_OCAML_LIBRARY(str, Str)
-AC_CHECK_OCAML_MODULE(ostap, Ostap, ../ostap/src,  http://oops.tepkom.ru/projects/ostap/) dnl GET: svn co svn://oops.tepkom.ru/svn/ostap/trunk
+AC_CHECK_OCAML_MODULE(ostap, Ostap, ../ostap/util,  http://oops.tepkom.ru/projects/ostap/) dnl GET: svn co svn://oops.tepkom.ru/svn/ostap/trunk
 dnl more module checks
 dnl AC_CHECK_OCAML_MODULE(libname, Module1 Module2, ../libdir, http://www.example.com/libname)
 AC_CHECK_OCAML_LIBRARY(BinomialHeap, BinomialHeap, ../BinomialHeap/src, http://oops.tepkom.ru/projects/BinomialHeap/) dnl GET: svn co svn://oops.tepkom.ru/svn/BinomialHeap/trunk
