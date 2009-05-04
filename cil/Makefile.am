@@ -1,5 +1,8 @@
 install:
-	make patch 
+	make patch ; \
+	for t in `find $(CILHOME) -name "*.sh"` ; do \
+	 sudo chmod 774 $$t ; \
+	done
 
 uninstall:
 	make patch PATCH_FLAGS=-R
@@ -21,4 +24,5 @@ patch:
 	patch $$PATCH_FLAGS \
               -d $(CILHOME) \
               -i $$PATCH
+
 

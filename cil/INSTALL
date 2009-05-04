@@ -13,6 +13,8 @@
 
  7. Build CIL.
 
+ 8. Check pranlib patch running 'make check-oops' from the CIL root folder.
+
 
 
 
