@@ -1,4 +1,4 @@
-TESTS = test001 test002 test003 test004 test005 test006 test007 test008 test009 test010 # test012
+TESTS = test001 test002 test003 test004 test005 test006 test007 test008 test009 test010 test013 test014 # test012
 
 TESTS_ENVIRONMENT = $(srcdir)/test.sh
 
@@ -10,7 +10,7 @@ MODULE_INCLUDES += -I $(top_srcdir)/src
 EXTRA_CMA += ostap.cmo $(PACKAGE).cma
 
 # OCaml parser call with flags
-AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_log.cmo $(LOG)"
+AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_log.cmo -LOG"
 
 # overwrite some variables
 PXFLAGS = $(P5FLAGS)

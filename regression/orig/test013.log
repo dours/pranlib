@@ -1,0 +1,45 @@
+Top lattice element is requested
+DFAEngine.get is called
+Flow is called for node Assignment [a=b+c]
+Calculating gen for Assignment [a=b+c]
+GEN for Assignment [a=b+c] is BV[E[b,true];E[c,true];]
+Calculating kill for Assignment [a=b+c]
+KILL for Assignment [a=b+c] is BV[E[a,true];]
+Flow calculated to lattice element
+GEN|KILL case matched 
+Flow is called for node Assignment [d=e+f]
+Calculating gen for Assignment [d=e+f]
+GEN for Assignment [d=e+f] is BV[E[e,true];E[f,true];]
+Calculating kill for Assignment [d=e+f]
+KILL for Assignment [d=e+f] is BV[E[d,true];]
+Flow calculated to lattice element
+L|GEN case matched 
+Flow is called for node Assignment [a=b+c]
+Calculating gen for Assignment [a=b+c]
+GEN for Assignment [a=b+c] is BV[E[b,true];E[c,true];]
+Calculating kill for Assignment [a=b+c]
+KILL for Assignment [a=b+c] is BV[E[a,true];]
+Flow calculated to lattice element
+GEN|KILL case matched 
+Flow is called for node Assignment [d=e+f]
+Calculating gen for Assignment [d=e+f]
+GEN for Assignment [d=e+f] is BV[E[e,true];E[f,true];]
+Calculating kill for Assignment [d=e+f]
+KILL for Assignment [d=e+f] is BV[E[d,true];]
+Flow calculated to lattice element
+L|GEN case matched 
+Started logging...
+Graph:
+
+digraph X { 
+  node1 [label="index=1, info=Assignment [d=e+f];"]; 
+  node0 [label="index=0, info=Assignment [a=b+c];"];
+
+  node1 -> node0 [label="info=edge"];
+
+}
+Analyzing hd
+Encountered a lattice element
+LV results:
+
+BV[E[b,true];E[c,true];]
