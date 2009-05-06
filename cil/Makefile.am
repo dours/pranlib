@@ -1,5 +1,5 @@
 install:
-	make patch ; \
+	@make patch ; \
 	for t in `find $(CILHOME) -name "*.sh"` ; do \
 	 sudo chmod 774 $$t ; \
 	done

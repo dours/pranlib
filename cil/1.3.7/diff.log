@@ -1,0 +1,1712 @@
+diff -r -c -N orig/Makefile.in patched/Makefile.in
+*** orig/Makefile.in	2009-04-24 22:50:33.000000000 +0400
+--- patched/Makefile.in	2009-05-06 13:11:12.000000000 +0400
+***************
+*** 91,97 ****
+  # ww: we don't want "main" in an external cil library (cil.cma),
+  # otherwise every program that links against that library will get
+  # main's argument checking and whatnot ...
+! CILLY_MODULES = $(CILLY_LIBRARY_MODULES) main
+  CILLY_CMODULES = perfcount
+  CILLY_LIBS     = unix str
+  
+--- 91,100 ----
+  # ww: we don't want "main" in an external cil library (cil.cma),
+  # otherwise every program that links against that library will get
+  # main's argument checking and whatnot ...
+! CILLY_MODULES = $(CILLY_LIBRARY_MODULES) \
+!                 cilCFGPrinter \
+!                 cil2Pranlib cilPranlibAA \
+!                 main
+  CILLY_CMODULES = perfcount
+  CILLY_LIBS     = unix str
+  
+***************
+*** 115,129 ****
+  
+     # Now the rule to make cilly
+  
+! cilly: $(OBJDIR)/cilly$(EXE)
+! $(OBJDIR)/cilly$(EXE) : $(CILLY_MODULES:%=$(OBJDIR)/%.$(CMO)) \
+!                         $(CILLY_CMODULES:%=$(OBJDIR)/%.$(CMC))
+! 	@$(NARRATIVE) "Linking $(COMPILETOWHAT) $@ $(LINKMSG)"
+! 	$(AT)$(CAMLLINK) -verbose -o $@ \
+!                     $(CILLY_LIBS:%=%.$(CMXA)) \
+!                     $(CILLY_LIBS:%=-cclib -l%) \
+!                     $^
+! 
+  
+  quickbuild: cilversion machdep cilly lib/Cilly.pm
+  
+--- 118,131 ----
+  
+     # Now the rule to make cilly
+  
+! PROJECT_EXECUTABLE = $(OBJDIR)/cilly$(EXE)
+! PROJECT_MODULES    = $(CILLY_MODULES)
+! PROJECT_CMODULES   = perfcount $(CILLY_CMODULES)
+! PROJECT_LIBS       = $(CILLY_LIBS)
+! OOPS_LIBS_NAMES    = typeutil ostap checked urray BinomialHeap PM pranlib ocamlgraph
+! OOPS_LIBS          = typeutil.cma checked.cma urray.cma BinomialHeap.cma PM.cma ostap.cmo pranlib.cma graph.cma
+! cilly: $(PROJECT_EXECUTABLE)
+! include ocamlutil/Makefile.ocaml.build
+  
+  quickbuild: cilversion machdep cilly lib/Cilly.pm
+  
+***************
+*** 574,579 ****
+--- 576,585 ----
+  quicktest: $(patsubst %,test/%,func init init1) \
+             $(patsubst %,testrun/%,hello wchar1 vararg1)
+  
++ check-oops:
++ 	cd test/oops ; \
++ 	./test.sh
++ 
+  .PHONY: check
+  check: quicktest
+  
+diff -r -c -N orig/ocamlutil/Makefile.ocaml patched/ocamlutil/Makefile.ocaml
+*** orig/ocamlutil/Makefile.ocaml	2009-04-24 22:50:33.000000000 +0400
+--- patched/ocamlutil/Makefile.ocaml	2009-05-06 12:56:13.000000000 +0400
+***************
+*** 181,187 ****
+  COMPILE_FLAGS := $(COMPILEFLAGS)
+  LINK_FLAGS    := $(LINKFLAGS)
+  
+! COMPILE_FLAGS += -I $(OBJDIR)
+  
+  # sm: two styles for echoing compilation progress:
+  #   style 1, by George:
+--- 181,187 ----
+  COMPILE_FLAGS := $(COMPILEFLAGS)
+  LINK_FLAGS    := $(LINKFLAGS)
+  
+! COMPILE_FLAGS += -I $(OBJDIR) -I `ocamlfind -query pranlib`
+  
+  # sm: two styles for echoing compilation progress:
+  #   style 1, by George:
+diff -r -c -N orig/ocamlutil/Makefile.ocaml.build patched/ocamlutil/Makefile.ocaml.build
+*** orig/ocamlutil/Makefile.ocaml.build	1970-01-01 03:00:00.000000000 +0300
+--- patched/ocamlutil/Makefile.ocaml.build	2009-05-04 17:40:07.000000000 +0400
+***************
+*** 0 ****
+--- 1,55 ----
++ # -*- Mode: makefile -*-
++ # Copyright (c) 2001-2002, 
++ #  George C. Necula    <necula@cs.berkeley.edu>
++ #  Scott McPeak        <smcpeak@cs.berkeley.edu>
++ #  Wes Weimer          <weimer@cs.berkeley.edu>
++ # All rights reserved.
++ # 
++ # Redistribution and use in source and binary forms, with or without
++ # modification, are permitted provided that the following conditions are
++ # met:
++ #
++ # 1. Redistributions of source code must retain the above copyright
++ # notice, this list of conditions and the following disclaimer.
++ #
++ # 2. Redistributions in binary form must reproduce the above copyright
++ # notice, this list of conditions and the following disclaimer in the
++ # documentation and/or other materials provided with the distribution.
++ #
++ # 3. The names of the contributors may not be used to endorse or promote
++ # products derived from this software without specific prior written
++ # permission.
++ #
++ # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
++ # IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
++ # TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
++ # PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
++ # OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
++ # EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
++ # PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
++ # PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++ # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ 
++   # Auxiliary Makefile for building Ocaml project. See the documentation in
++   # the associated Makefile.ocaml for how to use this file.
++   # Written by necula@cs.berkeley.edu
++   # 
++ 
++ 
++ $(PROJECT_EXECUTABLE) : $(PROJECT_MODULES:%=$(OBJDIR)/%.$(CMO)) \
++                         $(PROJECT_CMODULES:%=$(OBJDIR)/%.$(CMC))
++ 	@$(NARRATIVE) "Linking $(COMPILETOWHAT) $@ $(LINKMSG)"
++ 	@LIBPATHS= ;\
++ 	for F in $(OOPS_LIBS_NAMES) ;\
++ 	do \
++ 	  LIBPATH="$$LIBPATH -I `ocamlfind -query $$F`" ;\
++ 	done ; \
++ 	$(CAMLLINK) -verbose -o $@ \
++ 	            $(LINK_FLAGS) \
++                     $$LIBPATH \
++                     $(PROJECT_LIBS:%=%.$(CMXA)) \
++                     $(patsubst %.cmo, %.$(CMO), $(patsubst %.cma,%.$(CMXA),$(OOPS_LIBS))) \
++                     $(PROJECT_LIBS:%=-cclib -l%) \
++                     $^
+diff -r -c -N orig/src/cilutil.ml patched/src/cilutil.ml
+*** orig/src/cilutil.ml	2009-04-24 22:50:33.000000000 +0400
+--- patched/src/cilutil.ml	2009-05-06 12:57:38.000000000 +0400
+***************
+*** 36,41 ****
+--- 36,45 ----
+   *)
+  
+  (* Keep here the globally-visible flags *)
++ 
++ let doPranlibAA = ref false (* Whether to run pranlib alias analysis *)
++ let doCilCFGPrinter = ref false   (* Whether to run cil2CFG *)
++ 
+  let doCheck= ref false   (* Whether to check CIL *)
+  let strictChecking= ref false   (* If doCheck is true and warnings are found,
+                                  * treat them as errors. *)
+diff -r -c -N orig/src/ext/cil2Pranlib.ml patched/src/ext/cil2Pranlib.ml
+*** orig/src/ext/cil2Pranlib.ml	1970-01-01 03:00:00.000000000 +0300
+--- patched/src/ext/cil2Pranlib.ml	2009-05-04 17:40:07.000000000 +0400
+***************
+*** 0 ****
+--- 1,136 ----
++ module Node =
++   struct
++ 
++     type lval    = Cil.lval
++     type exp     = Cil.exp
++     let  d_instr = Cil.d_instr
++     let  d_exp   = Cil.d_exp
++     let  d_lval  = Cil.d_lval
++    
++     type t = Start |
++              Empty |
++              Call of lval option * exp * exp list |
++              Set  of lval * exp |
++              Return of (exp option) |
++              If of exp  
++    
++     let toString x = 
++ 	let pr d = (Pretty.sprint 50 d) in
++ 	let printEList l = String.concat ";\\n" (List.map (fun e -> pr (d_exp () e)) l) in
++ 	match x with
++ 	| Start -> "Start"
++ 	| Empty -> "Empty"
++         | Call (lval, e, el) -> String.concat ""
++             ( (match lval with None -> [""] | Some (lv) -> [pr (d_lval () lv); " = "]) @
++               ["Call"; pr (d_exp () e); printEList el]
++             )
++         | Set (lval, e) -> String.concat ""
++             [pr (d_lval () lval); "="; pr (d_exp () e)]
++ 	| Return r -> String.concat "" 
++ 	    ["Return "; (match r with  None -> "" | Some e -> pr (d_exp () e)); ";\\n" ]
++ 	| If e -> String.concat "" 
++ 	    ["Branch ("; pr (d_exp () e); ")"]
++       | _ -> "unsupported construction"
++ 
++   end
++ 
++ module Edge =
++   struct
++ 	
++     type t = True | False | FallThrough | GoTo
++ 	     
++    
++     let toString typ = 
++ 	String.concat "; " 
++ 	[
++ 	    (match typ with
++ 	      | True        -> "true"
++     	      | False       -> "false"
++ 	      | FallThrough -> "fallthrough"
++ 	      | GoTo        -> "goto")
++ 	
++ 	]
++   end
++ 
++ module Graph = Digraph.Make(Node)(Edge)
++ 
++ module type ProcedureStatements =
++  sig
++    val stmts : Cil.stmt list
++  end 
++ 
++ module PranlibGraph (S: sig val stmts : Cil.stmt list end) =
++   struct 
++  
++     open Cil
++     
++     type c = [`Stmt of stmt | `Node of Node.t ]
++     
++     (**receive cil flow graph as an argument and create pranlinb flow graph *)
++     let (graph, start)  = 
++         let graph, start = Graph.insertNode (Graph.create ()) Node.Start in
++         let h = Hashtbl.create 100 in
++         let rec dep from etype graph stmt = 
++             if Hashtbl.mem h stmt then 
++             fst (Graph.insertEdge graph from (Hashtbl.find h stmt) etype)
++             else match stmt.skind with 
++             | Instr [] -> let graph, fi = Graph.insertNode graph Node.Empty in
++                           let graph = fst (Graph.insertEdge graph from fi etype) in
++                           dep fi Edge.GoTo graph (List.hd stmt.succs)
++             | Instr il -> let gnode = function
++                            | Set (lval, expr, _) -> Node.Set (lval, expr)
++                            | Call (lval , exp , expl, _) -> Node.Call (lval , exp , expl)
++                            | Asm _ -> raise (Failure "didn't expect this construction")
++                           in
++                           let graph, fi = Graph.insertNode graph (gnode (List.hd il)) in
++                           let graph = fst (Graph.insertEdge graph from fi etype) in
++                           Hashtbl.add h stmt fi;
++                           let graph, li =
++                             List.fold_left 
++                              (fun (graph, ci) el ->
++                                let graph, ni = Graph.insertNode graph (gnode el) in
++                                  let graph = fst (Graph.insertEdge graph ci ni Edge.FallThrough) in
++                               graph, ni
++                              )    
++                              (graph, fi)
++                              (List.tl il)
++                           in  
++                           dep li Edge.GoTo graph (List.hd stmt.succs)
++             | _       -> let getnode = function
++                          | Block b | Loop (b, _, _, _) -> `Stmt (List.hd b.bstmts)
++                          | Instr _ | Break _ | Continue _ | Switch _ | TryFinally _ | TryExcept _
++                                         -> raise (Failure "didn't expect this construction")
++                          | If (expr, _, _, _) -> if List.length stmt.succs < 2 then 
++                                                  `Node Node.Empty (* we use an information, that CIL expression HAS NO SIDE-EFFECTS here *)  
++                                                  else `Node (Node.If (expr))
++                          | Goto _ -> `Node Node.Empty (* this goto instruction will be represented as an edge *)
++                          | Return (e, _) -> `Node (Node.Return e)
++                          in match getnode stmt.skind with
++                            `Stmt s -> dep from etype graph s
++                          | `Node node  ->                     
++                              let graph, node = Graph.insertNode graph node
++                              in
++                              Hashtbl.add h stmt node;
++                              let graph = fst (Graph.insertEdge graph from node etype) in		
++                              match stmt.skind with
++                              | If (expr, b1, b2, _) when (List.length stmt.succs = 2) ->
++                                 let [s1; s2] = stmt.succs in (* first element in the succs list corresponds to false *)
++                                 dep node Edge.False (dep node Edge.True graph s2) s1
++                              | _ -> (match stmt.succs with
++                                        [] -> graph
++                                      | [st] -> dep node Edge.GoTo graph st)
++                         
++         in
++         (dep start Edge.GoTo graph (List.hd S.stmts)), start
++ 
++     let graph = graph
++ 
++     let start = start
++ 
++     include Graph
++ 
++   end
++ 
++ 
++ 
++ 
+diff -r -c -N orig/src/ext/cil2Pranlib.mli patched/src/ext/cil2Pranlib.mli
+*** orig/src/ext/cil2Pranlib.mli	1970-01-01 03:00:00.000000000 +0300
+--- patched/src/ext/cil2Pranlib.mli	2009-05-04 17:40:07.000000000 +0400
+***************
+*** 0 ****
+--- 1,48 ----
++ (** {1 Interface for conversion from cil flow graph to pranlib flow graph} *)
++ 
++ (** module for pranlib graph node information representation *)
++ module Node :
++   sig
++     (** node information type *)
++     type t = private 
++     | Start (** Start node mark *)
++     | Empty (** Empty node mark *)
++     | Call of Cil.lval option * Cil.exp * Cil.exp list (** [Call (l, f, args)] corresponds to statement [l] = [f] ([args]) *)
++     | Set  of Cil.lval * Cil.exp (** Assignment node mark *)
++     | Return of (Cil.exp option) (** Return statement node mark *)
++     | If of Cil.exp  (** If branch statement node mark *)
++ 
++     (** function providing string representation of node information *)
++     val toString : t -> string
++   end
++ 
++ module Edge :
++   sig
++     (** edge information type *)
++     type t = private
++     | True (** "Then" branch of an if statement *)
++     | False (** "Else" branch of an if statement *)
++     | FallThrough (** Edge between two consecutive statements *)
++     | GoTo (** Edge corresponding to a "goto" statement *)
++ 
++     (** function providing string representation of edge information *)
++     val toString : t -> string
++   end
++ 
++ (** Pranlib graph module *)
++ module Graph : Digraph.Sig with
++   type Node.info = Node.t and
++   type Edge.info = Edge.t
++ 
++ (** List of statements corresponding to some procedure *)
++ module type ProcedureStatements =
++  sig
++    val stmts : Cil.stmt list
++  end
++ 
++ (** Functor to create pranlib Control-Flow Graph from CIL statements list *)
++ module PranlibGraph (S : ProcedureStatements) : CFG.Sig with
++   type Node.t = Graph.Node.t and
++   type Edge.t = Graph.Edge.t and
++   type t = Graph.t
++ 
+diff -r -c -N orig/src/ext/cilCFGPrinter.ml patched/src/ext/cilCFGPrinter.ml
+*** orig/src/ext/cilCFGPrinter.ml	1970-01-01 03:00:00.000000000 +0300
+--- patched/src/ext/cilCFGPrinter.ml	2009-05-04 17:40:07.000000000 +0400
+***************
+*** 0 ****
+--- 1,159 ----
++ open Cil
++ 
++ let proj13 (x, _, _) = x
++ let proj23 (_, x, _) = x
++ let proj33 (_, _, x) = x
++ 
++ module Node = struct
++ 
++     type t = Start | Empty | Instr of instr list | Return of (instr list) * (exp option) | If of (instr list) * exp
++     
++     let toString x = 
++ 	let protect s = Str.global_replace (Str.regexp "\n") "\\n" 
++ 			      (Str.global_replace (Str.regexp "\"") "\\\"" s) in
++ 	let pr d = protect (Pretty.sprint 50 d) in
++ 	let printIList l = String.concat ";\\n" (List.map (fun i -> pr (d_instr () i)) l) in
++ 	
++ 	match x with
++ 	| Instr l ->  printIList l
++ 	| Return (l, r) -> String.concat "" 
++ 	    [printIList l; if not (l = []) then ";\\n\\n" else ""; 
++ 		"Return "; (match r with | None -> "" | Some e -> pr (d_exp () e)); ";\\n" ]
++ 	| Start -> "Start"
++ 	| Empty -> "Empty"
++ 	| If (l, e) -> String.concat "" 
++ 	    [printIList l; if not (l = []) then ";\\n\\n" else ""; "Branch ("; pr (d_exp () e); ")"]
++ 
++ 
++     let empty = function
++ 	| Empty | Instr [] -> true
++ 	| _ -> false
++ 	
++ 
++     let merge a b = match a, b with
++ 	| Start, _ | _, Start -> raise (Failure "why merging with start? We'll loose it!")
++ 	| Empty, b -> b
++ 	| a, Empty -> a
++ 	| Return _, _ | If _, _ -> raise (Failure "why merging If or Return with x? x becomes unreachable this case!")
++ 	| Instr l1, Instr l2 -> Instr (List.append l1 l2)
++ 	| Instr l1, Return (l2, e) -> Return ((List.append l1 l2), e)
++ 	| Instr l1, If (l2, e) -> If ((List.append l1 l2), e)
++ 	
++ 
++ end
++ 
++ module Helper = struct
++     type t = Node.t
++     let empty = Node.empty
++     let merge = Node.merge
++ end
++ 
++ module Edge =
++     struct
++ 	
++     type typ = True | False | FallThrough | GoTo
++     type t = typ * int * int (* type of an edge and its number in the graph and its frequency *)
++ 	  
++     let typ = proj13
++     let id = proj23
++     let freq = proj33
++     
++     let next typ id = 
++ 	id := !id + 1;
++ 	typ, !id, 0
++     
++     let toString (typ, id, freq) = 
++ 	String.concat "; " 
++ 	[
++ 	    (match typ with
++ 	      | True        -> "true"
++     	      | False       -> "false"
++ 	      | FallThrough -> "fallthrough"
++ 	      | GoTo        -> "goto")
++ 	;
++ 	    Printf.sprintf "n%i" id
++ 	;
++ 	    Printf.sprintf "w%i" freq
++ 	]
++ 		
++ end
++ 
++ module Graph = Digraph.Make(Node)(Edge)
++  
++ let rec printcalls stmts = 
++  let printinstr = function
++   | Call (_, Lval ((Var i), o)  , _, _) -> Printf.printf "%s\n" i.vname
++   | Call (_, _, _, _) -> Printf.printf "%s\n" "Unknown call"
++   | _ -> ()
++  in  
++  match stmts with
++   | hd :: tl -> (match hd.skind with
++                    Instr l -> List.map printinstr l; printcalls tl
++                  | _       -> printcalls (List.tl stmts)
++                 )
++   | [] -> ()
++   
++   
++ 
++   let create stmts = 
++     let h = Hashtbl.create 100 in
++     let graph, start = Graph.insertNode (Graph.create ()) Node.Start in
++     let eid = ref (-1) in 
++     let rec dep from etype graph stmt = 
++ 		if Hashtbl.mem h stmt then 
++                 fst (Graph.insertEdge graph from (Hashtbl.find h stmt) etype) else
++ 		let graph, node = Graph.insertNode graph (
++ 			match stmt.skind with
++ 				| Block _ | Loop   _ -> Node.Empty
++ 				| Break _ | Continue _ | Switch _ | TryFinally _ | TryExcept _
++                                                      -> raise (Failure "didn't expect this construction")
++ 				| If (expr, _, _, _) -> if List.length stmt.succs < 2 then 
++ 				    Node.Empty (* we use an information, that CIL expression HAS NO SIDE-EFFECTS here *)  
++ 				    else Node.If ([], expr)
++ 				| Goto _ ->  Node.Empty (* this goto instruction will be represented as an edge *)
++ 				| Instr l -> Node.Instr l
++ 				| Return (e, _) -> Node.Return ([], e)
++ 		) in
++ 		Hashtbl.add h stmt node;
++ 		let graph = fst (Graph.insertEdge graph from node etype) in		
++ 		match stmt.skind with
++ 		    | If (expr, b1, b2, _) when (List.length stmt.succs = 2) ->
++ 			let [s1; s2] = stmt.succs in
++ (*!!!!!!!: It's not written anywhere, that the first element in the succs list corresponds to false :( *)
++ 			dep node (Edge.next Edge.False eid) (dep node (Edge.next Edge.True eid) graph s2) s1
++ 		    | _ -> (match stmt.succs with
++ 			    | [] -> graph
++ 			    | [st] -> dep node (Edge.next Edge.GoTo eid) graph st)
++ 		    
++     in
++     (dep start (Edge.next Edge.GoTo eid) graph (List.hd stmts)), start
++ 
++ 
++ let megaFun ({ fileName = fname; globals = g } as fl) = 
++ 	Printf.fprintf stderr "%s" "cfgPrinter working\n";
++         iterGlobals fl (function
++ 	| GFun (f, _) -> 
++ 	    prepareCFG f;
++ 	    computeCFGInfo f true;
++             printcalls f.sbody.bstmts;
++ 	    let graph, start = create f.sbody.bstmts in   
++ 	    let module G = CFG.Make(Graph)(struct let graph = graph let start = start end) in
++ 	    let module D = DFST.Make(G) in 
++ 	    let module O = CFO.Make(D)(Helper) in
++ 	    let (graph, start), _ = O.removeEmptyNodes () in 
++ 	    let och = open_out (String.concat "" [f.svar.vname; ".dot"]) in
++ 	    Printf.fprintf och "%s" (Graph.DOT.toDOT graph);
++ 	    close_out och  
++ 	| _ -> ()
++     )
++     
++ 
++ let feature : featureDescr = 
++   { fd_name = "cfgPrinter";              
++     fd_enabled = Cilutil.doCilCFGPrinter;
++     fd_description = "build the pranlib's CFG of the program and write it to <func name>.dot files";
++     fd_extraopt = [];
++     fd_doit = megaFun;
++     fd_post_check = true 
++   } 
++ 
+diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
+*** orig/src/ext/cilPranlibAA.ml	1970-01-01 03:00:00.000000000 +0300
+--- patched/src/ext/cilPranlibAA.ml	2009-05-04 17:40:07.000000000 +0400
+***************
+*** 0 ****
+--- 1,315 ----
++ open Cil
++ open Cil2Pranlib
++ open AliasView
++ open Printf
++ 
++ let (>>) g f = (fun x -> f (g x))
++ 
++ let iteri l f = fst ( List.fold_right (fun el (tail, i) -> ((f i el) :: tail, i + 1))           
++                                       l 
++                                       ([], (List.length l) - 1)
++                     )
++ 
++ 
++ let aliasGraphFile = ref ""
++ 
++ module BI = 
++   struct
++     type t = string * Region.t
++ 
++     let toString (n, r) = n ^ "(" ^ (Region.name r) ^ ")"
++ 
++     let region = snd
++   end
++ 
++ module FW = Make (BI)  
++ 
++ module Memory = FW.M
++ module Block = Memory.Block
++ module Statement = FW.S
++ module Expression = Statement.Expr
++ 
++ module type Declarations = sig
++  (** returns block allocated for variable denoted by varinfo*)
++  val getBlock  : varinfo -> Block.t 
++  
++  (** returns region allocated for given name *)
++  val getRegion : string  ->  Region.t
++ 
++  (** returns block type by a cil type *)
++  val typeToBlockType : Region.t -> string -> typ -> Block.InfoTree.t option
++ end
++ 
++ (** module containing all declarations of program *)
++ module Decls (D: sig val decls : varinfo list end)  = struct
++ 
++  let rec vars = Hashtbl.create 100
++  let rec regs = Hashtbl.create 5
++ 
++  let rec typeToBlockType region name = function
++   | TInt _ | TFloat _ | TPtr _ | TEnum _ | TArray _ -> Some (Block.InfoTree.makeLeaf (name, region))
++   | TComp (info, _)  when not(info.cstruct) -> Some (Block.InfoTree.makeLeaf (name, region))
++  (* | TArray (bt, Some (Const (CInt64 (i64, _, _))), _) 
++                                          -> let i = Int64.to_int i64 in
++                                              Type.Compound (Array.make i (typeToBlockType bt)) *)
++   | TNamed (info, _) -> typeToBlockType region name info.ttype                    
++   | TComp (info, _) -> let fieldsInfo = Array.of_list info.cfields in
++                         Some ( Block.InfoTree.makeNode
++                                  (name, region)
++                                  (Array.fold_right (fun el acc -> match typeToBlockType region el.fname el.ftype with    
++                                                                     Some t -> t :: acc
++                                                                   | None ->  raise (Failure "typeToBlockType")
++                                                    ) fieldsInfo []
++                                  )
++                              )               
++   | _ -> None
++ 
++  
++  let regionName info = match info.vstorage with
++   | NoStorage -> if info.vglob then "Global" else "Local"
++   | Static    -> "Local"
++   | Register  -> "Global"
++   | Extern    -> "Global"
++    
++  let init = fun () ->
++              let mr = List.fold_left
++                        (fun m name ->
++                           let (m, r) = Memory.createRegion m name []
++                           in
++                           Hashtbl.add regs name r;
++                           m
++                        )
++                        Memory.empty
++                        ["Global"; "Local"; "Heap"]
++              in
++              List.fold_left
++                (fun m info -> let rname = regionName info in 
++                                 let (m, r) = if Hashtbl.mem regs rname
++                                              then (m, Hashtbl.find regs rname)
++                                              else let (m, reg) = Memory.createRegion m rname []
++                                                   in Hashtbl.add regs rname reg;
++                                                      (m, reg)
++                               in
++                               match typeToBlockType r info.vname info.vtype with
++                                 Some typ ->
++                                   let (m, b) = Memory.allocateBlock m typ
++                                    in Hashtbl.add vars info.vid b; 
++                                       m
++                               | None -> m
++                 )
++                 mr
++                 D.decls
++  
++  let getBlock info = Hashtbl.find vars info.vid
++ 
++  let getRegion name = Hashtbl.find regs name 
++                           
++ end
++ 
++ module Abstractor (D:Declarations) = struct
++  
++  module Concrete =
++    struct
++     type node = Graph.Node.t 
++     type edge = Graph.Edge.t
++    end
++ 
++  module Abstract =
++    struct
++      type node = Statement.t list
++ (*     type edge = EdgeInfo.t*)
++     type edge = Graph.Edge.t
++    end
++   
++  type pos = Left | Right
++ 
++  let node x =   
++   let rec testLvalue = function   (* Assigments can be made for structures containing pointers!!!! *)
++    | Var (info), _ -> (match info.vtype with TPtr _ -> true | _ -> false)
++    | Mem (AddrOf l), _ -> testLvalue l
++    | _ -> true
++   in
++   let getField' i = function
++     | Some b -> let sbs = (Block.subblocks b) in
++                  if i < Array.length sbs
++                   then Some (sbs.(i))
++                   else None
++     | None -> None
++   in 
++   let getField i b = getField' i (Some b)
++   in
++   let findFieldNumber fld = 
++     let rec find n = function
++       | (hd :: tl) -> if hd == fld then n else find (n + 1) tl
++       | [] -> raise (Failure "structure field not found")
++     in find 0 fld.fcomp.cfields
++   in
++   let rec lvalue = 
++     let rec makeOffset bl = function 
++       | NoOffset | Index _ ->  bl 
++       | Field (info, _) when not(info.fcomp.cstruct) -> bl 
++       | Field (info, off) -> makeOffset (Expression.sub (getField (findFieldNumber info))  bl)  off 
++     (*  | Index (Const(CInt64(i64, _, _)), off)  ->
++            
++          makeOffset (Expression.Sub (getF ield (Int64.to_int i64), bl)) off
++       | Index (_, _) -> Expression.Unspec bl  *)
++     in function
++     | Var (info), off -> makeOffset (Expression.block (D.getBlock info)) off   
++     | Mem (Lval l), off  -> makeOffset (Expression.value (lvalue l)) off
++     | Mem (AddrOf l), off -> makeOffset (lvalue l) off 
++     | Mem e, _ -> Expression.region (expr Left e)
++   and expr = fun x y -> match (x, y) with
++     | Left,  Lval l    -> lvalue l | Right,  AddrOf l ->  (lvalue l)
++     | Right, Lval l    -> Expression.value (lvalue l)
++     | _, UnOp (_, e, _) | _, BinOp (_, Const _, e, _) | _, BinOp (_, e, Const _, _)
++                        -> Expression.region (expr Left e) 
++     | x, CastE (_,  e) -> expr x e
++     | _                -> Expression.any
++   in
++   let rec getLType drfs = 
++     let rec deref = function     
++     | t, 0 -> t
++     | TPtr (t, _) , i -> (deref (t, (i - 1))) 
++     | _ -> raise (Failure "incorrect dereference")
++     in
++     let rec makeOffset t = function
++     | Field (finfo, off) when finfo.fcomp.cstruct -> makeOffset (finfo.ftype) off
++     | NoOffset | Field _ -> t
++     | Index (_, off) -> makeOffset t off    
++     in function
++     | Var info, off       -> Some (deref ((makeOffset info.vtype off), drfs)) 
++     | Mem (Lval v), off   -> (match (getLType (drfs + 1) v) with
++                                 Some t -> Some (makeOffset t off)
++                               | None   ->  None
++                              )
++     | Mem (AddrOf v), off -> (match (getLType drfs v) with
++                                 Some t -> Some (makeOffset t off)
++                               | None   -> None
++                              )
++     | Mem _, _ -> None     
++   in                     
++   let exprsl = List.map (expr Left)
++   in
++   let node' = function
++   | Node.Call (Some lv, Lval (Var info, _), args) when
++      (match info.vtype with TFun _ -> true | _ -> false) &&
++      (match info.vname with "alloca" | "calloc" | "malloc" | "free" -> true | _ -> false) 
++                    -> 
++       (
++         let getr = function
++          | "alloca" -> "Local" | _ -> "Heap"
++         in
++         let createAlloc t = 
++          [Statement.assign (lvalue lv) (Expression.alloc t)]
++         in
++         match info.vname with                                  
++           (*| "calloc" -> (match (List.hd args) with
++               Const (CInt64 (i64, x, y)) -> let i = Int64.to_int i64 in
++                                               if i > 100 then (* for example *)
++                                                 createAlloc (D.typeToBlockType info.vtype)
++                                               else createAlloc (Type.Compound (Array.make i (D.typeToBlockType info.vtype)))*)
++          | "malloc" | "alloca" | "calloc"  -> let t =
++                                                match (getLType 0 lv) with
++                                                | Some t' -> t'
++                                                | None    -> info.vtype
++                                               in
++                                               ( match D.typeToBlockType (D.getRegion (getr info.vname)) info.vname t with 
++                                                   Some t -> createAlloc t
++                                                 | None   -> raise (Failure "incorrect type of allocated block")
++                                               )
++          | "free" -> [Statement.assign (expr Left (List.hd args)) Expression.any]
++          | _      -> failwith "Unexpected operation with memory"
++       )
++   | Node.Call (lv, f, args)
++       -> let black = Statement.black [(D.getRegion "Heap");] ((Expression.some (D.getRegion "Global")) ::(exprsl args)) in
++            ( match lv with
++                Some v -> (Statement.assign (lvalue v) Expression.any) :: [black] 
++              | _      -> [black]    
++            )
++  | Node.Set (lv, e) -> 
++        let sAssignment lv e t = 
++         let cover = fun x -> Some x 
++         in
++         let rec aux subf = function
++           | TComp (info, _) -> List.concat
++                                 (iteri info.cfields
++                                        (fun i fld -> aux (subf >> (getField' i))  fld.ftype)
++                                 )
++           | _ -> [Statement.assign (Expression.sub (cover >> subf) lv) (Expression.sub (cover >> subf) e)] 
++         in aux (fun x -> x) t
++       in
++       (match (getLType 0 lv) with
++         | Some (TComp (info, _) as t) -> sAssignment (lvalue lv) (expr Right e) t
++         | _                           -> if testLvalue lv
++                                          then [Statement.assign (lvalue lv) (expr Right e)]
++                                          else []
++       )
++   | _ -> []
++   in node' (Graph.Node.info x)
++ 
++ 
++   let edge x = x
++ 
++ 
++ end
++   
++ 
++ let createGlobalsList fl =  
++   foldGlobals fl (fun tl -> function
++    | GVarDecl (info, _) | GVar (info, _, _) ->  info :: tl
++    | _ -> tl
++   )
++   []
++ 
++ 
++ let start ({ fileName = fname; globals = g } as fl) = 
++        Printf.fprintf stderr "%s" "cfgPrinter working\n";
++        let gdecls = createGlobalsList fl in
++        iterGlobals fl (function
++ 	| GFun (f, _) -> 
++ 	    prepareCFG f; 
++ 	    computeCFGInfo f true;
++             let vars = gdecls @ f.sformals @ f.slocals in
++             let module PGraph = PranlibGraph (struct let stmts = f.sbody.bstmts end) in
++             let graph, start = PGraph.graph, PGraph.start in
++             let module D = Decls (struct let decls = vars end) in
++             let memory = D.init () in
++             let module A = Abstractor (D) in 
++             let module G = 
++               struct
++                 let graph = graph
++ 
++                 let start = start
++               end
++             in
++             let module Analysis = FW.Analyse (struct let memory = memory end)
++                                              (A)
++                                              (CFG.Make (PGraph) (G))
++             in
++             (*let och = open_out (String.concat "" ["f"; ".dot"]) in
++ 	    Printf.fprintf och "%s" (Graph.DOT.toDOT graph);
++ 	    close_out och;*)
++             if !aliasGraphFile != ""
++             then ( let och = open_out !aliasGraphFile in
++                    Printf.fprintf och "%s" (Analysis.DOT.toDOT ());
++                    close_out och
++                  )
++            
++ 	| _ -> ()
++     )
++     
++ 
++ let feature : featureDescr = 
++   { fd_name = "pranlibAA";              
++     fd_enabled = Cilutil.doPranlibAA;
++     fd_description = "building of the pranlib's CFG of the program and performing alias analysis on it";
++     fd_extraopt = [
++       ("--aliasgraphfile", Arg.String (fun s -> aliasGraphFile := s), 
++        " name of the file where alias graph should be printed")
++     ];
++     fd_doit = start;
++     fd_post_check = true
++   } 
++ 
++ 
++ 
+diff -r -c -N orig/src/main.ml patched/src/main.ml
+*** orig/src/main.ml	2009-04-24 22:50:33.000000000 +0400
+--- patched/src/main.ml	2009-05-06 13:00:30.000000000 +0400
+***************
+*** 104,109 ****
+--- 104,111 ----
+      Logcalls.feature;
+      Ptranal.feature;
+      Liveness.feature;
++     CilCFGPrinter.feature;
++     CilPranlibAA.feature;
+    ] 
+    @ Feature_config.features 
+  
+diff -r -c -N orig/test/oops/alias/orig/test1.dot patched/test/oops/alias/orig/test1.dot
+*** orig/test/oops/alias/orig/test1.dot	1970-01-01 03:00:00.000000000 +0300
+--- patched/test/oops/alias/orig/test1.dot	2009-05-04 17:40:07.000000000 +0400
+***************
+*** 0 ****
+--- 1,192 ----
++ digraph X { 
++   compound="true";
++ 
++   subgraph cluster0 { 
++     label="y=& z";
++   
++     subgraph cluster1 { 
++       label="before";
++     
++       block_0_1; block_1_1; block_2_1; block_3_1; block_4_1;
++     
++     }
++   
++     subgraph cluster2 { 
++       label="after";
++     
++       block_0_2; block_1_2; block_2_2; block_3_2; block_4_2;
++     
++     }
++   }
++ 
++   subgraph cluster3 { 
++     label="Return 0;\n";
++   
++     subgraph cluster4 { 
++       label="before";
++     
++       block_0_4; block_1_4; block_2_4; block_3_4; block_4_4;
++     
++     }
++   
++     subgraph cluster5 { 
++       label="after";
++     
++       block_0_5; block_1_5; block_2_5; block_3_5; block_4_5;
++     
++     }
++   }
++ 
++   subgraph cluster6 { 
++     label="*(*x)=& f";
++   
++     subgraph cluster7 { 
++       label="before";
++     
++       block_0_7; block_1_7; block_2_7; block_3_7; block_4_7;
++     
++     }
++   
++     subgraph cluster8 { 
++       label="after";
++     
++       block_0_8; block_1_8; block_2_8; block_3_8; block_4_8;
++     
++     }
++   }
++ 
++   subgraph cluster9 { 
++     label="x=& y";
++   
++     subgraph cluster10 { 
++       label="before";
++     
++       block_0_10; block_1_10; block_2_10; block_3_10; block_4_10;
++     
++     }
++   
++     subgraph cluster11 { 
++       label="after";
++     
++       block_0_11; block_1_11; block_2_11; block_3_11; block_4_11;
++     
++     }
++   }
++ 
++   subgraph cluster12 { 
++     label="Branch (b)";
++   
++     subgraph cluster13 { 
++       label="before";
++     
++       block_0_13; block_1_13; block_2_13; block_3_13; block_4_13;
++     
++     }
++   
++     subgraph cluster14 { 
++       label="after";
++     
++       block_0_14; block_1_14; block_2_14; block_3_14; block_4_14;
++     
++     }
++   }
++ 
++   subgraph cluster15 { 
++     label="Start";
++   
++     subgraph cluster16 { 
++       label="before";
++     
++       block_0_16; block_1_16; block_2_16; block_3_16; block_4_16;
++     
++     }
++   
++     subgraph cluster17 { 
++       label="after";
++     
++       block_0_17; block_1_17; block_2_17; block_3_17; block_4_17;
++     
++     }
++   }
++   block_0_17 [label="x(Local)", color="green", shape="box"]; 
++   block_1_17 [label="y(Local)", color="green", shape="box"]; 
++   block_2_17 [label="z(Local)", color="green", shape="box"]; 
++   block_3_17 [label="f(Local)", color="green", shape="box"]; 
++   block_4_17 [label="b(Local)", color="green", shape="box"]; 
++   block_0_16 [label="x(Local)", color="blue", shape="box"]; 
++   block_1_16 [label="y(Local)", color="blue", shape="box"]; 
++   block_2_16 [label="z(Local)", color="blue", shape="box"]; 
++   block_3_16 [label="f(Local)", color="blue", shape="box"]; 
++   block_4_16 [label="b(Local)", color="blue", shape="box"]; 
++   block_0_14 [label="x(Local)", color="green", shape="box"]; 
++   block_1_14 [label="y(Local)", color="green", shape="box"]; 
++   block_2_14 [label="z(Local)", color="green", shape="box"]; 
++   block_3_14 [label="f(Local)", color="green", shape="box"]; 
++   block_4_14 [label="b(Local)", color="green", shape="box"]; 
++   block_0_13 [label="x(Local)", color="green", shape="box"]; 
++   block_1_13 [label="y(Local)", color="green", shape="box"]; 
++   block_2_13 [label="z(Local)", color="green", shape="box"]; 
++   block_3_13 [label="f(Local)", color="green", shape="box"]; 
++   block_4_13 [label="b(Local)", color="green", shape="box"]; 
++   block_0_11 [label="x(Local)", color="blue", shape="box"]; 
++   block_1_11 [label="y(Local)", color="green", shape="box"]; 
++   block_2_11 [label="z(Local)", color="green", shape="box"]; 
++   block_3_11 [label="f(Local)", color="green", shape="box"]; 
++   block_4_11 [label="b(Local)", color="green", shape="box"]; 
++   block_0_10 [label="x(Local)", color="green", shape="box"]; 
++   block_1_10 [label="y(Local)", color="green", shape="box"]; 
++   block_2_10 [label="z(Local)", color="green", shape="box"]; 
++   block_3_10 [label="f(Local)", color="green", shape="box"]; 
++   block_4_10 [label="b(Local)", color="green", shape="box"]; 
++   block_0_8 [label="x(Local)", color="green", shape="box"]; 
++   block_1_8 [label="y(Local)", color="green", shape="box"]; 
++   block_2_8 [label="z(Local)", color="blue", shape="box"]; 
++   block_3_8 [label="f(Local)", color="green", shape="box"]; 
++   block_4_8 [label="b(Local)", color="green", shape="box"]; 
++   block_0_7 [label="x(Local)", color="green", shape="box"]; 
++   block_1_7 [label="y(Local)", color="green", shape="box"]; 
++   block_2_7 [label="z(Local)", color="green", shape="box"]; 
++   block_3_7 [label="f(Local)", color="green", shape="box"]; 
++   block_4_7 [label="b(Local)", color="green", shape="box"]; 
++   block_0_5 [label="x(Local)", color="green", shape="box"]; 
++   block_1_5 [label="y(Local)", color="green", shape="box"]; 
++   block_2_5 [label="z(Local)", color="blue", shape="box"]; 
++   block_3_5 [label="f(Local)", color="green", shape="box"]; 
++   block_4_5 [label="b(Local)", color="green", shape="box"]; 
++   block_0_4 [label="x(Local)", color="green", shape="box"]; 
++   block_1_4 [label="y(Local)", color="green", shape="box"]; 
++   block_2_4 [label="z(Local)", color="blue", shape="box"]; 
++   block_3_4 [label="f(Local)", color="green", shape="box"]; 
++   block_4_4 [label="b(Local)", color="green", shape="box"]; 
++   block_0_2 [label="x(Local)", color="green", shape="box"]; 
++   block_1_2 [label="y(Local)", color="blue", shape="box"]; 
++   block_2_2 [label="z(Local)", color="green", shape="box"]; 
++   block_3_2 [label="f(Local)", color="green", shape="box"]; 
++   block_4_2 [label="b(Local)", color="green", shape="box"]; 
++   block_0_1 [label="x(Local)", color="green", shape="box"]; 
++   block_1_1 [label="y(Local)", color="green", shape="box"]; 
++   block_2_1 [label="z(Local)", color="green", shape="box"]; 
++   block_3_1 [label="f(Local)", color="green", shape="box"]; 
++   block_4_1 [label="b(Local)", color="green", shape="box"];
++ 
++   block_0_1 -> block_0_7 [minlen="3", style="solid", color="red", lhead="cluster6", ltail="cluster0"]; 
++   block_0_7 -> block_0_4 [minlen="3", style="solid", color="red", lhead="cluster3", ltail="cluster6"]; 
++   block_0_10 -> block_0_7 [minlen="3", style="solid", color="red", lhead="cluster6", ltail="cluster9"]; 
++   block_0_13 -> block_0_10 [minlen="3", style="solid", color="red", lhead="cluster9", ltail="cluster12"]; 
++   block_0_13 -> block_0_1 [minlen="3", style="solid", color="red", lhead="cluster0", ltail="cluster12"]; 
++   block_0_16 -> block_0_13 [minlen="3", style="solid", color="red", lhead="cluster12", ltail="cluster15"]; 
++   block_0_11 -> block_1_11 [style="dotted"]; 
++   block_0_8 -> block_1_8 [style="dotted"]; 
++   block_1_8 -> block_2_8 [style="dotted"]; 
++   block_2_8 -> block_3_8 [style="dotted"]; 
++   block_0_7 -> block_1_7 [style="dotted"]; 
++   block_1_7 -> block_2_7 [style="dotted"]; 
++   block_0_5 -> block_1_5 [style="dotted"]; 
++   block_1_5 -> block_2_5 [style="dotted"]; 
++   block_2_5 -> block_3_5 [style="dotted"]; 
++   block_0_4 -> block_1_4 [style="dotted"]; 
++   block_1_4 -> block_2_4 [style="dotted"]; 
++   block_2_4 -> block_3_4 [style="dotted"]; 
++   block_1_2 -> block_2_2 [style="dotted"];
++ 
++ }
+\ No newline at end of file
+diff -r -c -N orig/test/oops/alias/orig/test2.dot patched/test/oops/alias/orig/test2.dot
+*** orig/test/oops/alias/orig/test2.dot	1970-01-01 03:00:00.000000000 +0300
+--- patched/test/oops/alias/orig/test2.dot	2009-05-04 17:40:07.000000000 +0400
+***************
+*** 0 ****
+--- 1,506 ----
++ digraph X { 
++   compound="true";
++ 
++   subgraph cluster0 { 
++     label="pairPtr=& z";
++   
++     subgraph cluster1 { 
++       label="before";
++     
++       block_0_1; block_1_1; block_2_1; block_3_1; block_4_1; block_5_1; block_6_1; block_7_1; block_8_1; block_9_1;
++     
++     }
++   
++     subgraph cluster2 { 
++       label="after";
++     
++       block_0_2; block_1_2; block_2_2; block_3_2; block_4_2; block_5_2; block_6_2; block_7_2; block_8_2; block_9_2;
++     
++     }
++   }
++ 
++   subgraph cluster3 { 
++     label="Return ;\n";
++   
++     subgraph cluster4 { 
++       label="before";
++     
++       block_0_4; block_1_4; block_2_4; block_3_4; block_4_4; block_5_4; block_6_4; block_7_4; block_8_4; block_9_4;
++     
++     }
++   
++     subgraph cluster5 { 
++       label="after";
++     
++       block_0_5; block_1_5; block_2_5; block_3_5; block_4_5; block_5_5; block_6_5; block_7_5; block_8_5; block_9_5;
++     
++     }
++   }
++ 
++   subgraph cluster6 { 
++     label="Calll";
++   
++     subgraph cluster7 { 
++       label="before";
++     
++       block_0_7; block_1_7; block_2_7; block_3_7; block_4_7; block_5_7; block_6_7; block_7_7; block_8_7; block_9_7;
++     
++     }
++   
++     subgraph cluster8 { 
++       label="after";
++     
++       block_0_8; block_1_8; block_2_8; block_3_8; block_4_8; block_5_8; block_6_8; block_7_8; block_8_8; block_9_8;
++     
++     }
++   }
++ 
++   subgraph cluster9 { 
++     label="pairPtr->b=pairPtr->a";
++   
++     subgraph cluster10 { 
++       label="before";
++     
++       block_0_10; block_1_10; block_2_10; block_3_10; block_4_10; block_5_10; block_6_10; block_7_10; block_8_10; block_9_10;
++     
++     }
++   
++     subgraph cluster11 { 
++       label="after";
++     
++       block_0_11; block_1_11; block_2_11; block_3_11; block_4_11; block_5_11; block_6_11; block_7_11; block_8_11; block_9_11;
++     
++     }
++   }
++ 
++   subgraph cluster12 { 
++     label="pairPtr->a=x";
++   
++     subgraph cluster13 { 
++       label="before";
++     
++       block_0_13; block_1_13; block_2_13; block_3_13; block_4_13; block_5_13; block_6_13; block_7_13; block_8_13; block_9_13;
++     
++     }
++   
++     subgraph cluster14 { 
++       label="after";
++     
++       block_0_14; block_1_14; block_2_14; block_3_14; block_4_14; block_5_14; block_6_14; block_7_14; block_8_14; block_9_14;
++     
++     }
++   }
++ 
++   subgraph cluster15 { 
++     label="pairPtr=& y";
++   
++     subgraph cluster16 { 
++       label="before";
++     
++       block_0_16; block_1_16; block_2_16; block_3_16; block_4_16; block_5_16; block_6_16; block_7_16; block_8_16; block_9_16;
++     
++     }
++   
++     subgraph cluster17 { 
++       label="after";
++     
++       block_0_17; block_1_17; block_2_17; block_3_17; block_4_17; block_5_17; block_6_17; block_7_17; block_8_17; block_9_17;
++     
++     }
++   }
++ 
++   subgraph cluster18 { 
++     label="Branch (t == 1)";
++   
++     subgraph cluster19 { 
++       label="before";
++     
++       block_0_19; block_1_19; block_2_19; block_3_19; block_4_19; block_5_19; block_6_19; block_7_19; block_8_19; block_9_19;
++     
++     }
++   
++     subgraph cluster20 { 
++       label="after";
++     
++       block_0_20; block_1_20; block_2_20; block_3_20; block_4_20; block_5_20; block_6_20; block_7_20; block_8_20; block_9_20;
++     
++     }
++   }
++ 
++   subgraph cluster21 { 
++     label="x=& t";
++   
++     subgraph cluster22 { 
++       label="before";
++     
++       block_0_22; block_1_22; block_2_22; block_3_22; block_4_22; block_5_22; block_6_22; block_7_22; block_8_22; block_9_22;
++     
++     }
++   
++     subgraph cluster23 { 
++       label="after";
++     
++       block_0_23; block_1_23; block_2_23; block_3_23; block_4_23; block_5_23; block_6_23; block_7_23; block_8_23; block_9_23;
++     
++     }
++   }
++ 
++   subgraph cluster24 { 
++     label="Start";
++   
++     subgraph cluster25 { 
++       label="before";
++     
++       block_0_25; block_1_25; block_2_25; block_3_25; block_4_25; block_5_25; block_6_25; block_7_25; block_8_25; block_9_25;
++     
++     }
++   
++     subgraph cluster26 { 
++       label="after";
++     
++       block_0_26; block_1_26; block_2_26; block_3_26; block_4_26; block_5_26; block_6_26; block_7_26; block_8_26; block_9_26;
++     
++     }
++   }
++   block_0_26 [label="t(Local)", color="green", shape="box"]; 
++   block_1_26 [label="x(Local)", color="green", shape="box"]; 
++   block_2_26 [label="a(Local)", color="green", shape="box"]; 
++   block_3_26 [label="b(Local)", color="green", shape="box"]; 
++   block_5_26 [label="a(Local)", color="green", shape="box"]; 
++   block_6_26 [label="b(Local)", color="green", shape="box"]; 
++   block_8_26 [label="pairPtr(Local)", color="green", shape="box"]; 
++   block_9_26 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_26 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_26 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_25 [label="t(Local)", color="blue", shape="box"]; 
++   block_1_25 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_25 [label="a(Local)", color="blue", shape="box"]; 
++   block_3_25 [label="b(Local)", color="blue", shape="box"]; 
++   block_5_25 [label="a(Local)", color="blue", shape="box"]; 
++   block_6_25 [label="b(Local)", color="blue", shape="box"]; 
++   block_8_25 [label="pairPtr(Local)", color="blue", shape="box"]; 
++   block_9_25 [label="Pseudo: Heap", color="blue", shape="diamond"]; 
++   block_4_25 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_25 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_23 [label="t(Local)", color="green", shape="box"]; 
++   block_1_23 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_23 [label="a(Local)", color="green", shape="box"]; 
++   block_3_23 [label="b(Local)", color="green", shape="box"]; 
++   block_5_23 [label="a(Local)", color="green", shape="box"]; 
++   block_6_23 [label="b(Local)", color="green", shape="box"]; 
++   block_8_23 [label="pairPtr(Local)", color="green", shape="box"]; 
++   block_9_23 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_23 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_23 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_22 [label="t(Local)", color="green", shape="box"]; 
++   block_1_22 [label="x(Local)", color="green", shape="box"]; 
++   block_2_22 [label="a(Local)", color="green", shape="box"]; 
++   block_3_22 [label="b(Local)", color="green", shape="box"]; 
++   block_5_22 [label="a(Local)", color="green", shape="box"]; 
++   block_6_22 [label="b(Local)", color="green", shape="box"]; 
++   block_8_22 [label="pairPtr(Local)", color="green", shape="box"]; 
++   block_9_22 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_22 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_22 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_20 [label="t(Local)", color="green", shape="box"]; 
++   block_1_20 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_20 [label="a(Local)", color="green", shape="box"]; 
++   block_3_20 [label="b(Local)", color="green", shape="box"]; 
++   block_5_20 [label="a(Local)", color="green", shape="box"]; 
++   block_6_20 [label="b(Local)", color="green", shape="box"]; 
++   block_8_20 [label="pairPtr(Local)", color="green", shape="box"]; 
++   block_9_20 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_20 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_20 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_19 [label="t(Local)", color="green", shape="box"]; 
++   block_1_19 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_19 [label="a(Local)", color="green", shape="box"]; 
++   block_3_19 [label="b(Local)", color="green", shape="box"]; 
++   block_5_19 [label="a(Local)", color="green", shape="box"]; 
++   block_6_19 [label="b(Local)", color="green", shape="box"]; 
++   block_8_19 [label="pairPtr(Local)", color="green", shape="box"]; 
++   block_9_19 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_19 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_19 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_17 [label="t(Local)", color="green", shape="box"]; 
++   block_1_17 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_17 [label="a(Local)", color="green", shape="box"]; 
++   block_3_17 [label="b(Local)", color="green", shape="box"]; 
++   block_5_17 [label="a(Local)", color="green", shape="box"]; 
++   block_6_17 [label="b(Local)", color="green", shape="box"]; 
++   block_8_17 [label="pairPtr(Local)", color="blue", shape="box"]; 
++   block_9_17 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_17 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_17 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_16 [label="t(Local)", color="green", shape="box"]; 
++   block_1_16 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_16 [label="a(Local)", color="green", shape="box"]; 
++   block_3_16 [label="b(Local)", color="green", shape="box"]; 
++   block_5_16 [label="a(Local)", color="green", shape="box"]; 
++   block_6_16 [label="b(Local)", color="green", shape="box"]; 
++   block_8_16 [label="pairPtr(Local)", color="green", shape="box"]; 
++   block_9_16 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_16 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_16 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_14 [label="t(Local)", color="green", shape="box"]; 
++   block_1_14 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_14 [label="a(Local)", color="green", shape="box"]; 
++   block_3_14 [label="b(Local)", color="green", shape="box"]; 
++   block_5_14 [label="a(Local)", color="green", shape="box"]; 
++   block_6_14 [label="b(Local)", color="green", shape="box"]; 
++   block_8_14 [label="pairPtr(Local)", color="blue", shape="box"]; 
++   block_9_14 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_14 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_14 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_13 [label="t(Local)", color="green", shape="box"]; 
++   block_1_13 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_13 [label="a(Local)", color="green", shape="box"]; 
++   block_3_13 [label="b(Local)", color="green", shape="box"]; 
++   block_5_13 [label="a(Local)", color="green", shape="box"]; 
++   block_6_13 [label="b(Local)", color="green", shape="box"]; 
++   block_8_13 [label="pairPtr(Local)", color="blue", shape="box"]; 
++   block_9_13 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_13 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_13 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_11 [label="t(Local)", color="green", shape="box"]; 
++   block_1_11 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_11 [label="a(Local)", color="green", shape="box"]; 
++   block_3_11 [label="b(Local)", color="green", shape="box"]; 
++   block_5_11 [label="a(Local)", color="green", shape="box"]; 
++   block_6_11 [label="b(Local)", color="green", shape="box"]; 
++   block_8_11 [label="pairPtr(Local)", color="blue", shape="box"]; 
++   block_9_11 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_11 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_11 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_10 [label="t(Local)", color="green", shape="box"]; 
++   block_1_10 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_10 [label="a(Local)", color="green", shape="box"]; 
++   block_3_10 [label="b(Local)", color="green", shape="box"]; 
++   block_5_10 [label="a(Local)", color="green", shape="box"]; 
++   block_6_10 [label="b(Local)", color="green", shape="box"]; 
++   block_8_10 [label="pairPtr(Local)", color="blue", shape="box"]; 
++   block_9_10 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_10 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_10 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_8 [label="t(Local)", color="green", shape="box"]; 
++   block_1_8 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_8 [label="a(Local)", color="green", shape="box"]; 
++   block_3_8 [label="b(Local)", color="green", shape="box"]; 
++   block_5_8 [label="a(Local)", color="green", shape="box"]; 
++   block_6_8 [label="b(Local)", color="green", shape="box"]; 
++   block_8_8 [label="pairPtr(Local)", color="blue", shape="box"]; 
++   block_9_8 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_8 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_8 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_7 [label="t(Local)", color="green", shape="box"]; 
++   block_1_7 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_7 [label="a(Local)", color="green", shape="box"]; 
++   block_3_7 [label="b(Local)", color="green", shape="box"]; 
++   block_5_7 [label="a(Local)", color="green", shape="box"]; 
++   block_6_7 [label="b(Local)", color="green", shape="box"]; 
++   block_8_7 [label="pairPtr(Local)", color="blue", shape="box"]; 
++   block_9_7 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_7 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_7 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_5 [label="t(Local)", color="green", shape="box"]; 
++   block_1_5 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_5 [label="a(Local)", color="green", shape="box"]; 
++   block_3_5 [label="b(Local)", color="green", shape="box"]; 
++   block_5_5 [label="a(Local)", color="green", shape="box"]; 
++   block_6_5 [label="b(Local)", color="green", shape="box"]; 
++   block_8_5 [label="pairPtr(Local)", color="blue", shape="box"]; 
++   block_9_5 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_5 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_5 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_4 [label="t(Local)", color="green", shape="box"]; 
++   block_1_4 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_4 [label="a(Local)", color="green", shape="box"]; 
++   block_3_4 [label="b(Local)", color="green", shape="box"]; 
++   block_5_4 [label="a(Local)", color="green", shape="box"]; 
++   block_6_4 [label="b(Local)", color="green", shape="box"]; 
++   block_8_4 [label="pairPtr(Local)", color="blue", shape="box"]; 
++   block_9_4 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_4 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_4 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_2 [label="t(Local)", color="green", shape="box"]; 
++   block_1_2 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_2 [label="a(Local)", color="green", shape="box"]; 
++   block_3_2 [label="b(Local)", color="green", shape="box"]; 
++   block_5_2 [label="a(Local)", color="green", shape="box"]; 
++   block_6_2 [label="b(Local)", color="green", shape="box"]; 
++   block_8_2 [label="pairPtr(Local)", color="blue", shape="box"]; 
++   block_9_2 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_2 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_2 [label="z(Local)", color="blue", shape="box"]; 
++   block_0_1 [label="t(Local)", color="green", shape="box"]; 
++   block_1_1 [label="x(Local)", color="blue", shape="box"]; 
++   block_2_1 [label="a(Local)", color="green", shape="box"]; 
++   block_3_1 [label="b(Local)", color="green", shape="box"]; 
++   block_5_1 [label="a(Local)", color="green", shape="box"]; 
++   block_6_1 [label="b(Local)", color="green", shape="box"]; 
++   block_8_1 [label="pairPtr(Local)", color="green", shape="box"]; 
++   block_9_1 [label="Pseudo: Heap", color="green", shape="diamond"]; 
++   block_4_1 [label="y(Local)", color="blue", shape="box"]; 
++   block_7_1 [label="z(Local)", color="blue", shape="box"];
++ 
++   block_0_1 -> block_0_13 [minlen="3", style="solid", color="red", lhead="cluster12", ltail="cluster0"]; 
++   block_0_7 -> block_0_4 [minlen="3", style="solid", color="red", lhead="cluster3", ltail="cluster6"]; 
++   block_0_10 -> block_0_7 [minlen="3", style="solid", color="red", lhead="cluster6", ltail="cluster9"]; 
++   block_0_13 -> block_0_10 [minlen="3", style="solid", color="red", lhead="cluster9", ltail="cluster12"]; 
++   block_0_16 -> block_0_13 [minlen="3", style="solid", color="red", lhead="cluster12", ltail="cluster15"]; 
++   block_0_19 -> block_0_16 [minlen="3", style="solid", color="red", lhead="cluster15", ltail="cluster18"]; 
++   block_0_19 -> block_0_1 [minlen="3", style="solid", color="red", lhead="cluster0", ltail="cluster18"]; 
++   block_0_22 -> block_0_19 [minlen="3", style="solid", color="red", lhead="cluster18", ltail="cluster21"]; 
++   block_0_25 -> block_0_22 [minlen="3", style="solid", color="red", lhead="cluster21", ltail="cluster24"]; 
++   block_4_26 -> block_2_26 [style="solid"]; 
++   block_4_26 -> block_3_26 [style="solid"]; 
++   block_7_26 -> block_5_26 [style="solid"]; 
++   block_7_26 -> block_6_26 [style="solid"]; 
++   block_9_26 -> block_9_26 [style="solid"]; 
++   block_4_25 -> block_2_25 [style="solid"]; 
++   block_4_25 -> block_3_25 [style="solid"]; 
++   block_7_25 -> block_5_25 [style="solid"]; 
++   block_7_25 -> block_6_25 [style="solid"]; 
++   block_9_25 -> block_9_25 [style="solid"]; 
++   block_1_23 -> block_0_23 [style="dotted"]; 
++   block_4_23 -> block_2_23 [style="solid"]; 
++   block_4_23 -> block_3_23 [style="solid"]; 
++   block_7_23 -> block_5_23 [style="solid"]; 
++   block_7_23 -> block_6_23 [style="solid"]; 
++   block_9_23 -> block_9_23 [style="solid"]; 
++   block_4_22 -> block_2_22 [style="solid"]; 
++   block_4_22 -> block_3_22 [style="solid"]; 
++   block_7_22 -> block_5_22 [style="solid"]; 
++   block_7_22 -> block_6_22 [style="solid"]; 
++   block_9_22 -> block_9_22 [style="solid"]; 
++   block_1_20 -> block_0_20 [style="dotted"]; 
++   block_4_20 -> block_2_20 [style="solid"]; 
++   block_4_20 -> block_3_20 [style="solid"]; 
++   block_7_20 -> block_5_20 [style="solid"]; 
++   block_7_20 -> block_6_20 [style="solid"]; 
++   block_9_20 -> block_9_20 [style="solid"]; 
++   block_1_19 -> block_0_19 [style="dotted"]; 
++   block_4_19 -> block_2_19 [style="solid"]; 
++   block_4_19 -> block_3_19 [style="solid"]; 
++   block_7_19 -> block_5_19 [style="solid"]; 
++   block_7_19 -> block_6_19 [style="solid"]; 
++   block_9_19 -> block_9_19 [style="solid"]; 
++   block_1_17 -> block_0_17 [style="dotted"]; 
++   block_4_17 -> block_2_17 [style="solid"]; 
++   block_4_17 -> block_3_17 [style="solid"]; 
++   block_7_17 -> block_5_17 [style="solid"]; 
++   block_7_17 -> block_6_17 [style="solid"]; 
++   block_8_17 -> block_4_17 [style="dotted"]; 
++   block_9_17 -> block_9_17 [style="solid"]; 
++   block_1_16 -> block_0_16 [style="dotted"]; 
++   block_4_16 -> block_2_16 [style="solid"]; 
++   block_4_16 -> block_3_16 [style="solid"]; 
++   block_7_16 -> block_5_16 [style="solid"]; 
++   block_7_16 -> block_6_16 [style="solid"]; 
++   block_9_16 -> block_9_16 [style="solid"]; 
++   block_5_14 -> block_0_14 [style="dotted"]; 
++   block_2_14 -> block_0_14 [style="dotted"]; 
++   block_1_14 -> block_0_14 [style="dotted"]; 
++   block_4_14 -> block_2_14 [style="solid"]; 
++   block_4_14 -> block_3_14 [style="solid"]; 
++   block_7_14 -> block_5_14 [style="solid"]; 
++   block_7_14 -> block_6_14 [style="solid"]; 
++   block_8_14 -> block_4_14 [style="dotted"]; 
++   block_8_14 -> block_7_14 [style="dotted"]; 
++   block_9_14 -> block_9_14 [style="solid"]; 
++   block_1_13 -> block_0_13 [style="dotted"]; 
++   block_4_13 -> block_2_13 [style="solid"]; 
++   block_4_13 -> block_3_13 [style="solid"]; 
++   block_7_13 -> block_5_13 [style="solid"]; 
++   block_7_13 -> block_6_13 [style="solid"]; 
++   block_8_13 -> block_4_13 [style="dotted"]; 
++   block_8_13 -> block_7_13 [style="dotted"]; 
++   block_9_13 -> block_9_13 [style="solid"]; 
++   block_6_11 -> block_0_11 [style="dotted"]; 
++   block_5_11 -> block_0_11 [style="dotted"]; 
++   block_3_11 -> block_0_11 [style="dotted"]; 
++   block_2_11 -> block_0_11 [style="dotted"]; 
++   block_1_11 -> block_0_11 [style="dotted"]; 
++   block_4_11 -> block_2_11 [style="solid"]; 
++   block_4_11 -> block_3_11 [style="solid"]; 
++   block_7_11 -> block_5_11 [style="solid"]; 
++   block_7_11 -> block_6_11 [style="solid"]; 
++   block_8_11 -> block_4_11 [style="dotted"]; 
++   block_8_11 -> block_7_11 [style="dotted"]; 
++   block_9_11 -> block_9_11 [style="solid"]; 
++   block_5_10 -> block_0_10 [style="dotted"]; 
++   block_2_10 -> block_0_10 [style="dotted"]; 
++   block_1_10 -> block_0_10 [style="dotted"]; 
++   block_4_10 -> block_2_10 [style="solid"]; 
++   block_4_10 -> block_3_10 [style="solid"]; 
++   block_7_10 -> block_5_10 [style="solid"]; 
++   block_7_10 -> block_6_10 [style="solid"]; 
++   block_8_10 -> block_4_10 [style="dotted"]; 
++   block_8_10 -> block_7_10 [style="dotted"]; 
++   block_9_10 -> block_9_10 [style="solid"]; 
++   block_6_8 -> block_0_8 [style="dotted"]; 
++   block_5_8 -> block_0_8 [style="dotted"]; 
++   block_3_8 -> block_0_8 [style="dotted"]; 
++   block_2_8 -> block_0_8 [style="dotted"]; 
++   block_1_8 -> block_0_8 [style="dotted"]; 
++   block_4_8 -> block_2_8 [style="solid"]; 
++   block_4_8 -> block_3_8 [style="solid"]; 
++   block_7_8 -> block_5_8 [style="solid"]; 
++   block_7_8 -> block_6_8 [style="solid"]; 
++   block_8_8 -> block_4_8 [style="dotted"]; 
++   block_8_8 -> block_7_8 [style="dotted"]; 
++   block_9_8 -> block_9_8 [style="dotted"]; 
++   block_9_8 -> block_9_8 [style="solid"]; 
++   block_6_7 -> block_0_7 [style="dotted"]; 
++   block_5_7 -> block_0_7 [style="dotted"]; 
++   block_3_7 -> block_0_7 [style="dotted"]; 
++   block_2_7 -> block_0_7 [style="dotted"]; 
++   block_1_7 -> block_0_7 [style="dotted"]; 
++   block_4_7 -> block_2_7 [style="solid"]; 
++   block_4_7 -> block_3_7 [style="solid"]; 
++   block_7_7 -> block_5_7 [style="solid"]; 
++   block_7_7 -> block_6_7 [style="solid"]; 
++   block_8_7 -> block_4_7 [style="dotted"]; 
++   block_8_7 -> block_7_7 [style="dotted"]; 
++   block_9_7 -> block_9_7 [style="solid"]; 
++   block_6_5 -> block_0_5 [style="dotted"]; 
++   block_5_5 -> block_0_5 [style="dotted"]; 
++   block_3_5 -> block_0_5 [style="dotted"]; 
++   block_2_5 -> block_0_5 [style="dotted"]; 
++   block_1_5 -> block_0_5 [style="dotted"]; 
++   block_4_5 -> block_2_5 [style="solid"]; 
++   block_4_5 -> block_3_5 [style="solid"]; 
++   block_7_5 -> block_5_5 [style="solid"]; 
++   block_7_5 -> block_6_5 [style="solid"]; 
++   block_8_5 -> block_4_5 [style="dotted"]; 
++   block_8_5 -> block_7_5 [style="dotted"]; 
++   block_9_5 -> block_9_5 [style="dotted"]; 
++   block_9_5 -> block_9_5 [style="solid"]; 
++   block_6_4 -> block_0_4 [style="dotted"]; 
++   block_5_4 -> block_0_4 [style="dotted"]; 
++   block_3_4 -> block_0_4 [style="dotted"]; 
++   block_2_4 -> block_0_4 [style="dotted"]; 
++   block_1_4 -> block_0_4 [style="dotted"]; 
++   block_4_4 -> block_2_4 [style="solid"]; 
++   block_4_4 -> block_3_4 [style="solid"]; 
++   block_7_4 -> block_5_4 [style="solid"]; 
++   block_7_4 -> block_6_4 [style="solid"]; 
++   block_8_4 -> block_4_4 [style="dotted"]; 
++   block_8_4 -> block_7_4 [style="dotted"]; 
++   block_9_4 -> block_9_4 [style="dotted"]; 
++   block_9_4 -> block_9_4 [style="solid"]; 
++   block_1_2 -> block_0_2 [style="dotted"]; 
++   block_4_2 -> block_2_2 [style="solid"]; 
++   block_4_2 -> block_3_2 [style="solid"]; 
++   block_7_2 -> block_5_2 [style="solid"]; 
++   block_7_2 -> block_6_2 [style="solid"]; 
++   block_8_2 -> block_7_2 [style="dotted"]; 
++   block_9_2 -> block_9_2 [style="solid"]; 
++   block_1_1 -> block_0_1 [style="dotted"]; 
++   block_4_1 -> block_2_1 [style="solid"]; 
++   block_4_1 -> block_3_1 [style="solid"]; 
++   block_7_1 -> block_5_1 [style="solid"]; 
++   block_7_1 -> block_6_1 [style="solid"]; 
++   block_9_1 -> block_9_1 [style="solid"];
++ 
++ }
+\ No newline at end of file
+diff -r -c -N orig/test/oops/alias/test1.c patched/test/oops/alias/test1.c
+*** orig/test/oops/alias/test1.c	1970-01-01 03:00:00.000000000 +0300
+--- patched/test/oops/alias/test1.c	2009-05-04 17:40:07.000000000 +0400
+***************
+*** 0 ****
+--- 1,17 ----
++ int main() {
++   int ***x, **y, *z, f;
++   int b; 
++ 
++   if (b)
++   {
++     x = &y;
++   }
++   else
++   {
++     y = &z;
++   }
++ 
++   **x = &f;
++ 
++   return 0;
++ }
+diff -r -c -N orig/test/oops/alias/test2.c patched/test/oops/alias/test2.c
+*** orig/test/oops/alias/test2.c	1970-01-01 03:00:00.000000000 +0300
+--- patched/test/oops/alias/test2.c	2009-05-04 17:40:07.000000000 +0400
+***************
+*** 0 ****
+--- 1,35 ----
++ //int a[], b[];
++ 
++ typedef struct 
++ {
++    int* a;
++    int* b;
++ } pair;
++ 
++ void g (pair *p);
++ void l ();
++ 
++ void f ()
++ { 
++   int t;
++   int *x;
++   pair y,z;
++   pair* pairPtr;
++ 
++   x = &t;
++ 
++   if (t == 1) 
++   {
++     pairPtr = &y;
++   }
++   else
++   {
++     pairPtr = &z;
++   }
++   
++   pairPtr->a = x;
++   pairPtr->b = pairPtr->a;
++ 
++   //g (&y);
++   l();
++ }
+\ No newline at end of file
+diff -r -c -N orig/test/oops/alias/test.sh patched/test/oops/alias/test.sh
+*** orig/test/oops/alias/test.sh	1970-01-01 03:00:00.000000000 +0300
+--- patched/test/oops/alias/test.sh	2009-05-04 17:40:07.000000000 +0400
+***************
+*** 0 ****
+--- 1,57 ----
++ #!/bin/sh
++ 
++ # list of tests
++ TESTS="test1 test2"
++ 
++ # number of failed tests
++ ERROR=0
++ 
++ #extension of test names
++ EXT=.c
++ 
++ #alias graph file extension
++ DOTEXT=.dot
++ 
++ # plugins that cil should use
++ PLUGINS=--dopranlibAA
++ 
++ #output file of alias graph
++ OUTPUT=--aliasgraphfile
++ 
++ # execution command
++ EXEC=../../../bin/cilly
++ 
++ # perform alias analysis on tests
++ for t in ${TESTS}; do
++     ${EXEC} ${PLUGINS} ${OUTPUT}=${t}${DOTEXT} ${t}${EXT}
++ done
++ 
++ #compare results with expected once
++ for t in ${TESTS}; do
++     if ! diff -ubB orig/${t}${DOTEXT} ${t}${DOTEXT} > ${t}.diff; then
++ 	echo "FAILED (see ${t}.diff)"
++ 	ERROR=$((${ERROR} + 1))
++     else
++ 	rm -f ${t}.diff
++     fi
++ done
++ 
++ #checking results
++ if [ ${ERROR} -eq 0 ]; then
++     echo "Alias analysis testing passed."
++ else
++     echo ${ERROR} "alias analysis tests failed."
++ fi
++ 
++ #converting dot files to png format
++ if [ -n "`which dot`" ]; then
++     if [ -d png ]; then
++         sleep 0
++     else
++         mkdir png
++     fi
++     echo "Converting alias graphs to *.png files."
++     for t in ${TESTS}; do
++         dot -Tpng ${t}${DOTEXT} > png/${t}.png
++     done
++ fi
+\ No newline at end of file
+diff -r -c -N orig/test/oops/test.sh patched/test/oops/test.sh
+*** orig/test/oops/test.sh	1970-01-01 03:00:00.000000000 +0300
+--- patched/test/oops/test.sh	2009-05-04 17:40:07.000000000 +0400
+***************
+*** 0 ****
+--- 1,3 ----
++ #!/bin/sh
++ cd ./alias
++ ./test.sh
+\ No newline at end of file
