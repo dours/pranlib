@@ -17,45 +17,57 @@
 open Printf
 open DFACommon
 
-module NodeInfo=
+module LVSemilattice(A: ProgramView.Abstractor with
+                    type Abstract.node = DFACommon.Statement.t list and
+										type Abstract.edge = EdgeInfo.t)
+               (G : CFG.Sig with
+                    type Node.t = A.Concrete.node and 
+                    type Edge.t = A.Concrete.edge)=
 struct
-	type t = Statement.t list
-	
-	let toString statements = 
-		let rec toString' statements acc = 
-			match statements with
-				| [] -> acc
-				| hd :: tl -> toString' tl (DFACommon.Statement.toString hd)^acc
-			in
-			toString' statements ""
-end
-
-module EdgeInfo=
-struct
-	type t = Empty
-	
-	let toString _ = "edge"
-end
-
-module LVSemilattice=
-struct
-	type t = L of BitVector.t | Bottom
+	type t = L of BitVector.t
+  
+  let make ival = 
+    let nodes = G.nodes G.graph in
+    let all_bit_vectors = 
+    let bit_vector_parts = List.map 
+                           (fun node ->
+                                let anode = A.node node in 
+                                let statement_parts =
+                                let extract_from_mvp mvp = List.map (fun v -> BitVectorElement.construct v false) mvp in 
+                                  List.map 
+                                    (fun s -> 
+                                             match s with 
+                                             | Statement.Other -> []
+                                             | Statement.Assignment (lp, rp) ->
+                                              let lp_extracted = extract_from_mvp lp in
+                                              let rp_extracted = List.concat (List.map (fun x -> extract_from_mvp x) rp) in
+                                              List.concat [lp_extracted;rp_extracted]) anode in List.concat statement_parts) nodes in
+    List.concat bit_vector_parts in
+    let rec remove_duplicates bv result = match bv with 
+      | [] -> List.rev result
+      | hd::tl -> 
+        let v = BitVectorElement.var hd in
+        if (List.exists (fun e -> Variable.equals v (BitVectorElement.var e)) tl) then
+          remove_duplicates tl result
+        else 
+          remove_duplicates tl (hd::result)
+        in
+    remove_duplicates all_bit_vectors []  
+    
+  let make_top _ = make true
+  
+  let make_bottom _ = make false 
 	
 	let top =
 		printf "Top lattice element is requested\n"; 
-		L BitVector.empty (* Make sure this is the right way. How should we provide a way to list all statements in an application *)
+		L (make_top ())
 	
-	let bottom = Bottom
+	let bottom = L (make_bottom ())
 	
 	let cap x y = match (x, y) with
-		| (_, Bottom) -> Bottom
-		| (Bottom, _) -> Bottom
 		| (L (bv_x), L (bv_y)) -> L (BitVector.cap bv_x bv_y)
 
 	let equal x y = match (x, y) with
-		| (Bottom, Bottom) -> true
-		| (Bottom, _) -> false
-		| (_, Bottom) -> false
 		| (L (bv_x), L(bv_y)) -> BitVector.equal bv_x bv_y
 	let toString x = ""
 end
@@ -66,10 +78,16 @@ struct
 	type edge = EdgeInfo.t
 end
 
-module LVAdapter=
+module LVAdapter(A: ProgramView.Abstractor with
+                    type Abstract.node = DFACommon.Statement.t list and
+										type Abstract.edge = EdgeInfo.t)
+               (G : CFG.Sig with
+                    type Node.t = A.Concrete.node and 
+                    type Edge.t = A.Concrete.edge)=
 struct
 	module P = Repr
-	module L = Semilattice.Make(LVSemilattice)
+  module LVSemilattice'=LVSemilattice(A)(G)
+	module L = Semilattice.Make(LVSemilattice')
 	module S = Statement
 	module BV = BitVector
 	module BVE = BitVectorElement
@@ -79,71 +97,27 @@ struct
     let statements = node in (* Node statements *)
 		let gen_bv =
 			printf "Calculating gen for %s\n" (NodeInfo.toString statements); 
-			DFAHelper.gen statements in (* GEN *)
+			DFAHelper.gen statements (LVSemilattice'.make_bottom ()) in (* GEN *)
 		printf "GEN for %s is %s\n" (NodeInfo.toString statements) (BitVector.toString gen_bv);
 		let kill_bv =
 			printf "Calculating kill for %s\n" (NodeInfo.toString statements);
-			DFAHelper.kill statements in (* KILL *)
+			DFAHelper.kill statements (LVSemilattice'.make_bottom()) in (* KILL *)
     printf "KILL for %s is %s\n" (NodeInfo.toString statements) (BitVector.toString kill_bv);
     let rec process_recursively input gen_v kill_v result =
-      let process_only_lattice_element l = l in
-      let process_gen_case g = g in
-      let process_kill_case _ = failwith "Invalid case matched" in
-      let process_lgen_case l g = 
-        let l_or_g = List.map (fun x -> 
-                                                    let xs = BitVectorElement.var x in
-                                                    let es = BitVector.lookup_element xs g in
-                                                    let state =
-                                                      match es with 
-                                                      | Some (e) -> ((BitVectorElement.state x)||(BitVectorElement.state e))
-                                                      | None -> BitVectorElement.state x || true (* considering that missing gen element evaluates to true *) in
-                                                    BitVectorElement.construct xs state) l in
-        let existence_map = List.map (fun x -> if List.exists (fun y -> Variable.equals (BitVectorElement.var x) (BitVectorElement.var y)) l_or_g then [] else [x]) g in
-        List.concat [l_or_g;List.concat existence_map] in
-          
-     let process_lkill_case l k = 
-      let l_and_not_k = List.map (fun x ->
-                                                    let xs = BitVectorElement.var x in
-                                                    let es = BitVector.lookup_element xs k in
-                                                    let state = 
-                                                      match es with
-                                                        | Some(e) -> ((BitVectorElement.state x) && (not (BitVectorElement.state e)))
-                                                        | None -> BitVectorElement.state x && true in
-                                                      BitVectorElement.construct xs state) l in
-        let existence_map = List.map (fun x -> if List.exists (fun y -> Variable.equals (BitVectorElement.var x) (BitVectorElement.var y)) l_and_not_k then [] else [x]) k in
-        List.concat [l_and_not_k; List.concat existence_map] in
-                                                       
-    match (input, gen_v, kill_v) with
+      match (input, gen_v, kill_v) with
 			| ([], [], []) -> result
 			| (l, [], []) -> 
-				printf "INPUT case matched\n";
-				process_only_lattice_element l
-			| ([], g, []) ->
-				printf "GEN case matched %s\n" (BitVector.toString g);
-				process_gen_case g
-			| ([], [], k) ->
-				printf "KILL case matched %s\n" (BitVector.toString k);
-				process_kill_case k
-      | (l, g, []) -> 
-        printf "L|GEN case matched \n";
-        process_lgen_case l g
-      | ([], g, k) -> 
-        printf "GEN|KILL case matched \n";
-        g
-      | (l, [], k) ->
-        printf "L|KILL case matched \n";
-        process_lkill_case l k
+				printf "INPUT case matched with %s\n" (BitVector.toString l);
+				l
 			| (input_hd::input_tl, gen_hd::gen_tl, kill_hd::kill_tl) ->
+        printf "Full case matched with [in=%s; gen=%s; kill=%s]\n" (BitVectorElement.toString input_hd) (BitVectorElement.toString gen_hd) (BitVectorElement.toString kill_hd);
 				let new_result = (BVE.var input_hd, (BVE.state gen_hd	|| (BVE.state input_hd && BVE.state kill_hd)))::result
 				in process_recursively input_tl	gen_tl	kill_tl new_result
 		in
 		match l with
-			| LVSemilattice.Bottom ->
-				printf "Flow calculated to Bottom\n"; 
-				LVSemilattice.Bottom
-			| LVSemilattice.L (l_vector) ->
+			| LVSemilattice'.L (l_vector) ->
 				printf "Flow calculated to lattice element\n";
-				LVSemilattice.L(process_recursively l_vector gen_bv kill_bv [])
+				LVSemilattice'.L(process_recursively l_vector gen_bv kill_bv [])
 	
 	let init _ = L.top
 end
@@ -155,7 +129,9 @@ module LVResults (A: ProgramView.Abstractor with
                     type Node.t = A.Concrete.node and 
                     type Edge.t = A.Concrete.edge) =
 struct
-	module LVAdapter'=ProgramView.BackwardAdapter(LVAdapter)
+  module LVSemilattice' = LVSemilattice(A)(G)
+  module LVAdapter''=LVAdapter(A)(G)
+	module LVAdapter'=ProgramView.BackwardAdapter(LVAdapter'')
 	module PView=ProgramView.Make(LVAdapter')(A)(G)
 	module Analyze=DFAEngine.RevPost(PView)(DFST.Make(G))
 	
@@ -166,8 +142,8 @@ struct
           |  []       -> DFACommon.BitVector.empty
           | hd :: _  ->
 						let analyzeResults = match Analyze.get hd with
-						| LVSemilattice.L v -> v
-						| LVSemilattice.Bottom -> DFACommon.BitVector.empty in
+						| LVSemilattice'.L v -> v
+						in
 						analyzeResults
 
 	let after n = 
@@ -177,12 +153,9 @@ struct
 		| hd::_ ->
 			printf "Analyzing hd\n";
 			match Analyze.get hd with
-			| LVSemilattice.L v ->
+			| LVSemilattice'.L v ->
 				printf "Encountered a lattice element\n"; 
 				v
-			| LVSemilattice.Bottom ->
-				printf "Bottom lattice element encountered\n"; 
-				DFACommon.BitVector.empty
 end
 
 module TestModule=

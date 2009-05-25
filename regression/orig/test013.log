@@ -1,33 +1,55 @@
 Top lattice element is requested
-DFAEngine.get is called
+Top lattice element is requested
 Flow is called for node Assignment [a=b+c]
 Calculating gen for Assignment [a=b+c]
-GEN for Assignment [a=b+c] is BV[E[b,true];E[c,true];]
+GEN for Assignment [a=b+c] is BV[E[d,false];E[e,false];E[f,false];E[a,false];E[b,true];E[c,true];]
 Calculating kill for Assignment [a=b+c]
-KILL for Assignment [a=b+c] is BV[E[a,true];]
+KILL for Assignment [a=b+c] is BV[E[d,false];E[e,false];E[f,false];E[a,true];E[b,false];E[c,false];]
 Flow calculated to lattice element
-GEN|KILL case matched 
+Full case matched with [in=E[d,false]; gen=E[d,false]; kill=E[d,false]]
+Full case matched with [in=E[e,false]; gen=E[e,false]; kill=E[e,false]]
+Full case matched with [in=E[f,false]; gen=E[f,false]; kill=E[f,false]]
+Full case matched with [in=E[a,false]; gen=E[a,false]; kill=E[a,true]]
+Full case matched with [in=E[b,false]; gen=E[b,true]; kill=E[b,false]]
+Full case matched with [in=E[c,false]; gen=E[c,true]; kill=E[c,false]]
 Flow is called for node Assignment [d=e+f]
 Calculating gen for Assignment [d=e+f]
-GEN for Assignment [d=e+f] is BV[E[e,true];E[f,true];]
+GEN for Assignment [d=e+f] is BV[E[d,false];E[e,true];E[f,true];E[a,false];E[b,false];E[c,false];]
 Calculating kill for Assignment [d=e+f]
-KILL for Assignment [d=e+f] is BV[E[d,true];]
+KILL for Assignment [d=e+f] is BV[E[d,true];E[e,false];E[f,false];E[a,false];E[b,false];E[c,false];]
 Flow calculated to lattice element
-L|GEN case matched 
+Full case matched with [in=E[c,true]; gen=E[d,false]; kill=E[d,true]]
+Full case matched with [in=E[b,true]; gen=E[e,true]; kill=E[e,false]]
+Full case matched with [in=E[a,false]; gen=E[f,true]; kill=E[f,false]]
+Full case matched with [in=E[f,false]; gen=E[a,false]; kill=E[a,false]]
+Full case matched with [in=E[e,false]; gen=E[b,false]; kill=E[b,false]]
+Full case matched with [in=E[d,false]; gen=E[c,false]; kill=E[c,false]]
+INPUT case matched with BV[E[e,false];E[f,false];E[a,false];E[b,false];E[c,false];]
 Flow is called for node Assignment [a=b+c]
 Calculating gen for Assignment [a=b+c]
-GEN for Assignment [a=b+c] is BV[E[b,true];E[c,true];]
+GEN for Assignment [a=b+c] is BV[E[d,false];E[e,false];E[f,false];E[a,false];E[b,true];E[c,true];]
 Calculating kill for Assignment [a=b+c]
-KILL for Assignment [a=b+c] is BV[E[a,true];]
+KILL for Assignment [a=b+c] is BV[E[d,false];E[e,false];E[f,false];E[a,true];E[b,false];E[c,false];]
 Flow calculated to lattice element
-GEN|KILL case matched 
+Full case matched with [in=E[d,false]; gen=E[d,false]; kill=E[d,false]]
+Full case matched with [in=E[e,false]; gen=E[e,false]; kill=E[e,false]]
+Full case matched with [in=E[f,false]; gen=E[f,false]; kill=E[f,false]]
+Full case matched with [in=E[a,false]; gen=E[a,false]; kill=E[a,true]]
+Full case matched with [in=E[b,false]; gen=E[b,true]; kill=E[b,false]]
+Full case matched with [in=E[c,false]; gen=E[c,true]; kill=E[c,false]]
 Flow is called for node Assignment [d=e+f]
 Calculating gen for Assignment [d=e+f]
-GEN for Assignment [d=e+f] is BV[E[e,true];E[f,true];]
+GEN for Assignment [d=e+f] is BV[E[d,false];E[e,true];E[f,true];E[a,false];E[b,false];E[c,false];]
 Calculating kill for Assignment [d=e+f]
-KILL for Assignment [d=e+f] is BV[E[d,true];]
+KILL for Assignment [d=e+f] is BV[E[d,true];E[e,false];E[f,false];E[a,false];E[b,false];E[c,false];]
 Flow calculated to lattice element
-L|GEN case matched 
+Full case matched with [in=E[c,true]; gen=E[d,false]; kill=E[d,true]]
+Full case matched with [in=E[b,true]; gen=E[e,true]; kill=E[e,false]]
+Full case matched with [in=E[a,false]; gen=E[f,true]; kill=E[f,false]]
+Full case matched with [in=E[f,false]; gen=E[a,false]; kill=E[a,false]]
+Full case matched with [in=E[e,false]; gen=E[b,false]; kill=E[b,false]]
+Full case matched with [in=E[d,false]; gen=E[c,false]; kill=E[c,false]]
+INPUT case matched with BV[E[e,false];E[f,false];E[a,false];E[b,false];E[c,false];]
 Started logging...
 Graph:
 
@@ -38,8 +60,6 @@ digraph X {
   node1 -> node0 [label="info=edge"];
 
 }
-Analyzing hd
-Encountered a lattice element
 LV results:
 
-BV[E[b,true];E[c,true];]
+BV[E[c,true];E[b,true];E[a,false];E[f,false];E[e,false];E[d,false];]

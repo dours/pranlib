@@ -17,28 +17,21 @@
 open DFACommon
 
 (** Live variables analysis semilattice *)
-module LVSemilattice :
+module LVSemilattice(A: ProgramView.Abstractor with
+                    type Abstract.node = DFACommon.Statement.t list and
+										type Abstract.edge = EdgeInfo.t)
+               (G : CFG.Sig with
+                    type Node.t = A.Concrete.node and 
+                    type Edge.t = A.Concrete.edge) :
 sig
 	include Semilattice.Base
+  
+  val make : bool -> BitVector.t
+  
+  val make_top : unit -> BitVector.t
+  
+  val make_bottom : unit -> BitVector.t
 end			
-
-(** Node information *)
-module NodeInfo :
-sig
-	(** Type of node information. Each node contains a list of statements *)
-	type t = Statement.t list
-	
-	val toString : t -> string
-end
-
-(** Edge information *)
-module EdgeInfo :
-sig
-	(** Type of edge information *)
-	type t = Empty
-	
-	val toString : t -> string
-end
 
 (** Live variable analysis results creation functor *)
 module LVResults (A: ProgramView.Abstractor with

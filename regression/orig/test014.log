@@ -1,1 +1,37 @@
-Unfinished
+Calculating flow for node Assignment [a=b+c]
+Flow calculated to lattice element
+Full case matched
+Input: BV[E[Assignment [d=e+f],true];E[Assignment [a=b+c],true];]
+Gen: BV[E[Assignment [d=e+f],false];E[Assignment [a=b+c],true];]
+Prsv: BV[E[Assignment [d=e+f],false];E[Assignment [a=b+c],false];]
+Full case matched
+Input: BV[E[Assignment [a=b+c],true];]
+Gen: BV[E[Assignment [a=b+c],true];]
+Prsv: BV[E[Assignment [a=b+c],false];]
+Empty lists case matched
+Calculating flow for node Assignment [d=e+f]
+Flow calculated to lattice element
+Full case matched
+Input: BV[E[Assignment [d=e+f],true];E[Assignment [a=b+c],true];]
+Gen: BV[E[Assignment [d=e+f],true];E[Assignment [a=b+c],false];]
+Prsv: BV[E[Assignment [d=e+f],false];E[Assignment [a=b+c],false];]
+Full case matched
+Input: BV[E[Assignment [a=b+c],true];]
+Gen: BV[E[Assignment [a=b+c],false];]
+Prsv: BV[E[Assignment [a=b+c],false];]
+Empty lists case matched
+Started logging...
+Graph:
+
+digraph X { 
+  node1 [label="index=1, info=Assignment [d=e+f];"]; 
+  node0 [label="index=0, info=Assignment [a=b+c];"];
+
+  node1 -> node0 [label="info=edge"];
+
+}
+Calling Analyze.get
+Lattice element encountered
+RD results:
+
+BV[E[Assignment [d=e+f],true];E[Assignment [a=b+c],true];]

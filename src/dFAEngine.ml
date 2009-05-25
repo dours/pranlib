@@ -19,7 +19,7 @@ module Generic (P : ProgramView.Sig) (O : Order.Sig with module G = P.G) =
   struct
 
     let solve () =
-      let upbe   = P.G.lastEdge P.G.graph in
+			let upbe   = P.G.lastEdge P.G.graph in
       let upbn   = P.G.lastNode P.G.graph in
       let flows  = 
 	let data = Urray.make upbn ((fun _ -> [], []) : P.Adapter.flow) in    

@@ -14,26 +14,61 @@
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
+open DFACommon
 
-(** Semilattice *)
-module RDSemilattice :
+(** Element of a bit-vector *)
+module RBitVectorElement : 
 sig
-	include Semilattice.Base
-end			
-
-(** Node information *)
-module NodeInfo :
-sig
-	(** Type of the node information *)
-	type t = DFACommon.Statement.t list
+  (** Type of bit vector element. Reaching definitions analysis works on bit vectors consisting of statements *)
+	type t = Statement.t * bool
+  
+  val construct : Statement.t -> bool -> t
+	
+	val and_op : t -> t -> t
+	
+	val or_op : t -> t -> t
+	
+	val equal : t -> t -> bool
+	
+	val statement : t -> Statement.t
+	
+	val state : t -> bool
+	
+	val toString : t -> string 
 end
 
-(** Edge information *)
-module EdgeInfo :
+(** Bit-vector *)
+module RBitVector: 
 sig
-	(** Type of the edge information *)
-	type t = Empty
-end	
+	type t = RBitVectorElement.t list
+	
+	val empty : t
+  
+  val cap : t -> t -> t
+	
+	val equal : t -> t -> bool
+  
+  val lookup_element : Statement.t -> t -> RBitVectorElement.t option
+	
+	val toString : t -> string  
+end
+
+(** Semilattice *)
+module RDSemilattice (A: ProgramView.Abstractor with
+                    type Abstract.node = NodeInfo.t and
+                    type Abstract.edge = EdgeInfo.t)
+               (G : CFG.Sig with
+                    type Node.t = A.Concrete.node and 
+                    type Edge.t = A.Concrete.edge):
+sig
+	include Semilattice.Base
+  
+  val make_empty : bool -> RBitVector.t
+  
+  val make_empty_top : unit -> RBitVector.t
+  
+  val make_empty_bottom : unit -> RBitVector.t
+end			
 
 (** Reaching definitions analysis results module *)
 module RDResults (A: ProgramView.Abstractor with
@@ -44,7 +79,7 @@ module RDResults (A: ProgramView.Abstractor with
                     type Edge.t = A.Concrete.edge) :
 sig
 	(** Reaching definitions information (Basically a bit-vector) *)
-	type rdInfo = DFACommon.BitVector.t
+	type rdInfo = RBitVector.t
 	
 	(** [before n] returns reaching definitions information before executing node statements *)
 	val before : G.Node.t -> rdInfo
