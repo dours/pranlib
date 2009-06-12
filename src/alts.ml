@@ -331,7 +331,7 @@ module Make (D: DFST.Sig) =
         end
 	  
     (* Create maximal alt from dominance tree *)
-    module MAFromDom (T : Tree.Sig with type t = G.Node.t) =
+    module MAFromDom (T : Tree.Instance with type t = G.Node.t) =
       struct
 	
         let data = lazy (
@@ -456,7 +456,7 @@ module Make (D: DFST.Sig) =
 		  
             let root = start
             let hash () = (Lazy.force create)
-            let parent nd = fst (HT.find (hash()) nd)
+            let parent nd = fst (HT.find (hash()) nd) 
             let children nd = snd (HT.find (hash()) nd)
 		
           end

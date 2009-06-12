@@ -17,51 +17,6 @@
 
 (** {1 Alias analysis interface} *)
 
-(** Representation of a tree with marked nodes. *) 
-module Tree :
-  sig
-  
-    (** Tree signature. *)
-    module type Sig = 
-      sig
-
-        (** Type of the node marks. *)
-        type mark
-
-        (** Type of the tree. *)
-        type t
-
-        (** [makeLeaf i] creates a tree consisting of a single node with mark [i]. *)
-        val makeLeaf : mark -> t
-
-        (** [makeNode i sl] creates a node with mark [i] having nodes from list [sl] as sons. *)
-        val makeNode : mark -> t list -> t
- 
-        (** [mark t] returns mark of a root of the tree [t]. *)
-        val mark : t -> mark
-
-        (* [isLeaf t] checks whether [t] is a leaf. *)
-        val isLeaf : t -> bool
-
-        (** [children t] returns children of a root of the tree [t]. *)
-        val children : t -> t list
-
-      end
-
-    (** Nodes mark signature. *)
-    module type Mark =
-      sig
-
-        (** Type of the node mark. *)
-        type mark
-
-      end
-
-    (** Functor to construct marked tree module. *)
-    module Make (M : Mark) : Sig with type mark = M.mark
-
-end
-
 (** {2 Alias Language} *)
 
 (** Region representation. *)
@@ -76,33 +31,33 @@ module Region :
 
   end
 
+(** Block type representation. *)
+module Type : Tree.Sig with type label = Region.t
+
 (** Block info signature. *)
 module type BlockInfo =
   sig
-
+    
     (** Type of the info. *)
     type t
-
+	  
     (** [toString info] returns string representation of [info]. *)
     val toString : t -> string
-
+	
     (** [region info] returns region associated with a block information [info]. *)
-    val region   : t -> Region.t
-
- end
-
-(** Block type representation. *)
-module Type : Tree.Sig with type mark = Region.t
+    val region : t -> Region.t
+	
+  end
 
 (** Memory block signature. *)
-module type BlockSig =
+module type Block =
   sig
-
+    
     (** Underlying block info module. *)
     module Info : BlockInfo
 
-    (** Repesentation of a tree with nodes marked by block info. *)
-    module InfoTree : Tree.Sig with type mark = Info.t
+    (** Repesentation of a tree with nodes labeled by block info. *)
+    module InfoTree : Tree.Sig with type label = Info.t
 
     (** Type of the memory block. *)
     type t  
@@ -132,11 +87,11 @@ module type BlockSig =
   end
 
 (** Expression signature. *)
-module type ExprSig =
+module type Expr =
   sig
 
     (** Underlying block module. *)
-    module Block : BlockSig
+    module Block : Block
 
     (** Type of the expression. *) 
     type t 
@@ -175,11 +130,11 @@ module type ExprSig =
   end
 
 (** Statement signature. *)
-module type StmtSig =
+module type Stmt =
   sig
  
     (** Underlying expression module. *) 
-    module Expr : ExprSig 
+    module Expr : Expr
 
     (** Type of the statement. *)
     type t
@@ -206,11 +161,11 @@ module type StmtSig =
 (** {2 Memory model} *)
 
 (** Memory of alias analysis. Contains allocated blocks and regions. *)
-module type MemorySig =
+module type Memory =
   sig
 
     (** Underlying block module. *)
-    module Block : BlockSig
+    module Block : Block
 
     (** Exception that is thrown when a region that does not belong to the memory is 
         being addressed.
@@ -243,10 +198,10 @@ module type Sig =
   sig
 
     (** Underlying block module. *)
-    module S : StmtSig
+    module S : Stmt
 
     (** Underlying memory module. *)
-    module M : MemorySig with module Block = S.Expr.Block
+    module M : Memory with module Block = S.Expr.Block
 
     (** Memory instance module signature. *)
     module type MemoryInstance =

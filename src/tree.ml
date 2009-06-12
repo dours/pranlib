@@ -15,21 +15,54 @@
  * (enclosed in the file COPYING).
  *)
 
-module type Sig =
+module type Read =
   sig
 
     type t
 
-    val root     : t
-    val parent   : t -> t option
-    val children : t -> t list
+    val children : t -> t list  
 
   end
 
+module type Instance =
+  sig
+   
+    include Read
+    val root : t  
+
+  end
+
+module type Sig =
+  sig
+  
+    include Read
+ 
+    type label
+
+    val label : t -> label
+    val make  : label -> t list -> t 
+   
+  end
+
+module Make (L : sig type t end) =
+  struct
+
+    type label = L.t
+
+    type t = Node of label * t list
+	
+    let make x y = Node (x, y)
+	
+    let label (Node (x, _)) = x
+	    
+    let children (Node (_, x)) = x
+
+  end
+	    
 module DOT =
   struct
 
-    module Printer (T : Sig) (N : DOT.ExtInfo with type t = T.t) =
+    module Printer (T : Instance) (N : DOT.ExtInfo with type t = T.t) =
       struct
 
         module G = 

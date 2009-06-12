@@ -15,95 +15,51 @@
  * (enclosed in the file COPYING).
  *)
 
-module Tree = 
-  struct
-    module type Sig = 
-      sig
-
-        type mark
-
-        type t
-
-        val makeLeaf : mark -> t 
-
-        val makeNode : mark -> t list -> t
- 
-        val mark : t -> mark
-
-        val isLeaf : t -> bool
-
-        val children : t -> t list
-
-      end  
-
-    module type Mark = sig type mark end
-
-    module Make (M : Mark) =
-      struct
-        type mark = M.mark  
-
-        type t = Leaf of mark | Node of mark * t list
-
-        let makeLeaf i = Leaf i
-
-        let makeNode i ch = Node (i, ch)
-
-        let mark = function
-        | Leaf i | Node (i, _) -> i
-
-        let isLeaf = function
-        | Leaf _ -> true | Node _ -> false
-
-        let children = function
-       | Leaf _ -> [] | Node (_, ch) -> ch
-
-      end
-  end
-
 module Region =
   struct
   
-    (** Type of the region: name and unique id *)
+    (* Type of the region: name and unique id *)
     type t  = string * int  
 
-    (** [name r] returns name of region r *)
+    (* [name r] returns name of region r *)
     let name = fst
   
-    (** [id r] returns id of region r *)  
+    (* [id r] returns id of region r *)  
     let id = snd
 
-    (** [create n i] creates new region with name [n] and id [i] *)
+    (* [create n i] creates new region with name [n] and id [i] *)
     let create name id = (name, id)
 
-    (** provides order on regions *)
+    (* provides order on regions *)
     let compare x y = (snd x) - (snd y)
 
-    (** equality relation on regions *)
+    (* equality relation on regions *)
     let equal x y = match (x, y ) with
       (name1, id1), (name2, id2) when name1 = name2 && id1 = id2 -> true
     | _ -> false
 
-    (** hash code for regions *)
+    (* hash code for regions *)
     let hash = id
 
   end
 
 module RSet = Set.Make (Region)
 module RMap = Map.Make (Region)
+ 
+module Type = Tree.Make (struct type t = Region.t end)
 
 module type BlockInfo =
   sig
     type t
     val toString : t -> string
     val region   : t -> Region.t
- end
- 
-module Type = Tree.Make (struct type mark = Region.t end)
+  end
 
-module type BlockSig =
+module type Block =
   sig
+
     module Info : BlockInfo
-    module InfoTree : Tree.Sig with type mark = Info.t
+    module InfoTree : Tree.Sig with type label = Info.t
     type t
     type rel = Same | Different | Nested | Containing 
     val subblocks : t -> t array 
@@ -113,9 +69,9 @@ module type BlockSig =
     val compare : t -> t -> int
   end
 
-module type ExprSig =
+module type Expr =
   sig
-    module Block : BlockSig
+    module Block : Block
     type t 
     val alloc  : Block.InfoTree.t -> t
     val block  : Block.t -> t
@@ -127,17 +83,17 @@ module type ExprSig =
     val any    : t
   end
 
-module type StmtSig =
+module type Stmt =
   sig
-    module Expr : ExprSig
+    module Expr : Expr
     type t 
     val assign : Expr.t -> Expr.t -> t
     val black  : Region.t list -> Expr.t list -> t
   end 
 
-module type MemorySig =
+module type Memory =
   sig
-    module Block : BlockSig
+    module Block : Block
     exception RegionNotFound
     type t
     val empty : t
@@ -145,50 +101,50 @@ module type MemorySig =
     val allocateBlock : t -> Block.InfoTree.t -> t * Block.t
   end
   
-(** signature to describe an effect of some actions on some states *)
+(* signature to describe an effect of some actions on some states *)
 module type Affection =
   sig
-    (** module corresponding to some action *)
+    (* module corresponding to some action *)
     module Action : sig type t end
 
-    (** module corresponding to some state *)
+    (* module corresponding to some state *)
     module State : sig type t end
 
-    (** [affect a s] returns a state to which [s] turn as a result of [a] execution *)
+    (* [affect a s] returns a state to which [s] turn as a result of [a] execution *)
     val affect : Action.t -> State.t -> State.t
 
   end
 
-(** Functor to create data flow analysis adapter *)
+(* Functor to create data flow analysis adapter *)
 module AAdapter (Repr : ProgramView.Repr)
                 (SL   : Semilattice.Base)
-                (S    : StmtSig)
+                (S    : Stmt)
                 (Aff  : Affection with type Action.t = S.t and
                                        type State.t  = SL.t
                 ) = 
   struct
-    (** Program view *)
+    (* Program view *)
     module P = Repr
 
-    (** Data flow analysis semilattice *)
+    (* Data flow analysis semilattice *)
     module L = Semilattice.Make (SL)
 
-    (** Data flow analysis flow functions *)
+    (* Data flow analysis flow functions *)
     let flow stmts l =   
       let rec aux l = function
       | []     -> l
       | hd::tl -> aux (Aff.affect hd l) tl
       in aux l stmts
 
-    (** Initial values *)
+    (* Initial values *)
     let init _ = L.top
     
   end
 
 module type Sig = 
   sig
-    module S : StmtSig
-    module M : MemorySig with module Block = S.Expr.Block
+    module S : Stmt
+    module M : Memory with module Block = S.Expr.Block
     module type MemoryInstance = sig val memory : M.t end
     module Analyse (MI : MemoryInstance)
                    (A: ProgramView.Abstractor with
@@ -209,21 +165,21 @@ module type Sig =
       end
   end
 
-(** Alias analysis framework creator *)
+(* Alias analysis framework creator *)
 module Make (BI: BlockInfo) =
   struct
 
-    (** Module to represen alias analysis block *)
+    (* Module to represen alias analysis block *)
     module Block =
       struct
 
-        (** Underlying block info module *)
+        (* Underlying block info module *)
         module Info = BI
 
-        (** Repesentation of a tree with nodes marked by block info *)
-        module InfoTree = Tree.Make (struct type mark = Info.t end)
+        (* Repesentation of a tree with nodes labeled by block info *)
+        module InfoTree = Tree.Make (struct type t = Info.t end)
 
-        (** Type of the memory block:
+        (* Type of the memory block:
               [Simple (i, at, info)] - simple block with unique identifier [i],
                                                          allocation type [at]
                                                          associated information [info].
@@ -238,31 +194,31 @@ module Make (BI: BlockInfo) =
                   Compound of int * [`Static | `Dynamic] * Info.t * t array |
                   Pseudo   of int * Region.t 
 
-        (** Relation between two blocks *)
+        (* Relation between two blocks *)
         type rel = Same | Different | Nested | Containing
 
-        (** [region b] returns region in which block [b] is allocated (so-called "true" region) *)
+        (* [region b] returns region in which block [b] is allocated (so-called "true" region) *)
         let region = function
         | Simple (_, _, i) | Compound (_, _, i, _) -> Info.region i
         | Pseudo (_, r) -> r
 
-        (** [subblocks b] returns array consisting of all subblocks of block [b] *)
+        (* [subblocks b] returns array consisting of all subblocks of block [b] *)
         let subblocks = function
         | Compound (_, _, _, sub) -> sub  
         | _  -> [||]
 
-        (** [typ b] returns type of block [b]: tree which nodes are marked with true regions of subblocks of [b] *)
+        (* [typ b] returns type of block [b]: tree which nodes are labeled with true regions of subblocks of [b] *)
         let rec typ = function
-        | Compound (_, _, i, sub) -> Type.makeNode (Info.region i) (Array.to_list (Array.map typ sub))
-        | Simple   (_, _, i)      -> Type.makeLeaf ((Info.region i))
+        | Compound (_, _, i, sub) -> Type.make (Info.region i) (Array.to_list (Array.map typ sub))
+        | Simple   (_, _, i)      -> Type.make (Info.region i) []
         | Pseudo   _              -> raise (Failure "Operation typ is not applicable to pseudo-blocks")
 
-        (** [info b] returns information bound with the block [b] *)
+        (* [info b] returns information bound with the block [b] *)
         let info = function
         | Simple (_, _, i) | Compound (_, _, i, _) -> i
         | Pseudo _ -> raise (Failure "Operation info is not applicable to pseudo-blocks")
 
-        (** [relation b1 b2] returns relation between [b1] and [b2] *)
+        (* [relation b1 b2] returns relation between [b1] and [b2] *)
         let rec relation x y =
           let nested y = Array.fold_left (fun ex x -> ex || let r = relation y x in
                                                               r = Nested || r = Same
@@ -286,10 +242,10 @@ module Make (BI: BlockInfo) =
         | Simple (_, `Dynamic, _) | Compound (_, `Dynamic, _, _) | Pseudo _ -> true
         | _ -> false
 
-        (** [compare b1 b2] provides order on blocks *)
+        (* [compare b1 b2] provides order on blocks *)
         let compare x y = (id y) - (id x)
 
-        (** [toViewer b] returns view of a block *)
+        (* [toViewer b] returns view of a block *)
         let toViewer x = 
           let rec aux = function
           | Simple   (i, _, _)     -> View.int i
@@ -298,14 +254,14 @@ module Make (BI: BlockInfo) =
         in 
         View.seq [View.string (Region.name (region x)); View.string ":";  (aux x)]
 
-        (** [toViewer b] returns string representation of a block *)
+        (* [toViewer b] returns string representation of a block *)
         let toString x = View.toString (toViewer x)
       end
 
     module BSet = Set.Make (Block) (* Set of memory blocks *)
     module BMap = Map.Make (Block) (* Map with memory blocks as keys *)
 
-    (** Alias language expression module *)
+    (* Alias language expression module *)
     module Expr = 
       struct
         module Block = Block
@@ -330,7 +286,7 @@ module Make (BI: BlockInfo) =
         let any       = Any
       end
 
-    (** Alias language statement module *)
+    (* Alias language statement module *)
     module S = 
       struct
 
@@ -346,19 +302,19 @@ module Make (BI: BlockInfo) =
         let start = Start
       end
 
-    (** Alias analysis memory module *)
+    (* Alias analysis memory module *)
     module M = 
       struct
-        (** type of block identifiers generator *)
+        (* type of block identifiers generator *)
         type idGenerator = unit -> int
  
-        (** Underlying block module *)
+        (* Underlying block module *)
         module Block = Block
 
-        (** Exception that is thrown when a region that does not belong to the memory is being addressed *)
+        (* Exception that is thrown when a region that does not belong to the memory is being addressed *)
         exception RegionNotFound = Not_found
 
-        (** Redefines region map module with Not_found exception handling *)
+        (* Redefines region map module with Not_found exception handling *)
         module RMap = 
           struct
             include RMap
@@ -368,22 +324,22 @@ module Make (BI: BlockInfo) =
               with Not_found -> raise RegionNotFound
           end
 
-        (** Memory region information representation *)
+        (* Memory region information representation *)
         module RegionInfo =
           struct
-            (** set of blocks * children regions *)
+            (* set of blocks * children regions *)
             type t = BSet.t * Region.t list
 
-            (** empty region information *)
+            (* empty region information *)
             let empty = (BSet.empty, []) 
 
-            (** [addChild fri cr] lets region [cr] to be a child of region [fri] *)
+            (* [addChild fri cr] lets region [cr] to be a child of region [fri] *)
             let addChild (bs, rs) toR = (bs, toR :: rs)
 
-            (** [addBlock ri b] adds block [b] to region info [ri] *)
+            (* [addBlock ri b] adds block [b] to region info [ri] *)
             let addBlock (bs, rs) block = (BSet.add block bs, rs)
             
-            (** [children ri] returns all children regions of region information [ri] *)
+            (* [children ri] returns all children regions of region information [ri] *)
             let children = snd
 
             let fold f acc = function
@@ -391,11 +347,11 @@ module Make (BI: BlockInfo) =
 
           end
 
-        (** module to provide functions to create blocks *)
+        (* module to provide functions to create blocks *)
         module BlockCreator :
           sig
 
-            (** [create m t nextId] creates block (and all of its subblocks if it is compound)
+            (* [create m t nextId] creates block (and all of its subblocks if it is compound)
                                         with allocation mode [m] and type [t] using [nextId]
                                         as a free identifiers generator.
                                         Returns a pair of top level block and list of its subblocks.
@@ -407,41 +363,41 @@ module Make (BI: BlockInfo) =
 
             let create mode aT nextId =
               let module T = Block.InfoTree in
-              let rec aux aT = match (T.isLeaf aT) with
-                true  -> let block = Block.Simple (nextId (), mode, T.mark aT) in
+              let rec aux aT = match (T.children aT = []) with
+                true  -> let block = Block.Simple (nextId (), mode, T.label aT) in
                            (block, [])
               | false -> let (bs, subs) =
                            List.fold_left (fun (bs, subs) aT -> let (block, sub) = aux aT in (block :: bs, sub @ subs))
                                           ([], [])
                                           (T.children aT)
                          in
-                         let block = Block.Compound (nextId (), mode, T.mark aT, Array.of_list (List.rev bs)) in
+                         let block = Block.Compound (nextId (), mode, T.label aT, Array.of_list (List.rev bs)) in
                            (block, bs @ subs)
               in aux aT
 
           end
 
-        (** Module to provide operations on pseudo blocks set *)
+        (* Module to provide operations on pseudo blocks set *)
         module PseudoStorage :
           sig
-             (** Type of pseudo-blocks storage *)
+             (* Type of pseudo-blocks storage *)
             type t
 
-            (** empty storage *)
+            (* empty storage *)
             val empty  : t
 
-            (** [update ps rs freeId] updates pseudo storage [ps] with 
+            (* [update ps rs freeId] updates pseudo storage [ps] with 
                   a tie on a region set [rs] used in one black box statement
                   using [nextId] as a free identifiers generator.
                 Returns updated pseudo storage and a set of created blocks.
               *)
             val update : t -> RSet.t -> idGenerator -> t * BSet.t
 
-             (** [take pb ps] returns all pseudo-blocks associated with [pb] in pseudo-storage [ps] *)
+             (* [take pb ps] returns all pseudo-blocks associated with [pb] in pseudo-storage [ps] *)
             val take   : Block.t -> t -> BSet.t            
           end =
           struct
-            (** Map from pseudo blocks to a pseudo blocks set:
+            (* Map from pseudo blocks to a pseudo blocks set:
                 we associate pseudo blocks that may correspond to a pair of dynamic blocks created
                 in one black box.
               *)
@@ -482,14 +438,14 @@ module Make (BI: BlockInfo) =
             let take pBlock ps = BMap.find pBlock ps
           end
 
-        (** Type of memory : map from regions to region info * number of allocated regions *)
+        (* Type of memory : map from regions to region info * number of allocated regions *)
         type t = { map : RegionInfo.t RMap.t; (* map from regions to region info *)
                    ps  : PseudoStorage.t; (* Storage of pseudo blocks *)
                    rCounter : int; (* number of allocated regions *)
                    nextId : unit -> int (* generator of a next free identifier *)
                  }
 
-        (** Initial empty memory *)
+        (* Initial empty memory *)
         let empty = {map = RMap.empty;
                      ps = PseudoStorage.empty;
                      rCounter = 0;
@@ -514,7 +470,7 @@ module Make (BI: BlockInfo) =
             newRegion
           ) 
 
-        (** [subregions m r] returns all subregions of region [r] i memory [m] *)
+        (* [subregions m r] returns all subregions of region [r] i memory [m] *)
         let subregions mem =
           let rec aux r =
            let rl = RegionInfo.children (RMap.find r mem.map) in
@@ -522,7 +478,7 @@ module Make (BI: BlockInfo) =
           in
           aux 
 
-        (** Adds block to memory map *)
+        (* Adds block to memory map *)
         let addBlockToMemoryMap block map = 
           let r = Block.region block
           in
@@ -541,7 +497,7 @@ module Make (BI: BlockInfo) =
 
         let allocateDynamic = allocAux `Dynamic
 
-        (** Updates memory with pseudo blocks for some Black(rs, _) statement *)
+        (* Updates memory with pseudo blocks for some Black(rs, _) statement *)
         let allocatePseudos mem regions =
           let (ps', newBlocks) = PseudoStorage.update mem.ps regions mem.nextId
           in
@@ -549,14 +505,14 @@ module Make (BI: BlockInfo) =
           in
           {mem with map = map'; ps = ps'}
 
-        (** [takePseudos b m] takes all pseudo-blocks associated with [b] in [m] *)
+        (* [takePseudos b m] takes all pseudo-blocks associated with [b] in [m] *)
         let takePseudos block mem = PseudoStorage.take block mem.ps
 
-        (** fold for all blocks in region r *)
+        (* fold for all blocks in region r *)
         let fold f mem r acc =
           RegionInfo.fold f acc (RMap.find r mem.map) 
 
-       (** fold for all memory blocks *)
+       (* fold for all memory blocks *)
         let foldAll f mem acc =
           RMap.fold (fun _ ri acc -> RegionInfo.fold f acc ri) mem.map acc
           
@@ -574,7 +530,7 @@ module Make (BI: BlockInfo) =
 
         module NodeMap = Map.Make (G.Node)
 
-        (** Creates memory updated with dynamic and pseudo-blocks and
+        (* Creates memory updated with dynamic and pseudo-blocks and
             map from old statements containg New expressions to statements
             with dynamic blocks on corresponding places.
             (We merge all dynamic blocks created in one place).
@@ -635,7 +591,7 @@ module Make (BI: BlockInfo) =
                 (* undefined value *)
                 let undef = V (BSet.empty, RSet.empty, true)
          
-                (** checks if value is empty *)
+                (* checks if value is empty *)
                 let isEmpty = function
                 | Any -> false
                 | V (bs, rs, undf) -> (BSet.is_empty bs) && (RSet.is_empty rs) && (not undf)
@@ -715,10 +671,10 @@ module Make (BI: BlockInfo) =
             let (<@>) = Value.(<@>)
             let (</>) = Value.(</>)
             
-            (** module providing functions to evaluate expression/block values *)  
+            (* module providing functions to evaluate expression/block values *)  
             module Eval =
               struct
-                 (** [getValue b l] evaluates value of block [b] for semilattice element [l] *)
+                 (* [getValue b l] evaluates value of block [b] for semilattice element [l] *)
                  let getValue block = 
                    let region = Block.region block
                    in
@@ -738,7 +694,7 @@ module Make (BI: BlockInfo) =
                    | Bottom -> Value.Any
                    | L l'   -> findr l'
       
-                 (** [getExprValue e l] evaluates value of expression [e] for semilattice element [l] *)
+                 (* [getExprValue e l] evaluates value of expression [e] for semilattice element [l] *)
                  let getExprValue e l =  
                   let addSub sub block set = match block with
                     Block.Pseudo _ 
@@ -815,7 +771,7 @@ module Make (BI: BlockInfo) =
             | Bottom -> "Bottom"
             | L l    -> View.toString (aux l)
         
-            (** semilattice operation *)
+            (* semilattice operation *)
             let cap x y = 
              let rec cap' x y = match (x, y) with
                [], l | l, [] -> l
@@ -848,7 +804,7 @@ module Make (BI: BlockInfo) =
              | Bottom, _ | _, Bottom -> false
              | L x, L y -> equal' x y
       
-            (** [update m v b l] returns new semilattice element
+            (* [update m v b l] returns new semilattice element
                  with updated value of block [b].
                  If update mode [m] is 'Strong, then value of [b] is replaced with [v],
                  otherwise ('Weak) it is merged with [v].
@@ -961,7 +917,7 @@ module Make (BI: BlockInfo) =
       
         module Analyse = DFAEngine.RevPost (PView) (DFST.Make (G))
         
-        (** type of alias information *)
+        (* type of alias information *)
         type aliasInfo = SL.Value.t
 
         let slBefore node = match List.map Analyse.get (G.ins node) with
@@ -991,7 +947,7 @@ module Make (BI: BlockInfo) =
            not (S.Expr.Block.dynamic b1) && (S.Expr.Block.relation b1 b2 = S.Expr.Block.Same)
           )
  
-        (** Analysis results visualizer *)
+        (* Analysis results visualizer *)
         module DOT = 
           struct
             module NodeInfo =
@@ -1069,7 +1025,7 @@ module Make (BI: BlockInfo) =
               end
             )
 
-            (** [addNodeCluster g l i l] adds cluster providing graph representation
+            (* [addNodeCluster g l i l] adds cluster providing graph representation
                   of semilattice element [l] with id [i] and label [l] to graph [g] *)
             let addNodeCluster graph label id sl =
              LOG (Printf.printf "addNodeCluster id=%d label=%s %!\n" id label);
@@ -1128,7 +1084,7 @@ module Make (BI: BlockInfo) =
              in
              (graph, DOT.Clusters.Node ((name, label, other),  clusters)) 
 
-            (** [toDOT ()] returns graph representation of the analysis result *)
+            (* [toDOT ()] returns graph representation of the analysis result *)
             let toDOT () =
              LOG (Printf.printf "toDOT conversion started%!\n"); 
              let rec takeClusterNode = function
