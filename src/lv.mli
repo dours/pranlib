@@ -16,37 +16,37 @@
  *)
 open DFACommon
 
-(** Live variables analysis semilattice *)
-module LVSemilattice(A: ProgramView.Abstractor with
-                    type Abstract.node = DFACommon.Statement.t list and
-										type Abstract.edge = EdgeInfo.t)
-               (G : CFG.Sig with
-                    type Node.t = A.Concrete.node and 
-                    type Edge.t = A.Concrete.edge) :
-sig
-	include Semilattice.Base
-  
-  val make : bool -> BitVector.t
-  
-  val make_top : unit -> BitVector.t
-  
-  val make_bottom : unit -> BitVector.t
-end			
+(** Live variable analysis semilattice. *)
+module LVSemilattice(A: ProgramView.Abstractor with type Abstract.node = DFACommon.Statement.t list and
+						    type Abstract.edge = EdgeInfo.t)
+               (G : CFG.Sig with type Node.t = A.Concrete.node and 
+                                 type Edge.t = A.Concrete.edge) :
+  sig
 
-(** Live variable analysis results creation functor *)
-module LVResults (A: ProgramView.Abstractor with
-                    type Abstract.node = DFACommon.Statement.t list and
-										type Abstract.edge = EdgeInfo.t)
-               (G : CFG.Sig with
-                    type Node.t = A.Concrete.node and 
-                    type Edge.t = A.Concrete.edge) :
-sig
-	(** Type of live variables analysis information *)
-	type lvInfo = DFACommon.BitVector.t
+    include Semilattice.Base
+  
+    val make : bool -> BitVector.t
+  
+    val make_top : unit -> BitVector.t
+  
+    val make_bottom : unit -> BitVector.t
+
+  end			
+
+(** Live variable analysis results creation functor. *)
+module LVResults (A: ProgramView.Abstractor with type Abstract.node = DFACommon.Statement.t list and
+					         type Abstract.edge = EdgeInfo.t)
+               (G : CFG.Sig with type Node.t = A.Concrete.node and 
+                                 type Edge.t = A.Concrete.edge) :
+  sig
+
+    (** Type of live variable analysis information. *)
+    type lvInfo = DFACommon.BitVector.t
 	
-	(** [before n] Returns live variables informaton on entrance into node n *)
-	val before : G.Node.t -> lvInfo 
+    (** [before n] Returns live variable informaton on entrance into node [n]. *)
+    val before : G.Node.t -> lvInfo 
 	
-	(** [after n] Returns live variables information on exit of node n *)
-	val after : G.Node.t -> lvInfo
-end
+    (** [after n] Returns live variables information on exit of node [n]. *)
+    val after : G.Node.t -> lvInfo
+
+  end
