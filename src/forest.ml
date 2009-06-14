@@ -1,48 +1,63 @@
+(*
+ * Forest: forest manipulation functions.
+ * Copyright (C) 2008
+ * 
+ * This software is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License version 2, as published by the Free Software Foundation.
+ * 
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * 
+ * See the GNU Library General Public License version 2 for more details
+ * (enclosed in the file COPYING).
+ *)
 
 module type Sig = 
-sig
+  sig
 
     type t
     
-    type node_type
+    type node
 
     val create : unit -> t
      
-    val join : t -> node_type -> node_type ->unit
+    val join : t -> node -> node ->unit
 
-    val root : t -> node_type -> node_type
+    val root : t -> node -> node
     
-    val parent : t -> node_type -> node_type option 
+    val parent : t -> node -> node option 
 
     val toString : t -> string
     
-    (** This module provides top-to-down tree view *)
+    (* This module provides top-to-down tree view *)
     module Tree :
     sig
       
-      (** Type of element of this view of the forest *)
-      type treeEl = Node of node_type 
-                   | Head of node_type * (treeEl list)
+      (* Type of element of this view of the forest *)
+      type treeEl = Node of node 
+                   | Head of node * (treeEl list)
       
-      (** Creates top-to-down view of the forset *)
+      (* Creates top-to-down view of the forset *)
       val create : t -> treeEl list
       
-      (** dotty clusterded representation *)
+      (* dotty clusterded representation *)
       val toDOT : treeEl list -> string 
       
-      (** Traces forest *)
+      (* Traces forest *)
       val print : treeEl list -> unit 
        
     end
 
-end 
+  end 
 
 module Make (G : CFG.Sig ) (O : Order.Sig with module G = G) =
-struct 
+  struct 
 
     type t = (int * int) Urray.t
     
-    type node_type = G.Node.t
+    type node = G.Node.t
    
     let create unit = 
       let nodes = Urray.make 
@@ -103,8 +118,8 @@ struct
     module Tree = 
     struct
      
-       type treeEl = Node of node_type 
-                   | Head of node_type * (treeEl list)
+       type treeEl = Node of node 
+                   | Head of node * (treeEl list)
 
        module Cluster = 
          struct
@@ -179,13 +194,10 @@ struct
            in 
            List.iter (visitNode) els
          in
-         toString roots 0    
-         
+         toString roots 0             
      
     end
-          
-      
 
-end
+  end
 
 

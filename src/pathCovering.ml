@@ -130,132 +130,133 @@ module Make
 		 
   end
 
-module MakeBuildSimple (D : DFST.Sig) = struct
+module MakeBuildSimple (D : DFST.Sig) = 
+  struct
   
-  open List
+    open List
 
-  module Aux = Digraph.Make
-    (
-     struct 
-	
-       type t = D.G.Node.t option 
-	     
-       let toString = function Some node -> D.G.Node.toString node | _ -> "<none>"
-
-     end
-    )
-    (
-     struct 
-
-       type t = D.G.Edge.t option * int
-
-       let toString = function (Some edge), _ -> D.G.Edge.toString edge | _ -> "<none>"
-           
-     end
-    )
-      
-  module MaxFlow = Graph.Flow.Ford_Fulkerson 
-    (
-     struct 
-       
-       type t = Aux.t
-	     
-       module V = Aux.Node
-       module E = 
-	 struct
+    module Aux = Digraph.Make
+      (
+       struct 
 	   
-           type t     = Aux.Edge.t
-           type label = Aux.Edge.info
+	 type t = D.G.Node.t option 
+	     
+	 let toString = function Some node -> D.G.Node.toString node | _ -> "<none>"
+
+       end
+      )
+      (
+       struct 
+
+	 type t = D.G.Edge.t option * int
+	       
+	 let toString = function (Some edge), _ -> D.G.Edge.toString edge | _ -> "<none>"
+           
+       end
+      )
+      
+    module MaxFlow = Graph.Flow.Ford_Fulkerson 
+      (
+       struct 
+       
+	 type t = Aux.t
+	     
+	 module V = Aux.Node
+	 module E = 
+	   struct
+	     
+             type t     = Aux.Edge.t
+             type label = Aux.Edge.info
+		   
+             let src   = Aux.src
+             let dst   = Aux.dst
+             let label = Aux.Edge.info
 		 
-           let src   = Aux.src
-           let dst   = Aux.dst
-           let label = Aux.Edge.info
-               
-	 end
+	   end
 	   
-       let iter_succ_e func graph node = iter func (Aux.outs node)
-       let iter_pred_e func graph node = iter func (Aux.ins  node)
-	   
-     end
-    ) 
-    (
-     struct
+	 let iter_succ_e func graph node = iter func (Aux.outs node)
+	 let iter_pred_e func graph node = iter func (Aux.ins  node)
+	     
+       end
+      ) 
+      (
+       struct
        
-       type label = Aux.Edge.info
-       type t = int
+	 type label = Aux.Edge.info
+	 type t = int
+               
+	 let max_capacity l = snd l
+	 let min_capacity l = 0
              
-       let max_capacity l = snd l
-       let min_capacity l = 0
-           
-       let flow l = 0
-       let add = (+)
-       let sub = (-)
-       let zero = 0
-       let compare = compare
-           
-     end
-    )
+	 let flow l = 0
+	 let add = (+)
+	 let sub = (-)
+	 let zero = 0
+	 let compare = compare
+             
+       end
+      )
       
-  type edge = D.G.Edge.t
+    type edge = D.G.Edge.t
 	
-  let build () =
-    let module NodeHash = Hashtbl.Make (D.G.Node) in
+    let build () =
+      let module NodeHash = Hashtbl.Make (D.G.Node) in
     
-    let graph       = D.graph in
-    let start       = D.start in
-    let aux         = Aux.create () in
-    let aux, source = Aux.insertNode aux None in
-    let aux, sink   = Aux.insertNode aux None in
-    let hash        = NodeHash.create (D.G.nnodes graph) in
-    let aux         = 
-      fold_left 
-	(fun aux node -> 
-          let aux, n  = Aux.insertNode aux (Some node) in
-          let aux, n' = Aux.insertNode aux (Some node) in
-          NodeHash.add hash node (n, n');
-          let aux, _ = Aux.insertEdge aux source n    (None, 1) in
-          let aux, _ = Aux.insertEdge aux n'     sink (None, 1) in
-          aux
-	) 
-	aux 
-	(D.G.nodes graph) 
-    in
-    let module P = Set.Make (Compare.Pair (Aux.Node) (Aux.Node)) in
-    let aux, p = 
-      fold_left
-	(fun (aux, p) edge ->
-          match D.sort edge with
-          | DFST.Back -> aux, p
-          | _ ->
-	      let n, _ = NodeHash.find hash (D.G.src edge) in
-	      let _, k = NodeHash.find hash (D.G.dst edge) in
-	      let aux = 
-		if P.mem (n, k) p 
-		then aux
-		else fst (Aux.insertEdge aux n k (Some edge, 1))
-	      in
-	      aux, P.add (n, k) p
-	)
-	(aux, P.empty)
-	(D.G.edges graph)
-    in
-    
-    LOG (Printf.fprintf stderr "Flow Graph:\n%s\n" (Aux.DOT.toDOT aux));
-    
-    let flows, _ = MaxFlow.maxflow aux source sink in
-    List.fold_left 
-      (fun list edge -> 
-        if flows edge > 0 then 
-          begin
-            LOG (Printf.fprintf stderr " Adding edge to maximal flow: %s\n" (Aux.Edge.toString edge));
-            match Aux.Edge.info edge with
-            | None, _   -> list
-            | Some e, _ -> e :: list
-          end
-        else list
-      ) [] (Aux.edges aux)
+      let graph       = D.graph in
+      let start       = D.start in
+      let aux         = Aux.create () in
+      let aux, source = Aux.insertNode aux None in
+      let aux, sink   = Aux.insertNode aux None in
+      let hash        = NodeHash.create (D.G.nnodes graph) in
+      let aux         = 
+	fold_left 
+	  (fun aux node -> 
+            let aux, n  = Aux.insertNode aux (Some node) in
+            let aux, n' = Aux.insertNode aux (Some node) in
+            NodeHash.add hash node (n, n');
+            let aux, _ = Aux.insertEdge aux source n    (None, 1) in
+            let aux, _ = Aux.insertEdge aux n'     sink (None, 1) in
+            aux
+	  ) 
+	  aux 
+	  (D.G.nodes graph) 
+      in
+      let module P = Set.Make (Compare.Pair (Aux.Node) (Aux.Node)) in
+      let aux, p = 
+	fold_left
+	  (fun (aux, p) edge ->
+            match D.sort edge with
+            | DFST.Back -> aux, p
+            | _ ->
+		let n, _ = NodeHash.find hash (D.G.src edge) in
+		let _, k = NodeHash.find hash (D.G.dst edge) in
+		let aux = 
+		  if P.mem (n, k) p 
+		  then aux
+		  else fst (Aux.insertEdge aux n k (Some edge, 1))
+		in
+		aux, P.add (n, k) p
+	  )
+	  (aux, P.empty)
+	  (D.G.edges graph)
+      in
       
-end
+      LOG (Printf.fprintf stderr "Flow Graph:\n%s\n" (Aux.DOT.toDOT aux));
+    
+      let flows, _ = MaxFlow.maxflow aux source sink in
+      List.fold_left 
+	(fun list edge -> 
+          if flows edge > 0 then 
+            begin
+              LOG (Printf.fprintf stderr " Adding edge to maximal flow: %s\n" (Aux.Edge.toString edge));
+              match Aux.Edge.info edge with
+              | None, _   -> list
+              | Some e, _ -> e :: list
+            end
+          else list
+	) [] (Aux.edges aux)
+	
+  end
     
 module MakeBuildWeighted 
     (T     : DFST.Sig)
@@ -311,9 +312,9 @@ module MakeBuildWeighted
     
   end
 
-  module MakeSimple (D : DFST.Sig) = Make(D)(MakeBuildSimple(D))
-
-  module MakeWeighted 
-      (D : DFST.Sig)
-      (Freqs : sig type t val w : t -> int end with type t = D.G.Edge.info) = 
-    Make(D)(MakeBuildWeighted(D)(Freqs))
+module MakeSimple (D : DFST.Sig) = Make(D)(MakeBuildSimple(D))
+      
+module MakeWeighted 
+    (D : DFST.Sig)
+    (Freqs : sig type t val w : t -> int end with type t = D.G.Edge.info) = 
+  Make(D)(MakeBuildWeighted(D)(Freqs))
