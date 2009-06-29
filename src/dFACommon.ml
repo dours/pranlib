@@ -38,13 +38,35 @@ end
 
 module Statement=
 struct
-	type t = Assignment of (MultiVariablePoint.t * MultiVariablePoint.t list) | Other
+	type t = Assignment of (MultiVariablePoint.t * MultiVariablePoint.t list) | Read of MultiVariablePoint.t | Other
 	
 	let assignment lp rp = Assignment (lp, rp)
+  
+  let read p = Read p
 	
 	let other = Other
 	
 	let equals x y = true (* TODO: implement *)
+  
+  let lp_match x y =
+    let rec check_recursively lpx lpy = match lpx with
+      | [] -> false
+      | hd::tl -> if List.exists (fun s -> Variable.equals s hd) lpy then true
+                  else check_recursively tl lpy in 
+    match (x, y) with
+    | (Assignment(lp_x, _), Assignment(lp_y, _)) -> check_recursively lp_x lp_y
+    | (Read (lp_x), Read(lp_y)) -> check_recursively lp_x lp_y
+    | _ -> false
+       
+      
+  let contains_variable_in_lp s v = match s with
+    | Assignment(lp, _) -> List.exists (fun x -> Variable.equals x v) lp
+    | Read lp -> List.exists (fun x -> Variable.equals x v) lp
+    | _ -> false
+  
+  let contains_variable_in_rp s v = match s with
+    | Assignment(_, rp) -> List.exists (fun x -> List.exists (fun y -> Variable.equals y v) x) rp
+    | _ -> false
 	
 	let toString statement =
 		(* Prints expression (list of MultiVariablePoints *)
@@ -57,6 +79,27 @@ struct
 		match statement with
 			| Other -> "Other"
 			| Assignment (lp, rp) -> Printf.sprintf "Assignment [%s=%s]" (MultiVariablePoint.toString lp) (printExpression rp "")
+      | Read lp -> Printf.sprintf "Read [%s]" (MultiVariablePoint.toString lp)
+end
+
+module NodeInfo=
+struct
+	type t = Statement.t list
+  
+  let toString statements = 
+		let rec toString' statements acc = 
+			match statements with
+				| [] -> acc
+				| hd :: tl -> toString' tl (Statement.toString hd)^acc
+			in
+			toString' statements ""
+end
+
+module EdgeInfo =
+struct
+	type t = Empty
+
+	let toString _ = "edge"
 end
 
 module BitVectorElement = 
@@ -136,18 +179,13 @@ end
 
 module DFAHelper=
 struct
-	let gen (statements:Statement.t list) = 
-    let gen_statement statement = match statement with 
-      | Statement.Other -> BitVector.empty
-      | Statement.Assignment(lp, rp) -> 
-      let gen_multi_var mvp = List.map (fun x -> (x, true)) mvp in
-      let gen_multi_var_list mvpl = List.map (fun x -> gen_multi_var x) mvpl in
-       List.concat (gen_multi_var_list rp) in
-    let gen_statements = List.map (fun x -> gen_statement x) statements in
-    List.concat gen_statements
+	let gen statements bottom = List.map (fun e ->
+    let v = BitVectorElement.var e in
+    let r = (List.exists (fun s -> Statement.contains_variable_in_rp s v) statements) && not (List.exists (fun s -> Statement.contains_variable_in_lp s v) statements) in 
+    BitVectorElement.construct v r) bottom 
     
-	let kill statements = List.concat (List.map (fun s ->
-    match s with
-      | Statement.Other -> BitVector.empty
-      | Statement.Assignment (lp, _) -> List.map (fun x -> (x, true)) lp) statements) 
+	let kill statements bottom = List.map (fun e ->
+    let v = BitVectorElement.var e in
+    let r = List.exists (fun s -> Statement.contains_variable_in_lp s v) statements in 
+    BitVectorElement.construct v r) bottom 
 end

@@ -1,7 +1,5 @@
 (*
- * DFACommon: contains common modules for data flow analyses: 
- * reaching definitions and live variables.
- *
+ * DFACommon: contains common modules for data flow analyses: reaching definitions and live variables
  * Copyright (C) 2008
  * Andrey Serebryansky, St.Petersburg State University
  * 
@@ -17,105 +15,113 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Represents a variable. *)
+(** Represents a variable *)
 module Variable : 
-  sig
+sig
+	(** Variable is represented by a name by default *)
+	type t = string
 	
-    (** Variable is represented by a name by default. *)
-    type t = string
+	(** [create s] creates a variable named s *)
+	val create : string -> t
 	
-    (** [create s] creates a variable named [s]. *)
-    val create : string -> t
+	(** [equals a b] returns true if a and b are the same variable *)
+	val equals : t -> t -> bool
 	
-    (** [equals a b] returns true if a and b are the same variable. *)
-    val equals : t -> t -> bool
-	
-    (** [toString s] prints string representation. *)
-    val toString : t -> string
-
-  end
-
-(** Represents a point where multiple variables are available. 
-    It is used to support alias analysis results.
- *)
-module MultiVariablePoint : 
-  sig
-	
-   (** An MVP is a list of variables which may appear at this point 
-       (used to support alias analysis. 
-    *)
-   type t = Variable.t list
-
-   (** [create_empty ()] creates an empty MVP. *)
-   val create_empty : unit -> t
-	
-   (** [toString mvp] prints MVP information. *)
-   val toString : t -> string
-
-  end
-
-(** Represents a statement in reaching definitions model. *)
-module Statement: 
-  sig
-
-    type t = Assignment of (MultiVariablePoint.t * MultiVariablePoint.t list) | Other
-	
-    val assignment : MultiVariablePoint.t -> MultiVariablePoint.t list -> t
-	
-    val other : t
-	
-    val equals : t -> t -> bool
-	
-    val toString : t -> string
-
-  end
-
-(** Element of a bit-vector. *)
-module BitVectorElement : 
-  sig
-
-    type t = Variable.t * bool
-  
-    val construct : Variable.t -> bool -> t
-	
-    val and_op : t -> t -> t
-	
-    val or_op : t -> t -> t
-	
-    val equal : t -> t -> bool
-	
-    val var : t -> Variable.t
-	
-    val state : t -> bool
-	
-    val toString : t -> string 
-
+	(** [toString s] prints string representation *)
+	val toString : t -> string
 end
 
-(** Bit-vector. *)
+(** Represents a point where multiple variables are available. This is used to support alias analysis results *)
+module MultiVariablePoint : 
+sig
+	(** An MVP is a list of variables which may appear at this point (used to support alias analysis *)
+	type t = Variable.t list
+
+	(** [create_empty ()] creates an empty MVP *)	
+	val create_empty : unit -> t
+	
+	(** [toString mvp] prints MVP information *)
+	val toString : t -> string
+end
+
+(** Represents a statement in reaching definitions model *)
+module Statement:
+sig
+	type t = Assignment of (MultiVariablePoint.t * MultiVariablePoint.t list) | Read of MultiVariablePoint.t | Other
+	
+	val assignment : MultiVariablePoint.t -> MultiVariablePoint.t list -> t
+	
+	val other : t
+	
+	val equals : t -> t -> bool
+  
+  val lp_match : t -> t -> bool
+  
+  val contains_variable_in_lp : t -> Variable.t -> bool
+  
+  val contains_variable_in_rp : t -> Variable.t -> bool 
+	
+	val toString : t -> string
+end
+
+(** Node information *)
+module NodeInfo :
+sig
+	(** Type of the node information *)
+	type t = Statement.t list
+  
+  val toString : t -> string
+end
+
+(** Edge information *)
+module EdgeInfo :
+sig
+	(** Type of the edge information *)
+	type t = Empty
+  
+  val toString : t -> string
+end
+
+(** Element of a bit-vector *)
+module BitVectorElement : 
+sig
+	type t = Variable.t * bool
+  
+  val construct : Variable.t -> bool -> t
+	
+	val and_op : t -> t -> t
+	
+	val or_op : t -> t -> t
+	
+	val equal : t -> t -> bool
+	
+	val var : t -> Variable.t
+	
+	val state : t -> bool
+	
+	val toString : t -> string 
+end
+
+(** Bit-vector *)
 module BitVector : 
-  sig
+sig
+	type t = BitVectorElement.t list
+	
+	val empty : t
+	
+	val cap : t -> t -> t
+	
+	val equal : t -> t -> bool
+  
+  val lookup_element : Variable.t -> t -> BitVectorElement.t option
+	
+	val toString : t -> string  
+end
 
-    type t = BitVectorElement.t list
-	
-    val empty : t
-	
-    val cap : t -> t -> t
-	
-    val equal : t -> t -> bool
-	
-    val lookup_element : Variable.t -> t -> BitVectorElement.t option
-	
-    val toString : t -> string  
-
-  end
-
-(** DFA helper routines. *)
+(** DFA helper routines *)
 module DFAHelper:
-  sig
-
-    val gen : Statement.t list -> BitVector.t
+sig
+	val gen : Statement.t list -> BitVector.t -> BitVector.t
 	
-    val kill : Statement.t list -> BitVector.t
-
-  end
+	val kill : Statement.t list -> BitVector.t -> BitVector.t
+end
