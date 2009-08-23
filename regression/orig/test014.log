@@ -1,37 +1,32 @@
-Calculating flow for node Assignment [a=b+c]
+Calculating flow for node [Node=[Reads=a;; Writes=b;c;];]
 Flow calculated to lattice element
 Full case matched
-Input: BV[E[Assignment [d=e+f],true];E[Assignment [a=b+c],true];]
-Gen: BV[E[Assignment [d=e+f],false];E[Assignment [a=b+c],true];]
-Prsv: BV[E[Assignment [d=e+f],false];E[Assignment [a=b+c],false];]
+Input: BV[E[[Reads=d;; Writes=e;f;],true];E[[Reads=a;; Writes=b;c;],true];]
+Gen: BV[E[[Reads=d;; Writes=e;f;],false];E[[Reads=a;; Writes=b;c;],true];]
+Prsv: BV[E[[Reads=d;; Writes=e;f;],false];E[[Reads=a;; Writes=b;c;],false];]
 Full case matched
-Input: BV[E[Assignment [a=b+c],true];]
-Gen: BV[E[Assignment [a=b+c],true];]
-Prsv: BV[E[Assignment [a=b+c],false];]
+Input: BV[E[[Reads=a;; Writes=b;c;],true];]
+Gen: BV[E[[Reads=a;; Writes=b;c;],true];]
+Prsv: BV[E[[Reads=a;; Writes=b;c;],false];]
 Empty lists case matched
-Calculating flow for node Assignment [d=e+f]
+Calculating flow for node [Node=[Reads=d;; Writes=e;f;];]
 Flow calculated to lattice element
 Full case matched
-Input: BV[E[Assignment [d=e+f],true];E[Assignment [a=b+c],true];]
-Gen: BV[E[Assignment [d=e+f],true];E[Assignment [a=b+c],false];]
-Prsv: BV[E[Assignment [d=e+f],false];E[Assignment [a=b+c],false];]
+Input: BV[E[[Reads=d;; Writes=e;f;],true];E[[Reads=a;; Writes=b;c;],true];]
+Gen: BV[E[[Reads=d;; Writes=e;f;],true];E[[Reads=a;; Writes=b;c;],false];]
+Prsv: BV[E[[Reads=d;; Writes=e;f;],false];E[[Reads=a;; Writes=b;c;],false];]
 Full case matched
-Input: BV[E[Assignment [a=b+c],true];]
-Gen: BV[E[Assignment [a=b+c],false];]
-Prsv: BV[E[Assignment [a=b+c],false];]
+Input: BV[E[[Reads=a;; Writes=b;c;],true];]
+Gen: BV[E[[Reads=a;; Writes=b;c;],false];]
+Prsv: BV[E[[Reads=a;; Writes=b;c;],false];]
 Empty lists case matched
-Started logging...
-Graph:
-
-digraph X { 
-  node1 [label="index=1, info=Assignment [d=e+f];"]; 
-  node0 [label="index=0, info=Assignment [a=b+c];"];
-
-  node1 -> node0 [label="info=edge"];
-
-}
-Calling Analyze.get
-Lattice element encountered
-RD results:
-
-BV[E[Assignment [d=e+f],true];E[Assignment [a=b+c],true];]
+Calculating flow for node [Node=[Reads=a;; Writes=b;c;];]
+Flow calculated to lattice element
+Full case matched
+Input: BV[E[[Reads=a;; Writes=b;c;],false];E[[Reads=d;; Writes=e;f;],true];E[[Reads=a;; Writes=b;c;],true];]
+Gen: BV[E[[Reads=d;; Writes=e;f;],false];E[[Reads=a;; Writes=b;c;],true];]
+Prsv: BV[E[[Reads=d;; Writes=e;f;],false];E[[Reads=a;; Writes=b;c;],false];]
+Full case matched
+Input: BV[E[[Reads=d;; Writes=e;f;],true];E[[Reads=a;; Writes=b;c;],true];]
+Gen: BV[E[[Reads=a;; Writes=b;c;],true];]
+Prsv: BV[E[[Reads=a;; Writes=b;c;],false];]

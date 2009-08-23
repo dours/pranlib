@@ -17,14 +17,16 @@
 open Printf
 open DFACommon
 
-module LVSemilattice(A: ProgramView.Abstractor with
-                    type Abstract.node = DFACommon.Statement.t list and
-										type Abstract.edge = EdgeInfo.t)
+module LVSemilattice
+               (DFAC : Sig)
+               (A: ProgramView.Abstractor with
+                    type Abstract.node = DFAC.Statement.t list and
+										type Abstract.edge = DFAC.EdgeInfo.t)
                (G : CFG.Sig with
                     type Node.t = A.Concrete.node and 
                     type Edge.t = A.Concrete.edge)=
 struct
-	type t = L of BitVector.t
+	type t = L of DFAC.BitVector.t
   
   let make ival = 
     let nodes = G.nodes G.graph in
@@ -33,26 +35,24 @@ struct
                            (fun node ->
                                 let anode = A.node node in 
                                 let statement_parts =
-                                let extract_from_mvp mvp = List.map (fun v -> BitVectorElement.construct v false) mvp in 
+                                let extract_from_mvp mvp = List.map (fun v -> DFAC.BitVectorElement.construct v false) mvp in 
                                   List.map 
                                     (fun s -> 
-                                             match s with 
-                                             | Statement.Other -> []
-                                             | Statement.Assignment (lp, rp) ->
+                                             match s with (lp, rp) ->
                                               let lp_extracted = extract_from_mvp lp in
-                                              let rp_extracted = List.concat (List.map (fun x -> extract_from_mvp x) rp) in
+                                              let rp_extracted = extract_from_mvp rp in
                                               List.concat [lp_extracted;rp_extracted]) anode in List.concat statement_parts) nodes in
     List.concat bit_vector_parts in
     let rec remove_duplicates bv result = match bv with 
       | [] -> List.rev result
       | hd::tl -> 
-        let v = BitVectorElement.var hd in
-        if (List.exists (fun e -> Variable.equals v (BitVectorElement.var e)) tl) then
+        let v = DFAC.BitVectorElement.var hd in
+        if (List.exists (fun e -> DFAC.V.equals v (DFAC.BitVectorElement.var e)) tl) then
           remove_duplicates tl result
         else 
           remove_duplicates tl (hd::result)
         in
-    remove_duplicates all_bit_vectors []  
+    remove_duplicates all_bit_vectors []
     
   let make_top _ = make true
   
@@ -65,52 +65,52 @@ struct
 	let bottom = L (make_bottom ())
 	
 	let cap x y = match (x, y) with
-		| (L (bv_x), L (bv_y)) -> L (BitVector.cap bv_x bv_y)
+		| (L (bv_x), L (bv_y)) -> L (DFAC.BitVector.cap bv_x bv_y)
 
 	let equal x y = match (x, y) with
-		| (L (bv_x), L(bv_y)) -> BitVector.equal bv_x bv_y
+		| (L (bv_x), L(bv_y)) -> DFAC.BitVector.equal bv_x bv_y
 	let toString x = ""
 end
 
-module Repr=
+module Repr (DFAC : Sig)
+=
 struct
-	type node = NodeInfo.t
-	type edge = EdgeInfo.t
+	type node = DFAC.NodeInfo.t
+	type edge = DFAC.EdgeInfo.t
 end
 
-module LVAdapter(A: ProgramView.Abstractor with
-                    type Abstract.node = DFACommon.Statement.t list and
-										type Abstract.edge = EdgeInfo.t)
-               (G : CFG.Sig with
-                    type Node.t = A.Concrete.node and 
-                    type Edge.t = A.Concrete.edge)=
+module LVAdapter
+               (DFAC : Sig)
+               (A: ProgramView.Abstractor with type Abstract.node = DFAC.Statement.t list and type Abstract.edge = DFAC.EdgeInfo.t)
+               (G : CFG.Sig with type Node.t = A.Concrete.node and type Edge.t = A.Concrete.edge)=
 struct
-	module P = Repr
-  module LVSemilattice'=LVSemilattice(A)(G)
+	module P = Repr(DFAC)
+  	module LVSemilattice'=LVSemilattice(DFAC)(A)(G)
 	module L = Semilattice.Make(LVSemilattice')
-	module S = Statement
-	module BV = BitVector
-	module BVE = BitVectorElement
+	module S = DFAC.Statement
+	module BV = DFAC.BitVector
+	module BVE = DFAC.BitVectorElement
+  	module NI = DFAC.NodeInfo
 	
 	let flow node l =
-		printf "Flow is called for node %s\n" (NodeInfo.toString node);
+		printf "Flow is called for node %s\n" (NI.toString node);
     let statements = node in (* Node statements *)
 		let gen_bv =
-			printf "Calculating gen for %s\n" (NodeInfo.toString statements); 
-			DFAHelper.gen statements (LVSemilattice'.make_bottom ()) in (* GEN *)
-		printf "GEN for %s is %s\n" (NodeInfo.toString statements) (BitVector.toString gen_bv);
+			printf "Calculating gen for %s\n" (NI.toString statements); 
+			DFAC.DFAHelper.gen statements (LVSemilattice'.make_bottom ()) in (* GEN *)
+		printf "GEN for %s is %s\n" (NI.toString statements) (BV.toString gen_bv);
 		let kill_bv =
-			printf "Calculating kill for %s\n" (NodeInfo.toString statements);
-			DFAHelper.kill statements (LVSemilattice'.make_bottom()) in (* KILL *)
-    printf "KILL for %s is %s\n" (NodeInfo.toString statements) (BitVector.toString kill_bv);
+			printf "Calculating kill for %s\n" (NI.toString statements);
+			DFAC.DFAHelper.kill statements (LVSemilattice'.make_bottom()) in (* KILL *)
+    printf "KILL for %s is %s\n" (NI.toString statements) (BV.toString kill_bv);
     let rec process_recursively input gen_v kill_v result =
       match (input, gen_v, kill_v) with
 			| ([], [], []) -> result
 			| (l, [], []) -> 
-				printf "INPUT case matched with %s\n" (BitVector.toString l);
+				printf "INPUT case matched with %s\n" (BV.toString l);
 				l
 			| (input_hd::input_tl, gen_hd::gen_tl, kill_hd::kill_tl) ->
-        printf "Full case matched with [in=%s; gen=%s; kill=%s]\n" (BitVectorElement.toString input_hd) (BitVectorElement.toString gen_hd) (BitVectorElement.toString kill_hd);
+        printf "Full case matched with [in=%s; gen=%s; kill=%s]\n" (BVE.toString input_hd) (BVE.toString gen_hd) (BVE.toString kill_hd);
 				let new_result = (BVE.var input_hd, (BVE.state gen_hd	|| (BVE.state input_hd && BVE.state kill_hd)))::result
 				in process_recursively input_tl	gen_tl	kill_tl new_result
 		in
@@ -120,26 +120,24 @@ struct
 				LVSemilattice'.L(process_recursively l_vector gen_bv kill_bv [])
 	
 	let init _ = L.top
-end
-
-module LVResults (A: ProgramView.Abstractor with
-                    type Abstract.node = DFACommon.Statement.t list and
-										type Abstract.edge = EdgeInfo.t)
-               (G : CFG.Sig with
-                    type Node.t = A.Concrete.node and 
-                    type Edge.t = A.Concrete.edge) =
+  end
+   
+module LVResults 
+               (DFAC : Sig)
+               (A: ProgramView.Abstractor with type Abstract.node = DFAC.Statement.t list and type Abstract.edge = DFAC.EdgeInfo.t)
+               (G : CFG.Sig with type Node.t = A.Concrete.node and type Edge.t = A.Concrete.edge) =
 struct
-  module LVSemilattice' = LVSemilattice(A)(G)
-  module LVAdapter''=LVAdapter(A)(G)
+    module LVSemilattice' = LVSemilattice(DFAC)(A)(G)
+    module LVAdapter''=LVAdapter(DFAC)(A)(G)
 	module LVAdapter'=ProgramView.BackwardAdapter(LVAdapter'')
 	module PView=ProgramView.Make(LVAdapter')(A)(G)
 	module Analyze=DFAEngine.RevPost(PView)(DFST.Make(G))
 	
-	type lvInfo = DFACommon.BitVector.t
+	type lvInfo = DFAC.BitVector.t
 	
 	let before n =
 		match G.ins n with
-          |  []       -> DFACommon.BitVector.empty
+          |  []       -> DFAC.BitVector.empty
           | hd :: _  ->
 						let analyzeResults = match Analyze.get hd with
 						| LVSemilattice'.L v -> v
@@ -149,16 +147,11 @@ struct
 	let after n = 
 		let g_outs = G.outs n in
          match g_outs with
-		| [] -> DFACommon.BitVector.empty
+		| [] -> DFAC.BitVector.empty
 		| hd::_ ->
 			printf "Analyzing hd\n";
 			match Analyze.get hd with
 			| LVSemilattice'.L v ->
 				printf "Encountered a lattice element\n"; 
 				v
-end
-
-module TestModule=
-struct
-	let print_smth s = printf "print_smth"; s
 end

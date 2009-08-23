@@ -17,31 +17,31 @@
 open DFACommon
 
 (** Live variable analysis semilattice. *)
-module LVSemilattice(A: ProgramView.Abstractor with type Abstract.node = DFACommon.Statement.t list and
-						    type Abstract.edge = EdgeInfo.t)
-               (G : CFG.Sig with type Node.t = A.Concrete.node and 
-                                 type Edge.t = A.Concrete.edge) :
+module LVSemilattice
+				(DFAC : Sig)
+                (A: ProgramView.Abstractor with type Abstract.node = DFAC.Statement.t list and type Abstract.edge = DFAC.EdgeInfo.t)
+                (G : CFG.Sig with type Node.t = A.Concrete.node and type Edge.t = A.Concrete.edge) :
   sig
 
     include Semilattice.Base
   
-    val make : bool -> BitVector.t
+    val make : bool -> DFAC.BitVector.t
   
-    val make_top : unit -> BitVector.t
+    val make_top : unit -> DFAC.BitVector.t
   
-    val make_bottom : unit -> BitVector.t
+    val make_bottom : unit -> DFAC.BitVector.t
 
-  end			
+end
 
 (** Live variable analysis results creation functor. *)
-module LVResults (A: ProgramView.Abstractor with type Abstract.node = DFACommon.Statement.t list and
-					         type Abstract.edge = EdgeInfo.t)
-               (G : CFG.Sig with type Node.t = A.Concrete.node and 
-                                 type Edge.t = A.Concrete.edge) :
+module LVResults 
+               (DFAC : Sig) 
+               (A: ProgramView.Abstractor with type Abstract.node = DFAC.Statement.t list and type Abstract.edge = DFAC.EdgeInfo.t)
+               (G : CFG.Sig with type Node.t = A.Concrete.node and type Edge.t = A.Concrete.edge) :
   sig
 
     (** Type of live variable analysis information. *)
-    type lvInfo = DFACommon.BitVector.t
+    type lvInfo = DFAC.BitVector.t
 	
     (** [before n] Returns live variable informaton on entrance into node [n]. *)
     val before : G.Node.t -> lvInfo 

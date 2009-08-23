@@ -21,27 +21,33 @@ open DFATestCommon
 open Lv
 
 let _ = 
-let g = G.create () in
+let module DFATC = DFATestCommon.Make in
+let module DC = DFATC.DFAC in
+let module V = DFATC.DFAC.V in
+let module EI = DC.EdgeInfo in
+let module G = DFATC.G in
+let module PVA = DFATC.PVA in
+let g = DFATC.G.create () in
 (* b1 *)
-let a1 = [StatementConstructor.construct "a" []] in let g, n1 = G.insertNode g a1 in
-let a2 = [StatementConstructor.construct "b" []] in let g, n2 = G.insertNode g a2 in
-let a3 = [StatementConstructor.construct "d" []] in let g, n3 = G.insertNode g a3 in
+let a1 = [DFATC.StatementConstructor.construct "a" []] in let g, n1 = G.insertNode g a1 in
+let a2 = [DFATC.StatementConstructor.construct "b" []] in let g, n2 = G.insertNode g a2 in
+let a3 = [DFATC.StatementConstructor.construct "d" []] in let g, n3 = G.insertNode g a3 in
   
 (* b2 *)
-let a4 = [StatementConstructor.construct "c" ["a";"b"]] in let g, n4 = G.insertNode g a4 in
-let a5 = [StatementConstructor.construct "d" []] in let g, n5 = G.insertNode g a5 in
+let a4 = [DFATC.StatementConstructor.construct "c" ["a";"b"]] in let g, n4 = G.insertNode g a4 in
+let a5 = [DFATC.StatementConstructor.construct "d" []] in let g, n5 = G.insertNode g a5 in
 
 (* b3 *)
-let a6 = [StatementConstructor.construct "c" []] in let g, n6 = G.insertNode g a6 in
-let g, _ = G.insertEdge g n1 n2 EdgeInfo.Empty in
-let g, _ = G.insertEdge g n2 n3 EdgeInfo.Empty in
-let g, _ = G.insertEdge g n3 n4 EdgeInfo.Empty in
-let g, _ = G.insertEdge g n4 n5 EdgeInfo.Empty in
-let g, _ = G.insertEdge g n5 n6 EdgeInfo.Empty in
-let g, _ = G.insertEdge g n3 n6 EdgeInfo.Empty in
+let a6 = [DFATC.StatementConstructor.construct "c" []] in let g, n6 = G.insertNode g a6 in
+let g, _ = G.insertEdge g n1 n2 DC.EdgeInfo.Empty in
+let g, _ = G.insertEdge g n2 n3 DC.EdgeInfo.Empty in
+let g, _ = G.insertEdge g n3 n4 DC.EdgeInfo.Empty in
+let g, _ = G.insertEdge g n4 n5 DC.EdgeInfo.Empty in
+let g, _ = G.insertEdge g n5 n6 DC.EdgeInfo.Empty in
+let g, _ = G.insertEdge g n3 n6 DC.EdgeInfo.Empty in
 let module MYG = CFG.Make (G)(struct let graph=g let start=n1 end) in
-let module LVR = Lv.LVResults(PVA)(MYG) in
+let module LVR = Lv.LVResults(DC)(PVA)(MYG) in
 printf "Started logging...\n";
 printf "Graph:\n\n%s\n" (G.DOT.toDOT g);
 let lvrResults = LVR.after n3 in
-printf "LV results:\n\n%s\n" (BitVector.toString lvrResults)
+printf "LV results:\n\n%s\n" (DC.BitVector.toString lvrResults)

@@ -1,10 +1,10 @@
 Top lattice element is requested
 Top lattice element is requested
-Flow is called for node Assignment [a=b+c]
-Calculating gen for Assignment [a=b+c]
-GEN for Assignment [a=b+c] is BV[E[d,false];E[e,false];E[f,false];E[a,false];E[b,true];E[c,true];]
-Calculating kill for Assignment [a=b+c]
-KILL for Assignment [a=b+c] is BV[E[d,false];E[e,false];E[f,false];E[a,true];E[b,false];E[c,false];]
+Flow is called for node [Node=[Reads=a;; Writes=b;c;];]
+Calculating gen for [Node=[Reads=a;; Writes=b;c;];]
+GEN for [Node=[Reads=a;; Writes=b;c;];] is BV[E[d,false];E[e,false];E[f,false];E[a,false];E[b,true];E[c,true];]
+Calculating kill for [Node=[Reads=a;; Writes=b;c;];]
+KILL for [Node=[Reads=a;; Writes=b;c;];] is BV[E[d,false];E[e,false];E[f,false];E[a,true];E[b,false];E[c,false];]
 Flow calculated to lattice element
 Full case matched with [in=E[d,false]; gen=E[d,false]; kill=E[d,false]]
 Full case matched with [in=E[e,false]; gen=E[e,false]; kill=E[e,false]]
@@ -12,11 +12,11 @@ Full case matched with [in=E[f,false]; gen=E[f,false]; kill=E[f,false]]
 Full case matched with [in=E[a,false]; gen=E[a,false]; kill=E[a,true]]
 Full case matched with [in=E[b,false]; gen=E[b,true]; kill=E[b,false]]
 Full case matched with [in=E[c,false]; gen=E[c,true]; kill=E[c,false]]
-Flow is called for node Assignment [d=e+f]
-Calculating gen for Assignment [d=e+f]
-GEN for Assignment [d=e+f] is BV[E[d,false];E[e,true];E[f,true];E[a,false];E[b,false];E[c,false];]
-Calculating kill for Assignment [d=e+f]
-KILL for Assignment [d=e+f] is BV[E[d,true];E[e,false];E[f,false];E[a,false];E[b,false];E[c,false];]
+Flow is called for node [Node=[Reads=d;; Writes=e;f;];]
+Calculating gen for [Node=[Reads=d;; Writes=e;f;];]
+GEN for [Node=[Reads=d;; Writes=e;f;];] is BV[E[d,false];E[e,true];E[f,true];E[a,false];E[b,false];E[c,false];]
+Calculating kill for [Node=[Reads=d;; Writes=e;f;];]
+KILL for [Node=[Reads=d;; Writes=e;f;];] is BV[E[d,true];E[e,false];E[f,false];E[a,false];E[b,false];E[c,false];]
 Flow calculated to lattice element
 Full case matched with [in=E[c,true]; gen=E[d,false]; kill=E[d,true]]
 Full case matched with [in=E[b,true]; gen=E[e,true]; kill=E[e,false]]
@@ -25,11 +25,11 @@ Full case matched with [in=E[f,false]; gen=E[a,false]; kill=E[a,false]]
 Full case matched with [in=E[e,false]; gen=E[b,false]; kill=E[b,false]]
 Full case matched with [in=E[d,false]; gen=E[c,false]; kill=E[c,false]]
 INPUT case matched with BV[E[e,false];E[f,false];E[a,false];E[b,false];E[c,false];]
-Flow is called for node Assignment [a=b+c]
-Calculating gen for Assignment [a=b+c]
-GEN for Assignment [a=b+c] is BV[E[d,false];E[e,false];E[f,false];E[a,false];E[b,true];E[c,true];]
-Calculating kill for Assignment [a=b+c]
-KILL for Assignment [a=b+c] is BV[E[d,false];E[e,false];E[f,false];E[a,true];E[b,false];E[c,false];]
+Flow is called for node [Node=[Reads=a;; Writes=b;c;];]
+Calculating gen for [Node=[Reads=a;; Writes=b;c;];]
+GEN for [Node=[Reads=a;; Writes=b;c;];] is BV[E[d,false];E[e,false];E[f,false];E[a,false];E[b,true];E[c,true];]
+Calculating kill for [Node=[Reads=a;; Writes=b;c;];]
+KILL for [Node=[Reads=a;; Writes=b;c;];] is BV[E[d,false];E[e,false];E[f,false];E[a,true];E[b,false];E[c,false];]
 Flow calculated to lattice element
 Full case matched with [in=E[d,false]; gen=E[d,false]; kill=E[d,false]]
 Full case matched with [in=E[e,false]; gen=E[e,false]; kill=E[e,false]]
@@ -37,11 +37,11 @@ Full case matched with [in=E[f,false]; gen=E[f,false]; kill=E[f,false]]
 Full case matched with [in=E[a,false]; gen=E[a,false]; kill=E[a,true]]
 Full case matched with [in=E[b,false]; gen=E[b,true]; kill=E[b,false]]
 Full case matched with [in=E[c,false]; gen=E[c,true]; kill=E[c,false]]
-Flow is called for node Assignment [d=e+f]
-Calculating gen for Assignment [d=e+f]
-GEN for Assignment [d=e+f] is BV[E[d,false];E[e,true];E[f,true];E[a,false];E[b,false];E[c,false];]
-Calculating kill for Assignment [d=e+f]
-KILL for Assignment [d=e+f] is BV[E[d,true];E[e,false];E[f,false];E[a,false];E[b,false];E[c,false];]
+Flow is called for node [Node=[Reads=d;; Writes=e;f;];]
+Calculating gen for [Node=[Reads=d;; Writes=e;f;];]
+GEN for [Node=[Reads=d;; Writes=e;f;];] is BV[E[d,false];E[e,true];E[f,true];E[a,false];E[b,false];E[c,false];]
+Calculating kill for [Node=[Reads=d;; Writes=e;f;];]
+KILL for [Node=[Reads=d;; Writes=e;f;];] is BV[E[d,true];E[e,false];E[f,false];E[a,false];E[b,false];E[c,false];]
 Flow calculated to lattice element
 Full case matched with [in=E[c,true]; gen=E[d,false]; kill=E[d,true]]
 Full case matched with [in=E[b,true]; gen=E[e,true]; kill=E[e,false]]
@@ -54,8 +54,8 @@ Started logging...
 Graph:
 
 digraph X { 
-  node1 [label="index=1, info=Assignment [d=e+f];"]; 
-  node0 [label="index=0, info=Assignment [a=b+c];"];
+  node1 [label="index=1, info=[Reads=d;; Writes=e;f;];"]; 
+  node0 [label="index=0, info=[Reads=a;; Writes=b;c;];"];
 
   node1 -> node0 [label="info=edge"];
 
