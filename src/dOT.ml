@@ -99,9 +99,7 @@ module ClusteredPrinter (CG : ClusteredGraph) =
     let quoted x = seq [quote; x; quote]
 
     let attributes label attrs =
-             (List.fold_right (fun (attr, value) acc -> if value = ""
-                                                        then acc
-                                                        else (seq [string attr; string "="; quoted (string value)]) :: acc
+             (List.fold_right (fun (attr, value) acc -> (seq [string attr; string "="; quoted (string value)]) :: acc
                               )
                               (("label", label) :: attrs)
                               []
@@ -171,8 +169,8 @@ module ClusteredPrinter (CG : ClusteredGraph) =
                                             ]
                                        )
     and clusters list = (vboxed (listBy (seq [break; break])
-                                         (List.map (fun c -> shifted (cluster c)) list)
-                                        )
+                                        (List.map (fun c -> shifted (cluster c)) list)
+                                )
                         )
  
     let toDOTPrinter (graph, list) = 

@@ -953,9 +953,11 @@ module Make (BI: BlockInfo) =
             module NodeInfo =
               struct
                 (* block * id of graph cluster * may be undefined *)
-                type t = Block.t * int * bool
+                type t = BlockNode of Block.t * int * bool | Invisible of int
 
-                let toString (b, i, _) = Printf.sprintf "%s:%d" (Block.toString b) i
+                let toString = function
+                | BlockNode (b, i, _) -> Printf.sprintf "%s:%d" (Block.toString b) i
+                | Invisible i         -> Printf.sprintf "Invisible %d" i
               end
 
             module EdgeInfo = 
@@ -973,25 +975,33 @@ module Make (BI: BlockInfo) =
             module DotNode =
               struct
                 type t = BG.Node.t
+  
+                open NodeInfo
 
                 let color node = match (BG.Node.info node) with
-                  (_, _, true) -> "color", "green"
-                | (_, _, false) -> "color", "blue"
+                  BlockNode (_, _, true)  -> "green"
+                | BlockNode (_, _, false) -> "blue"
+                | Invisible _             -> "white"
 
                 let attrs node =
-                  (color node) ::
+                  ("heigh", "0.25") :: ("width", "0.5") ::
+                  ("fontsize", "10") ::
+                  ("color", color node) ::
                   (match (BG.Node.info node) with
-                     ((Block.Pseudo _), _, _) -> [("shape", "diamond")]
-                   | (b, _, _) when not (Block.dynamic b)
+                     BlockNode ((Block.Pseudo _), _, _) -> [("shape", "diamond")]
+                   | BlockNode (b, _, _) when not (Block.dynamic b)
                                               -> [("shape", "box")]
+                   | Invisible _              -> [("style","invis"); ("width", "0")]
                    | _                        -> [])
           
                 let label node = match (BG.Node.info node) with
-                  (Block.Pseudo (_, r), _, _) -> "Pseudo: " ^ Region.name r
-                | (block, _, _)               -> BI.toString (Block.info block)
+                  BlockNode (Block.Pseudo (_, r), _, _) -> "Pseudo: " ^ Region.name r
+                | BlockNode (block, _, _)               -> BI.toString (Block.info block)
+                | Invisible _                            -> ""
           
                 let name node = match BG.Node.info node with
-                  (block, id, _) -> Printf.sprintf "block_%d_%d" (Block.id block) id
+                  BlockNode (block, id, _) -> Printf.sprintf "block_%d_%d" (Block.id block) id
+                | Invisible i              -> Printf.sprintf "invis_%d" i
              end
           
             module DotEdge =
@@ -999,28 +1009,31 @@ module Make (BI: BlockInfo) =
                 type t = BG.Edge.t
           
                 let attrs e = match (BG.Edge.info e) with
-                  EdgeInfo.Points               -> [("style", "dotted")]
-                | EdgeInfo.Contains             -> [("style", "solid")]
-                | EdgeInfo.Clustered (src, dst) -> [ ("minlen", "3");
+                  EdgeInfo.Points               -> [("style", "dotted"); ("weight", "5")]
+                | EdgeInfo.Contains             -> [("style", "solid"); ("weight", "10") ]
+                | EdgeInfo.Clustered (src, dst) -> [ ("minlen", "3");    ("weight","1");
                                                      ("style", "solid"); ("color", "red");
-                                                     ("lhead", dst);     ("ltail", src) ]
+                                                     ("lhead", dst);     ("ltail", src);
+                                                     ("tailport", "s");  ("headport", "n") ]
 
                 let label _ = ""
               end
 
             module DotCluster =
               struct
-                type t = string * string * DotNode.t list
-                let name = function | (n, _, _) -> n
-                let label = function | (_, s, _) -> s
-                let nodes = function | (_, _, list) -> list
-                let attrs _ = []
+                (* name, label, nodes, attrs *)
+                type t = string * string * DotNode.t list * ((string * string) list)
+                let name = function  | (n, _, _, _)    -> n
+                let label = function | (_, s, _, _)    -> s
+                let nodes = function | (_, _, list, _) -> list
+                let attrs = function | (_, _, _, list) -> list
               end
 
             module PR = DOT.ClusteredPrinter (
               struct
                 include Digraph.DotInfo (BG) (DotNode) (DotEdge)
-                let attrs x = ("compound", "true") :: (attrs x)
+                let attrs x = ("compound", "true") :: ("center", "true") ::
+                              ("fontsize", "10") :: (attrs x)
                 module Cluster = DotCluster
               end
             )
@@ -1033,7 +1046,7 @@ module Make (BI: BlockInfo) =
                let aux block subs =  
                  try BMap.find block map, (graph, map)
                  with Not_found ->
-                   let (graph, node) = BG.insertNode graph (block, id, false)
+                   let (graph, node) = BG.insertNode graph (NodeInfo.BlockNode (block, id, false))
                    in
                    let map = BMap.add block node map
                    in
@@ -1053,17 +1066,19 @@ module Make (BI: BlockInfo) =
              in 
              let name = Printf.sprintf "cluster%d" id
              in
-             let rec sub node = List.fold_right sub (BG.succ node)
+             let rec sub node = node :: (List.fold_right (fun nd -> List.rev_append (sub nd)) (BG.succ node) [])
              in
              (* building cluster structure *)
              let (clusters, other) =
-               BMap.fold (fun block node (cs, bs) -> match block with
-                             Block.Pseudo _ -> (cs, node :: bs)
-                          | _               -> ( match (sub node []) with 
-                                                   [] -> (cs, node :: bs)
-                                                 | ns -> let clusterName = Printf.sprintf "%s_%d" name (BG.Node.hash node)
-                                                         in
-                                                         ((DOT.Clusters.Leaf (clusterName, "", ns)) :: cs, bs)
+               BMap.fold (fun block node (cs, bs) -> match block with 
+                             Block.Pseudo _ -> (cs, node :: bs) 
+                          | _               -> ( match (sub node) with 
+                                                   [node] -> (cs, node :: bs)
+                                                 | ns when (BG.pred node = []) ->
+                                                             let clusterName = Printf.sprintf "%s_%d" name (BG.Node.hash node)
+                                                             in
+                                                             ((DOT.Clusters.Leaf (clusterName, "", ns, [])) :: cs, bs)
+                                                 | _      -> (cs, node :: bs)
                                                )
                          ) map ([], [])
              in
@@ -1074,29 +1089,31 @@ module Make (BI: BlockInfo) =
                               | Block.Pseudo _ | Block.Simple _ ->
                                  let (bs, undef) = SL.Value.unwrap (SL.Eval.getExprValue (Expr.Value (Expr.Block b)) sl)
                                  in
-                                 let (b, i, _) = BG.Node.info n
-                                 in
-                                 let (g, n) = BG.replaceNode g n (b, i, undef)
-                                 in
-                                 BSet.fold (fun b' g -> fst (BG.insertEdge g n (BMap.find b' map) EdgeInfo.Points)) bs g
+                                 (match BG.Node.info n with
+                                    NodeInfo.BlockNode (b, i, _) ->
+                                      let (g, n) = BG.replaceNode g n (NodeInfo.BlockNode (b, i, undef))
+                                                   in
+                                                   BSet.fold (fun b' g -> fst
+                                                                          (BG.insertEdge g n (BMap.find b' map) EdgeInfo.Points)
+                                                             )
+                                                             bs g
+                                  | NodeInfo.Invisible _         -> failwith "Unexpected invisible node info in addNodeCluster"
+                                 )
                               | _ -> g
                 ) map graph
              in
-             (graph, DOT.Clusters.Node ((name, label, other),  clusters)) 
+             (graph, DOT.Clusters.Node ((name, label, other, []),  clusters)) 
 
             (* [toDOT ()] returns graph representation of the analysis result *)
             let toDOT () =
              LOG (Printf.printf "toDOT conversion started%!\n"); 
-             let rec takeClusterNode = function
-             | DOT.Clusters.Leaf c        -> List.hd (DotCluster.nodes c)
-             | DOT.Clusters.Node (c, sub) -> (match DotCluster.nodes c with
-                                                []      -> takeClusterNode (List.hd sub)
-                                              | hd :: _ -> hd
-                                             )
-             in 
-             let (graph, cMap, _) =
+             (** "Control-Flow graph",
+                  map from its nodes to pairs of top level cluster and corresponding invisible node,
+                  list of top level clusters
+               *)
+             let (graph, cMap, clusters, _) =
               List.fold_left
-                (fun (g, cMap, i) node ->
+                (fun (g, cMap, clusters, i) node ->
                    let label =  G.Node.toString node 
                    and name  = Printf.sprintf "cluster%d" i
                    and labelAfter = "after" 
@@ -1105,10 +1122,11 @@ module Make (BI: BlockInfo) =
                    and slBefore    =  slBefore node in
                    let (g, cb) = addNodeCluster g labelBefore (i + 1) slBefore in
                    let (g, ca) = addNodeCluster g labelAfter (i + 2) slAfter in
-                   let c = DOT.Clusters.Node ((name, label, []), [cb; ca]) in
-                   (g, NodeMap.add node c cMap, i + 3)
+                   let (g, invisNode) = BG.insertNode g (NodeInfo.Invisible i) in
+                   let c = DOT.Clusters.Node ((name, label, [invisNode], []), [ca; cb]) in
+                   (g, NodeMap.add node (c, invisNode) cMap, c :: clusters, i + 3)
                 )
-               (BG.create (), NodeMap.empty, 0)
+               (BG.create (), NodeMap.empty, [], 0)
                (G.nodes G.graph)
              in (* adding edges between clusters *)
              let clusterName = function
@@ -1116,12 +1134,10 @@ module Make (BI: BlockInfo) =
              in
              let graph = 
               NodeMap.fold
-                (fun node cluster graph ->
-                   let src = takeClusterNode cluster in
+                (fun node (cluster, src) graph ->
                      List.fold_right
                        (fun node' graph ->
-                          let cluster' = NodeMap.find node' cMap in
-                          let dst = takeClusterNode cluster' in
+                          let (cluster', dst) = NodeMap.find node' cMap in
                             fst (BG.insertEdge graph src dst (EdgeInfo.Clustered ((clusterName cluster),
                                                                                   (clusterName cluster'))))
                        )
@@ -1129,7 +1145,7 @@ module Make (BI: BlockInfo) =
                        graph
                 ) cMap graph
              in 
-             PR.toDOT (graph, NodeMap.fold (fun _ c l -> c :: l) cMap [])  
+             PR.toDOT (graph, clusters)  
 
           end
       end
