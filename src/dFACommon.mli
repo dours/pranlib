@@ -1,5 +1,5 @@
 (*
- * DFACommon2: contains common modules for data flow analyses: reaching definitions and live variables
+ * DFACommon: contains common modules for data flow analyses: reaching definitions and live variables
  * Copyright (C) 2008
  * Andrey Serebryansky, St.Petersburg State University
  * 
@@ -96,6 +96,8 @@ sig
 		val equal : t -> t -> bool
 	  
 	  val lookup_element : V.t -> t -> BitVectorElement.t option
+	  
+	  val print_result : V.t list -> string
 		
 		val toString : t -> string  
 	end
@@ -138,6 +140,8 @@ sig
       val equal : t -> t -> bool
   	
       val lookup_element : Statement.t -> t -> RBitVectorElement.t option
+      
+      val print_result : Statement.t list -> string
   	
       val toString : t -> string  
   end

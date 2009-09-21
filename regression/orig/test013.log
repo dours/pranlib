@@ -54,6 +54,8 @@ Started logging...
 Graph:
 
 digraph X { 
+  label="";
+
   node1 [label="index=1, info=[Reads=d;; Writes=e;f;];"]; 
   node0 [label="index=0, info=[Reads=a;; Writes=b;c;];"];
 
@@ -62,4 +64,4 @@ digraph X {
 }
 LV results:
 
-BV[E[c,true];E[b,true];E[a,false];E[f,false];E[e,false];E[d,false];]
+c;b;

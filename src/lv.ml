@@ -133,25 +133,27 @@ struct
 	module PView=ProgramView.Make(LVAdapter')(A)(G)
 	module Analyze=DFAEngine.RevPost(PView)(DFST.Make(G))
 	
-	type lvInfo = DFAC.BitVector.t
+	type lvInfo = DFAC.V.t list
+	
+	let live_variables bv = List.map (fun bve -> DFAC.BitVectorElement.var bve) (List.filter (fun bve -> DFAC.BitVectorElement.state bve) bv)
 	
 	let before n =
 		match G.ins n with
-          |  []       -> DFAC.BitVector.empty
+          |  []       -> []
           | hd :: _  ->
 						let analyzeResults = match Analyze.get hd with
-						| LVSemilattice'.L v -> v
+						| LVSemilattice'.L v -> live_variables v
 						in
 						analyzeResults
 
 	let after n = 
 		let g_outs = G.outs n in
          match g_outs with
-		| [] -> DFAC.BitVector.empty
+		| [] -> []
 		| hd::_ ->
 			printf "Analyzing hd\n";
 			match Analyze.get hd with
 			| LVSemilattice'.L v ->
 				printf "Encountered a lattice element\n"; 
-				v
+				live_variables v
 end

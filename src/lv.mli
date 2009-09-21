@@ -21,11 +21,11 @@ module LVSemilattice
 				(DFAC : Sig)
                 (A: ProgramView.Abstractor with type Abstract.node = DFAC.Statement.t list and type Abstract.edge = DFAC.EdgeInfo.t)
                 (G : CFG.Sig with type Node.t = A.Concrete.node and type Edge.t = A.Concrete.edge) :
-  sig
+sig
 
-    include Semilattice.Base
+	include Semilattice.Base
   
-    val make : bool -> DFAC.BitVector.t
+	val make : bool -> DFAC.BitVector.t
   
     val make_top : unit -> DFAC.BitVector.t
   
@@ -38,10 +38,10 @@ module LVResults
                (DFAC : Sig) 
                (A: ProgramView.Abstractor with type Abstract.node = DFAC.Statement.t list and type Abstract.edge = DFAC.EdgeInfo.t)
                (G : CFG.Sig with type Node.t = A.Concrete.node and type Edge.t = A.Concrete.edge) :
-  sig
+sig
 
     (** Type of live variable analysis information. *)
-    type lvInfo = DFAC.BitVector.t
+    type lvInfo = DFAC.V.t list
 	
     (** [before n] Returns live variable informaton on entrance into node [n]. *)
     val before : G.Node.t -> lvInfo 

@@ -111,26 +111,26 @@ module RDSemilattice
     	module PView=ProgramView.Make(RDAdapter')(A)(G)
     	module Analyze = DFAEngine.RevPost (PView) (DFST.Make (G))
     	
-    	type rdInfo = DFAC.RBitVector.t
+    	type rdInfo = DFAC.Statement.t list
+    	
+    	let reachable_statements rbv = List.map (fun rbve -> DFAC.RBitVectorElement.statement rbve) (List.filter (fun rbve -> DFAC.RBitVectorElement.state rbve) rbv)
     	
     	let before n = match G.ins n with
     		| [] ->
-          printf "No incoming edges\n"; 
-          DFAC.RBitVector.empty
+          printf "No incoming edges\n"; []
     		| hd::_ ->
           printf "Calling Analyze.get\n"; 
           match Analyze.get hd with
     			| RDSemilattice'.L v ->
             printf "Lattice element encountered\n"; 
-            v
+            reachable_statements v
     	let after n = match G.outs n with
     		| [] ->
-          printf "No outgoing edges\n"; 
-          DFAC.RBitVector.empty
+          printf "No outgoing edges\n"; []
     		| hd::_ ->
           printf "Calling Analyze.get\n"; 
           match Analyze.get hd with
     			| RDSemilattice'.L v ->
             printf "Lattice element encountered\n"; 
-            v
+            reachable_statements v
   end

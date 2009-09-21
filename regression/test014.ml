@@ -37,4 +37,5 @@ let module RDR = RDResults(DC)(PVA)(MYG) in
 printf "Started logging...\n";
 printf "Graph:\n\n%s\n" (G.DOT.toDOT g);
 let rdrResults = RDR.after n1 in
-printf "RD results:\n\n%s\n" (DC.RBitVector.toString rdrResults)
+(*printf "RD results:\n\n%s\n" (DC.RBitVector.toString rdrResults)*)
+printf "RD results:\n\n%s\n" (DC.RBitVector.print_result rdrResults)

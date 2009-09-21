@@ -50,4 +50,4 @@ let module LVR = Lv.LVResults(DC)(PVA)(MYG) in
 printf "Started logging...\n";
 printf "Graph:\n\n%s\n" (G.DOT.toDOT g);
 let lvrResults = LVR.after n3 in
-printf "LV results:\n\n%s\n" (DC.BitVector.toString lvrResults)
+printf "LV results:\n\n%s\n" (DC.BitVector.print_result lvrResults)

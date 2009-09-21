@@ -1,5 +1,5 @@
 (*
- * DFACommon2: contains common modules for data flow analyses: reaching definitions and live variables
+ * DFACommon: contains common modules for data flow analyses: reaching definitions and live variables
  * Copyright (C) 2008
  * Andrey Serebryansky, St.Petersburg State University
  * 
@@ -96,6 +96,8 @@ sig
 		val equal : t -> t -> bool
 	  
 	  val lookup_element : V.t -> t -> BitVectorElement.t option
+	  
+	  val print_result : V.t list -> string
 		
 		val toString : t -> string  
 	end
@@ -138,6 +140,8 @@ sig
       val equal : t -> t -> bool
   	
       val lookup_element : Statement.t -> t -> RBitVectorElement.t option
+      
+      val print_result : Statement.t list -> string
   	
       val toString : t -> string  
   end
@@ -281,7 +285,9 @@ struct
 	      let compare v bit_vector_element = V.equals v (BitVectorElement.var bit_vector_element) in
 	        match bit_vector with
 	          | [] -> None
-	          | hd::tl -> if compare var hd then Some(hd) else lookup_element var tl 
+	          | hd::tl -> if compare var hd then Some(hd) else lookup_element var tl
+	          
+	          let print_result vl = List.fold_right (fun x y -> (V.toString x)^";"^y) vl "" 
 				
 			let toString bv = 
 				let strRepr = List.map (fun x -> BitVectorElement.toString x) bv in
@@ -356,13 +362,15 @@ struct
             let compare v bit_vector_element = Statement.equals v (RBitVectorElement.statement bit_vector_element) in
               match bit_vector with
                 | [] -> None
-                | hd::tl -> if compare var hd then Some(hd) else lookup_element var tl 
+                | hd::tl -> if compare var hd then Some(hd) else lookup_element var tl
+                
+          let print_result sl = List.fold_right (fun x y -> (Statement.toString x)^";"^y) sl "" 
       			
-      		let toString bv = 
-      			let strRepr = List.map (fun x -> RBitVectorElement.toString x) bv in
-      			"BV["^(List.fold_right (fun x y -> 
-      				let delimiter = if x == "" || y == "" then "" else ";" in
-      				x^delimiter^y) strRepr "")^"]"
+  		let toString bv = 
+  			let strRepr = List.map (fun x -> RBitVectorElement.toString x) bv in
+  			"BV["^(List.fold_right (fun x y -> 
+  				let delimiter = if x == "" || y == "" then "" else ";" in
+  				x^delimiter^y) strRepr "")^"]"
       			
       end
   

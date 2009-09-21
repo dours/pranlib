@@ -130,6 +130,8 @@ Started logging...
 Graph:
 
 digraph X { 
+  label="";
+
   node5 [label="index=5, info=[Reads=c;; Writes=];"]; 
   node4 [label="index=4, info=[Reads=d;; Writes=];"]; 
   node3 [label="index=3, info=[Reads=c;; Writes=a;b;];"]; 
@@ -149,4 +151,4 @@ Analyzing hd
 Encountered a lattice element
 LV results:
 
-BV[E[a,false];E[b,false];E[d,false];E[c,false];]
+
