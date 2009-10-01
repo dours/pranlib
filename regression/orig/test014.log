@@ -30,3 +30,31 @@ Full case matched
 Input: BV[E[[Reads=d;; Writes=e;f;],true];E[[Reads=a;; Writes=b;c;],true];]
 Gen: BV[E[[Reads=a;; Writes=b;c;],true];]
 Prsv: BV[E[[Reads=a;; Writes=b;c;],false];]
+Calculating flow for node [Node=[Reads=d;; Writes=e;f;];]
+Flow calculated to lattice element
+Full case matched
+Input: BV[E[[Reads=d;; Writes=e;f;],true];E[[Reads=a;; Writes=b;c;],true];]
+Gen: BV[E[[Reads=d;; Writes=e;f;],true];E[[Reads=a;; Writes=b;c;],false];]
+Prsv: BV[E[[Reads=d;; Writes=e;f;],false];E[[Reads=a;; Writes=b;c;],false];]
+Full case matched
+Input: BV[E[[Reads=a;; Writes=b;c;],true];]
+Gen: BV[E[[Reads=a;; Writes=b;c;],false];]
+Prsv: BV[E[[Reads=a;; Writes=b;c;],false];]
+Empty lists case matched
+Started logging...
+Graph:
+
+digraph X { 
+  label="";
+
+  node1 [label="index=1, info=[Reads=d;; Writes=e;f;];"]; 
+  node0 [label="index=0, info=[Reads=a;; Writes=b;c;];"];
+
+  node1 -> node0 [label="info=edge"];
+
+}
+Calling Analyze.get
+Lattice element encountered
+RD results:
+
+[Reads=d;; Writes=e;f;];

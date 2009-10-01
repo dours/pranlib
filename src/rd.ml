@@ -91,6 +91,7 @@ module RDSemilattice
         printf "Prsv: %s\n" (BV.toString prsv_v);
 				let new_result = (BVE.statement input_hd, (BVE.state gen_hd	|| (BVE.state input_hd && BVE.state prsv_hd)))::result
 				in process_recursively input_tl	gen_tl	prsv_tl new_result
+	  | _ -> result
 		in
 		match l with
 		| RDSemilattice'.L (l_vector) ->
