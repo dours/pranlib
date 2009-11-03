@@ -1,16 +1,32 @@
 digraph X { 
+  label="";
+
   subgraph cluster6 { 
-    subgraph cluster5 { node10}
+    label="";
   
-    subgraph cluster4 { node9; node8; node7; node6}
+    subgraph cluster5 { 
+    label="";
+  node10}
   
-    subgraph cluster3 { node5}
+    subgraph cluster4 { 
+    label="";
+  node9; node8; node7; node6}
   
-    subgraph cluster2 { node4; node3; node2}
+    subgraph cluster3 { 
+    label="";
+  node5}
   
-    subgraph cluster1 { node1}
+    subgraph cluster2 { 
+    label="";
+  node4; node3; node2}
   
-    subgraph cluster0 { node0}
+    subgraph cluster1 { 
+    label="";
+  node1}
+  
+    subgraph cluster0 { 
+    label="";
+  node0}
   }
   node10 [label="index=10, info=k"]; 
   node9 [label="index=9, info=j"]; 

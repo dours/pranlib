@@ -1,6 +1,8 @@
 Graph:
 
-digraph X {   
+digraph X { 
+  label="";
+
   node3 [label="index=3, info=t"]; 
   node2 [label="index=2, info=z"]; 
   node1 [label="index=1, info=y"]; 
@@ -13,7 +15,9 @@ lastNode: 4
 lastEdge: 0
 Copy:
 
-digraph X {   
+digraph X { 
+  label="";
+
   node3 [label="index=3, info=x"]; 
   node2 [label="index=2, info=y"]; 
   node1 [label="index=1, info=z"]; 
@@ -22,7 +26,9 @@ digraph X {
 }
 Graph:
 
-digraph X {   
+digraph X { 
+  label="";
+
   node3 [label="index=3, info=t"]; 
   node2 [label="index=2, info=z"]; 
   node1 [label="index=1, info=y"]; 
@@ -40,7 +46,9 @@ lastNode: 4
 lastEdge: 4
 Copy:
 
-digraph X {   
+digraph X { 
+  label="";
+
   node3 [label="index=3, info=x"]; 
   node2 [label="index=2, info=y"]; 
   node1 [label="index=1, info=z"]; 
@@ -54,7 +62,9 @@ digraph X {
 }
 Deleted edge "a":
 
-digraph X {   
+digraph X { 
+  label="";
+
   node3 [label="index=3, info=t"]; 
   node2 [label="index=2, info=z"]; 
   node1 [label="index=1, info=y"]; 
@@ -67,7 +77,9 @@ digraph X {
 }
 Deleted edge "a" again:
 
-digraph X {   
+digraph X { 
+  label="";
+
   node3 [label="index=3, info=t"]; 
   node2 [label="index=2, info=z"]; 
   node1 [label="index=1, info=y"]; 
@@ -80,7 +92,9 @@ digraph X {
 }
 Deleted node x:
 
-digraph X {   
+digraph X { 
+  label="";
+
   node2 [label="index=2, info=y"]; 
   node1 [label="index=1, info=z"]; 
   node0 [label="index=0, info=t"];
@@ -91,7 +105,9 @@ digraph X {
 }
 Deleted node x again:
 
-digraph X {   
+digraph X { 
+  label="";
+
   node2 [label="index=2, info=y"]; 
   node1 [label="index=1, info=z"]; 
   node0 [label="index=0, info=t"];
@@ -102,7 +118,9 @@ digraph X {
 }
 Replaced node t:
 
-digraph X {   
+digraph X { 
+  label="";
+
   node3 [label="index=3, info=replaced"]; 
   node2 [label="index=2, info=z"]; 
   node1 [label="index=1, info=y"]; 
@@ -117,7 +135,9 @@ digraph X {
 Exception raised on trying to replace detached node.
 Replaced edge d:
 
-digraph X {   
+digraph X { 
+  label="";
+
   node3 [label="index=3, info=replaced"]; 
   node2 [label="index=2, info=z"]; 
   node1 [label="index=1, info=y"]; 

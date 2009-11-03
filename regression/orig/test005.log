@@ -1,4 +1,6 @@
-digraph DFST {   
+digraph DFST { 
+  label="";
+
   node15 [label="M=5, N=12\n9'", shape="box"]; 
   node14 [label="M=4, N=11\n9", shape="box"]; 
   node13 [label="M=14, N=6\n8'", shape="box"]; 

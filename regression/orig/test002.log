@@ -1,4 +1,6 @@
-digraph Tree {   
+digraph Tree { 
+  label="";
+
   node12 [label="M=2, N=8\nl", shape="box"]; 
   node10 [label="M=4, N=10\nj", shape="box"]; 
   node11 [label="M=3, N=9\nk", shape="box"]; 
@@ -14,18 +16,18 @@ digraph Tree {
   node1 [label="M=1, N=1\na", shape="box"]; 
   node0 [label="M=0, N=0\nstart", shape="ellipse"];
 
-  node11 -> node10 ; 
-  node8 -> node13 ; 
-  node5 -> node6 ; 
-  node3 -> node4 ; 
-  node2 -> node5 ; 
-  node2 -> node7 ; 
-  node2 -> node3 ; 
-  node1 -> node12 ; 
-  node1 -> node11 ; 
-  node1 -> node9 ; 
-  node1 -> node8 ; 
-  node1 -> node2 ; 
-  node0 -> node1 ;
+  node11 -> node10 [label=""]; 
+  node8 -> node13 [label=""]; 
+  node5 -> node6 [label=""]; 
+  node3 -> node4 [label=""]; 
+  node2 -> node5 [label=""]; 
+  node2 -> node7 [label=""]; 
+  node2 -> node3 [label=""]; 
+  node1 -> node12 [label=""]; 
+  node1 -> node11 [label=""]; 
+  node1 -> node9 [label=""]; 
+  node1 -> node8 [label=""]; 
+  node1 -> node2 [label=""]; 
+  node0 -> node1 [label=""];
 
 }
