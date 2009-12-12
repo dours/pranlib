@@ -1,6 +1,6 @@
-diff -r -c -N orig/Makefile.in patched/Makefile.in
+diff -r -c -N orig/Makefile.in LastPatched/Makefile.in
 *** orig/Makefile.in	2009-04-24 22:50:33.000000000 +0400
---- patched/Makefile.in	2009-09-03 19:29:17.000000000 +0400
+--- LastPatched/Makefile.in	2009-12-12 16:28:33.000000000 +0300
 ***************
 *** 91,97 ****
   # ww: we don't want "main" in an external cil library (cil.cma),
@@ -16,7 +16,7 @@ diff -r -c -N orig/Makefile.in patched/Makefile.in
   # main's argument checking and whatnot ...
 ! CILLY_MODULES = $(CILLY_LIBRARY_MODULES) \
 !                 cilCFGPrinter \
-!                 cil2Pranlib cilPranlibAA \
+!                 cil2Pranlib cilPranlibAA pranlibAliasAsserts \
 !                 main
   CILLY_CMODULES = perfcount
   CILLY_LIBS     = unix str
@@ -66,9 +66,9 @@ diff -r -c -N orig/Makefile.in patched/Makefile.in
   .PHONY: check
   check: quicktest
   
-diff -r -c -N orig/ocamlutil/Makefile.ocaml patched/ocamlutil/Makefile.ocaml
+diff -r -c -N orig/ocamlutil/Makefile.ocaml LastPatched/ocamlutil/Makefile.ocaml
 *** orig/ocamlutil/Makefile.ocaml	2009-04-24 22:50:33.000000000 +0400
---- patched/ocamlutil/Makefile.ocaml	2009-09-03 19:29:17.000000000 +0400
+--- LastPatched/ocamlutil/Makefile.ocaml	2009-12-12 16:16:51.000000000 +0300
 ***************
 *** 181,187 ****
   COMPILE_FLAGS := $(COMPILEFLAGS)
@@ -86,9 +86,9 @@ diff -r -c -N orig/ocamlutil/Makefile.ocaml patched/ocamlutil/Makefile.ocaml
   
   # sm: two styles for echoing compilation progress:
   #   style 1, by George:
-diff -r -c -N orig/ocamlutil/Makefile.ocaml.build patched/ocamlutil/Makefile.ocaml.build
+diff -r -c -N orig/ocamlutil/Makefile.ocaml.build LastPatched/ocamlutil/Makefile.ocaml.build
 *** orig/ocamlutil/Makefile.ocaml.build	1970-01-01 03:00:00.000000000 +0300
---- patched/ocamlutil/Makefile.ocaml.build	2009-09-03 19:29:17.000000000 +0400
+--- LastPatched/ocamlutil/Makefile.ocaml.build	2009-12-12 16:16:51.000000000 +0300
 ***************
 *** 0 ****
 --- 1,55 ----
@@ -147,28 +147,28 @@ diff -r -c -N orig/ocamlutil/Makefile.ocaml.build patched/ocamlutil/Makefile.oca
 +                     $(patsubst %.cmo, %.$(CMO), $(patsubst %.cma,%.$(CMXA),$(OOPS_LIBS))) \
 +                     $(PROJECT_LIBS:%=-cclib -l%) \
 +                     $^
-diff -r -c -N orig/src/cilutil.ml patched/src/cilutil.ml
+diff -r -c -N orig/src/cilutil.ml LastPatched/src/cilutil.ml
 *** orig/src/cilutil.ml	2009-04-24 22:50:33.000000000 +0400
---- patched/src/cilutil.ml	2009-09-03 19:29:17.000000000 +0400
+--- LastPatched/src/cilutil.ml	2009-12-12 16:27:42.000000000 +0300
 ***************
 *** 36,41 ****
 --- 36,45 ----
    *)
   
   (* Keep here the globally-visible flags *)
-+ 
++ let doPranlibAliasAsserts = ref false
 + let doPranlibAA = ref false (* Whether to run pranlib alias analysis *)
 + let doCilCFGPrinter = ref false   (* Whether to run cil2CFG *)
 + 
   let doCheck= ref false   (* Whether to check CIL *)
   let strictChecking= ref false   (* If doCheck is true and warnings are found,
                                   * treat them as errors. *)
-diff -r -c -N orig/src/ext/cil2Pranlib.ml patched/src/ext/cil2Pranlib.ml
+diff -r -c -N orig/src/ext/cil2Pranlib.ml LastPatched/src/ext/cil2Pranlib.ml
 *** orig/src/ext/cil2Pranlib.ml	1970-01-01 03:00:00.000000000 +0300
---- patched/src/ext/cil2Pranlib.ml	2009-09-01 21:28:08.000000000 +0400
+--- LastPatched/src/ext/cil2Pranlib.ml	2009-12-12 13:21:12.000000000 +0300
 ***************
 *** 0 ****
---- 1,163 ----
+--- 1,168 ----
 + module Node =
 +   struct
 + 
@@ -256,7 +256,7 @@ diff -r -c -N orig/src/ext/cil2Pranlib.ml patched/src/ext/cil2Pranlib.ml
 +         let binding = Hashtbl.create (List.length S.stmts)
 +         let bind = Hashtbl.add binding
 +         
-+         (**receive cil flow graph as an argument and create pranlinb flow graph *)
++         (**receives cil flow graph as an argument and create pranlinb flow graph *)
 +         let (graph, start)  =
 +             let graph, start = Graph.insertNode (Graph.create ()) Node.Start in
 +             let h = Hashtbl.create 100 in
@@ -264,7 +264,8 @@ diff -r -c -N orig/src/ext/cil2Pranlib.ml patched/src/ext/cil2Pranlib.ml
 +                 if Hashtbl.mem h stmt then 
 +                 fst (Graph.insertEdge graph from (Hashtbl.find h stmt) etype)
 +                 else match stmt.skind with 
-+                 | Instr [] -> let graph, fi = Graph.insertNode graph Node.Empty in
++                 | Instr [] -> 
++                               let graph, fi = Graph.insertNode graph Node.Empty in
 +                               bind stmt.sid (`CFN fi);
 +                               let graph = fst (Graph.insertEdge graph from fi etype) in
 +                               dep fi Edge.GoTo graph (List.hd stmt.succs)
@@ -282,12 +283,15 @@ diff -r -c -N orig/src/ext/cil2Pranlib.ml patched/src/ext/cil2Pranlib.ml
 +                                    let graph, ni = Graph.insertNode graph (gnode el) in
 +                                      let graph = fst (Graph.insertEdge graph ci ni Edge.FallThrough) in
 +                                   graph, ni, ni :: nodesRev
-+                                  )    
++                                  )          
 +                                  (graph, fi, [fi])
 +                                  (List.tl il)
 +                               in
 +                               bind stmt.sid (`Ins (List.rev nodesRev)); 
-+                               dep li Edge.GoTo graph (List.hd stmt.succs)
++                               (match stmt.succs with
++                                 [] -> graph
++                                | hd :: _ -> dep li Edge.GoTo graph hd
++                               )
 +                 | _       -> let getnode = function
 +                              | Block b | Loop (b, _, _, _) -> `Stmt (List.hd b.bstmts)
 +                              | Instr _ | Break _ | Continue _ | Switch _ | TryFinally _ | TryExcept _
@@ -297,7 +301,7 @@ diff -r -c -N orig/src/ext/cil2Pranlib.ml patched/src/ext/cil2Pranlib.ml
 +                              | Return (e, _) -> `Node (Node.Return e)
 +                              in match getnode stmt.skind with
 +                                `Stmt s -> dep from etype graph s
-+                              | `Node node  ->                     
++                              | `Node node  ->                
 +                                  let graph, node = Graph.insertNode graph node
 +                                  in
 +                                  bind stmt.sid (`CFN node);
@@ -310,9 +314,10 @@ diff -r -c -N orig/src/ext/cil2Pranlib.ml patched/src/ext/cil2Pranlib.ml
 +                                  | _ -> (match stmt.succs with
 +                                            [] -> graph
 +                                          | [st] -> dep node Edge.GoTo graph st)
-+                             
 +             in
-+             (dep start Edge.GoTo graph (List.hd S.stmts)), start
++             match S.stmts with
++               [] -> graph, start
++             | hd :: _ -> (dep start Edge.GoTo graph (List.hd S.stmts)), start
 +     
 +         let graph = graph
 +     
@@ -332,9 +337,9 @@ diff -r -c -N orig/src/ext/cil2Pranlib.ml patched/src/ext/cil2Pranlib.ml
 + 
 + 
 + 
-diff -r -c -N orig/src/ext/cil2Pranlib.mli patched/src/ext/cil2Pranlib.mli
+diff -r -c -N orig/src/ext/cil2Pranlib.mli LastPatched/src/ext/cil2Pranlib.mli
 *** orig/src/ext/cil2Pranlib.mli	1970-01-01 03:00:00.000000000 +0300
---- patched/src/ext/cil2Pranlib.mli	2009-09-01 21:29:22.000000000 +0400
+--- LastPatched/src/ext/cil2Pranlib.mli	2009-09-30 20:45:02.000000000 +0400
 ***************
 *** 0 ****
 --- 1,72 ----
@@ -410,9 +415,9 @@ diff -r -c -N orig/src/ext/cil2Pranlib.mli patched/src/ext/cil2Pranlib.mli
 +     module Make (S : ProcedureStatements) : Sig 
 +  end
 + 
-diff -r -c -N orig/src/ext/cilCFGPrinter.ml patched/src/ext/cilCFGPrinter.ml
+diff -r -c -N orig/src/ext/cilCFGPrinter.ml LastPatched/src/ext/cilCFGPrinter.ml
 *** orig/src/ext/cilCFGPrinter.ml	1970-01-01 03:00:00.000000000 +0300
---- patched/src/ext/cilCFGPrinter.ml	2009-05-16 13:24:13.000000000 +0400
+--- LastPatched/src/ext/cilCFGPrinter.ml	2009-09-30 20:45:02.000000000 +0400
 ***************
 *** 0 ****
 --- 1,159 ----
@@ -575,12 +580,12 @@ diff -r -c -N orig/src/ext/cilCFGPrinter.ml patched/src/ext/cilCFGPrinter.ml
 +     fd_post_check = true 
 +   } 
 + 
-diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
+diff -r -c -N orig/src/ext/cilPranlibAA.ml LastPatched/src/ext/cilPranlibAA.ml
 *** orig/src/ext/cilPranlibAA.ml	1970-01-01 03:00:00.000000000 +0300
---- patched/src/ext/cilPranlibAA.ml	2009-09-01 21:28:09.000000000 +0400
+--- LastPatched/src/ext/cilPranlibAA.ml	2009-12-12 15:50:21.000000000 +0300
 ***************
 *** 0 ****
---- 1,337 ----
+--- 1,330 ----
 + open Cil
 + open Cil2Pranlib
 + open AliasView
@@ -611,86 +616,104 @@ diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
 + module Statement = FW.S
 + module Expression = Statement.Expr
 + 
-+ module type Declarations =
-+   sig
-+     (** returns block allocated for variable denoted by varinfo*)
-+     val getBlock  : varinfo -> Block.t 
-+  
-+     (** returns region allocated for given name *)
-+     val getRegion : string  ->  Region.t
-+ 
-+     (** returns block type by a cil type *)
-+     val typeToBlockType : Region.t -> string -> typ -> Block.InfoTree.t option
-+   end
-+ 
-+ (** module containing all declarations of program *)
-+ module Decls (D : sig val decls : varinfo list end) =
++ module CilToPranlibMemoryMap =
 +   struct
++     module type Declarations =
++       sig
++         val globals : Cil.varinfo list
++         val args : Cil.varinfo list
++         val locals : Cil.varinfo list
++       end
 + 
-+     let rec vars = Hashtbl.create 100
-+     let rec regs = Hashtbl.create 5
++     module type Sig =
++       sig
++         module D : Declarations
++   
++         (** returns block allocated for variable denoted by varinfo*)
++         val getBlock  : varinfo -> Block.t 
++      
++         (** returns region allocated for given name *)
++         val getRegion : string  ->  Region.t
 +     
-+     let rec typeToBlockType region name = function
-+      | TInt _ | TFloat _ | TPtr _ | TEnum _ | TArray _ -> Some (Block.InfoTree.make (name, region) [])
-+      | TComp (info, _)  when not(info.cstruct) -> Some (Block.InfoTree.make (name, region) [])
-+     (* | TArray (bt, Some (Const (CInt64 (i64, _, _))), _) 
-+                                             -> let i = Int64.to_int i64 in
-+                                                 Type.Compound (Array.make i (typeToBlockType bt)) *)
-+      | TNamed (info, _) -> typeToBlockType region name info.ttype                    
-+      | TComp (info, _) -> let fieldsInfo = Array.of_list info.cfields in
-+                            Some ( Block.InfoTree.make
-+                                     (name, region)
-+                                     (Array.fold_right (fun el acc -> match typeToBlockType region el.fname el.ftype with    
-+                                                                        Some t -> t :: acc
-+                                                                      | None ->  raise (Failure "typeToBlockType")
-+                                                       ) fieldsInfo []
-+                                     )
-+                                 )               
-+      | _ -> None
-+    
-+     
-+     let regionName info = match info.vstorage with
-+      | NoStorage -> if info.vglob then "Global" else "Local"
-+      | Static    -> "Local"
-+      | Register  -> "Global"
-+      | Extern    -> "Global"
++         (** returns block type by a cil type *)
++         val typeToBlockType : Region.t -> string -> typ -> Block.InfoTree.t option
++       end
++ 
++   (** module containing all CilToPranlibMemoryMap of program *)
++   module Make (D : Declarations) =
++     struct
++       module D = D
++   
++       let rec vars = Hashtbl.create 100
++       let rec regs = Hashtbl.create 5
 +       
-+     let init = fun () ->
-+                 let mr = List.fold_left
-+                           (fun m name ->
-+                              let (m, r) = Memory.createRegion m name []
-+                              in
-+                              Hashtbl.add regs name r;
-+                              m
-+                           )
-+                           Memory.empty
-+                           ["Global"; "Local"; "Heap"]
-+                 in
-+                 List.fold_left
-+                   (fun m info -> let rname = regionName info in 
-+                                    let (m, r) = if Hashtbl.mem regs rname
-+                                                 then (m, Hashtbl.find regs rname)
-+                                                 else let (m, reg) = Memory.createRegion m rname []
-+                                                      in Hashtbl.add regs rname reg;
-+                                                         (m, reg)
-+                                  in
-+                                  match typeToBlockType r info.vname info.vtype with
-+                                    Some typ ->
-+                                      let (m, b) = Memory.allocateBlock m typ
-+                                       in Hashtbl.add vars info.vid b; 
-+                                          m
-+                                  | None -> m
-+                    )
-+                    mr
-+                    D.decls
-+     
-+     let getBlock info = Hashtbl.find vars info.vid
-+    
-+     let getRegion name = Hashtbl.find regs name 
-+                         
++       let rec typeToBlockType region name = function
++        | TInt _ | TFloat _ | TPtr _ | TEnum _ | TArray _ | TBuiltin_va_list _ | TFun _ -> Some (Block.InfoTree.make (name, region) [])
++        | TComp (info, _)  when not(info.cstruct) -> Some (Block.InfoTree.make (name, region) [])
++        | TNamed (info, _) -> typeToBlockType region name info.ttype                    
++        | TComp (info, _) -> let fieldsInfo = Array.of_list info.cfields in
++                              Some ( Block.InfoTree.make
++                                       (name, region)
++                                       (Array.fold_right (fun el acc -> match typeToBlockType region el.fname el.ftype with    
++                                                                          Some t -> t :: acc
++                                                                        | None ->  raise (Failure "typeToBlockType")
++                                                         ) fieldsInfo []
++                                       )
++                                   )               
++        | _ -> None
++      
++       
++       let regionName info = match info.vstorage with
++        | NoStorage -> if info.vglob then "Global" else "Local"
++        | Static    -> "Local"
++        | Register  -> if List.exists (fun elem -> (elem = info)) D.globals
++                       then "Global"
++                       else "Local"
++        | Extern    -> "Global"
++         
++       let init = fun () ->
++                   let mr = List.fold_left
++                             (fun m name ->
++                                let (m, r) = Memory.createRegion m name []
++                                in
++                                Hashtbl.add regs name r;
++                                m
++                             )
++                             Memory.empty
++                             ["Global"; "Local"; "Heap"]
++                   in
++                   List.fold_left
++                     (fun m info -> let rname = regionName info in 
++                                      let (m, r) = if Hashtbl.mem regs rname
++                                                   then (m, Hashtbl.find regs rname)
++                                                   else let (m, reg) = Memory.createRegion m rname []
++                                                        in Hashtbl.add regs rname reg;
++                                                           (m, reg)
++                                    in
++                                    match typeToBlockType r info.vname info.vtype with
++                                      Some typ ->
++                                        let (m, b) = Memory.allocateBlock m typ
++                                         in Hashtbl.add vars info.vid b; 
++                                            m
++                                    | None -> m
++                      )
++                      mr
++                      (D.globals @ D.args @ D.locals)
++       
++       let getBlock info =
++         try
++           Hashtbl.find vars info.vid
++         with Not_found -> failwith ("Not found block with info " ^ info.vname)
++      
++       let getRegion name =
++         try 
++           Hashtbl.find regs name 
++         with Not_found -> failwith ("Not found region " ^ name)
++                           
++     end
 +   end
 + 
-+ module Abstractor (D : Declarations) =
++ module Abstractor (MemoryMap : CilToPranlibMemoryMap.Sig) =
 +   struct
 +  
 +     module Concrete =
@@ -701,8 +724,7 @@ diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
 +   
 +     module Abstract =
 +       struct
-+         type node = Statement.t list
-+   
++         type node = Statement.t list  
 +         type edge = Graph.Edge.t
 +       end
 + 
@@ -721,6 +743,8 @@ diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
 +           | [] -> raise (Failure "structure field not found")
 +         in find 0 fld.fcomp.cfields
 + 
++     let varToBlock varinfo = Expression.block (MemoryMap.getBlock varinfo)
++ 
 +     let rec lvalue =
 +       let getField' i b = getField i (Some b)
 +       in 
@@ -729,7 +753,7 @@ diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
 +       | Field (info, _) when not(info.fcomp.cstruct) -> bl 
 +       | Field (info, off) -> makeOffset (Expression.sub (getField' (findFieldNumber info)) bl)  off 
 +       in function
-+       | Var (info), off -> makeOffset (Expression.block (D.getBlock info)) off   
++       | Var (info), off -> makeOffset (varToBlock info) off   
 +       | Mem (Lval l), off  -> makeOffset (Expression.value (lvalue l)) off
 +       | Mem (AddrOf l), off -> makeOffset (lvalue l) off 
 +       | Mem e, _ -> Expression.region (expr Left e)
@@ -741,34 +765,13 @@ diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
 +       | x, CastE (_,  e) -> expr x e
 +       | _                -> Expression.any
 + 
++ 
 +      let node x =   
 +       let rec testLvalue = function   (* Assigments can be made for structures containing pointers!!!! *)
 +        | Var (info), _ -> (match info.vtype with TPtr _ -> true | _ -> false)
 +        | Mem (AddrOf l), _ -> testLvalue l
 +        | _ -> true
-+       in
-+       let rec getLType drfs = 
-+         let rec deref = function     
-+         | t, 0 -> t
-+         | TPtr (t, _) , i -> (deref (t, (i - 1))) 
-+         | _ -> raise (Failure "incorrect dereference")
-+         in
-+         let rec makeOffset t = function
-+         | Field (finfo, off) when finfo.fcomp.cstruct -> makeOffset (finfo.ftype) off
-+         | NoOffset | Field _ -> t
-+         | Index (_, off) -> makeOffset t off    
-+         in function
-+         | Var info, off       -> Some (deref ((makeOffset info.vtype off), drfs)) 
-+         | Mem (Lval v), off   -> (match (getLType (drfs + 1) v) with
-+                                     Some t -> Some (makeOffset t off)
-+                                   | None   ->  None
-+                                  )
-+         | Mem (AddrOf v), off -> (match (getLType drfs v) with
-+                                     Some t -> Some (makeOffset t off)
-+                                   | None   -> None
-+                                  )
-+         | Mem _, _ -> None     
-+       in                     
++       in              
 +       let exprsl = List.map (expr Left)
 +       in
 +       let node' = function
@@ -777,39 +780,29 @@ diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
 +          (match info.vname with "alloca" | "calloc" | "malloc" | "free" -> true | _ -> false) 
 +                        -> 
 +           (
-+             let getr = function
-+              | "alloca" -> "Local" | _ -> "Heap"
++             let getAllocRegionName = function | "alloca" -> "Local" | _ -> "Heap"
 +             in
-+             let createAlloc t = 
-+              [Statement.assign (lvalue lv) (Expression.alloc t)]
++             let createAlloc t = [Statement.assign (lvalue lv) (Expression.alloc t)]
 +             in
 +             match info.vname with                                  
-+               (*| "calloc" -> (match (List.hd args) with
-+                   Const (CInt64 (i64, x, y)) -> let i = Int64.to_int i64 in
-+                                                   if i > 100 then (* for example *)
-+                                                     createAlloc (D.typeToBlockType info.vtype)
-+                                                   else createAlloc (Type.Compound (Array.make i (D.typeToBlockType info.vtype)))*)
-+              | "malloc" | "alloca" | "calloc"  -> let t =
-+                                                    match (getLType 0 lv) with
-+                                                    | Some t' -> t'
-+                                                    | None    -> info.vtype
-+                                                   in
-+                                                   ( match D.typeToBlockType (D.getRegion (getr info.vname)) info.vname t with 
-+                                                       Some t -> createAlloc t
-+                                                     | None   -> raise (Failure "incorrect type of allocated block")
-+                                                   )
-+              | "free" -> [Statement.assign (expr Left (List.hd args)) Expression.any]
-+              | _      -> failwith "Unexpected operation with memory"
-+           )
-+       | Node.Call (lv, f, args)
-+           -> let black = Statement.black [(D.getRegion "Heap");] ((Expression.some (D.getRegion "Global")) ::(exprsl args)) in
-+                ( match lv with
-+                    Some v -> (Statement.assign (lvalue v) Expression.any) :: [black] 
-+                  | _      -> [black]    
++              | "malloc" | "alloca" ->
++                ( match MemoryMap.typeToBlockType
++                         (MemoryMap.getRegion (getAllocRegionName info.vname)) info.vname (Cil.typeOf (Cil.Lval lv))  with 
++                    Some t -> createAlloc t
++                  | None   -> raise (Failure "incorrect type of allocated block")
 +                )
-+      | Node.Set (lv, e) -> 
-+            let sAssignment lv e t = 
-+             let cover = fun x -> Some x 
++              | "free" -> [Statement.assign (expr Left (List.hd args)) Expression.any]
++              | _      -> failwith "Unexpected operation with memory (cil2PranlibAA)"
++           )
++       | Node.Call (lv, f, args)->
++           let black = Statement.black [(MemoryMap.getRegion "Heap");] ((Expression.some (MemoryMap.getRegion "Global")) ::(exprsl args)) in
++             ( match lv with
++                 Some v -> (Statement.assign (lvalue v) Expression.any) :: [black] 
++               | _      -> [black]    
++             )
++      | Node.Set (lv, e) ->         
++         let makeStructAssignment lv e t = 
++           let cover = fun x -> Some x 
 +             in
 +             let rec aux subf = function
 +               | TComp (info, _) -> List.concat
@@ -819,12 +812,15 @@ diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
 +               | _ -> [Statement.assign (Expression.sub (cover >> subf) lv) (Expression.sub (cover >> subf) e)] 
 +             in aux (fun x -> x) t
 +           in
-+           (match (getLType 0 lv) with
-+             | Some (TComp (info, _) as t) -> sAssignment (lvalue lv) (expr Right e) t
++           (match Cil.typeOf (Cil.Lval lv) with
++             | TComp (info, _) as t -> makeStructAssignment (lvalue lv) (expr Right e) t
 +             | _                           -> if testLvalue lv
 +                                              then [Statement.assign (lvalue lv) (expr Right e)]
 +                                              else []
-+           )
++           )    
++       | Node.Start ->
++           [Statement.black [(MemoryMap.getRegion "Heap");]
++                            ((Expression.some (MemoryMap.getRegion "Global")) :: (List.map varToBlock MemoryMap.D.args))]
 +       | _ -> []
 +       in node' (Graph.Node.info x)
 +   
@@ -837,6 +833,7 @@ diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
 + let createGlobalDeclsList fl =  
 +   foldGlobals fl (fun tl -> function
 +    | GVarDecl (info, _) | GVar (info, _, _) ->  info :: tl
++    | GFun (fdec, _) -> fdec.svar :: tl
 +    | _ -> tl
 +   )
 +   []
@@ -847,6 +844,8 @@ diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
 +     val func : Cil.fundec
 +   end
 + 
++ exception MyException
++ 
 + module AnalyseFunction (FD : FunctionDescr) =
 +   struct
 +     module PG = PranlibGraph.Make
@@ -854,50 +853,49 @@ diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
 +         let stmts =
 +             prepareCFG FD.func; 
 +             computeCFGInfo FD.func true;
-+             FD.func.sbody.bstmts
++             FD.func.sallstmts
 +       end)
 + 
 +     let (may, must, dot) = 
-+       let vars = (createGlobalDeclsList FD.file) @ FD.func.sformals @ FD.func.slocals in
-+       (*let graph, start = PG.graph, PG.start in*)
-+       let module D = Decls (struct let decls = vars end) in
-+       let memory = D.init () in
-+       let module A = Abstractor (D) in 
-+       (*let module G = 
++       let module Declarations =
 +         struct
-+           let graph = graph
-+ 
-+           let start = start
++           let globals = createGlobalDeclsList FD.file
++           let args = FD.func.sformals
++           let locals = FD.func.slocals
 +         end
-+      in*)
-+      let module Analysis = FW.Analyse (struct let memory = memory end)
-+                                       (A)
-+                                       (PG)
-+      in
-+      let eval node e = Analysis.after node (A.expr A.Left e)
-+      in
-+      (fun node e1 e2 -> Analysis.may (eval node e1) (eval node e2)),
-+      (fun node e1 e2 -> Analysis.must (eval node e1) (eval node e2)),
-+      Analysis.DOT.toDOT()
++       in
++       let module MemoryMap = CilToPranlibMemoryMap.Make (Declarations) in
++       let memory = MemoryMap.init () in
++       let module A = Abstractor (MemoryMap) in 
++       let module Analysis =
++         FW.Analyse (struct let memory = memory end)
++                    (A)
++                    (PG)
++       in
++       let eval node e = Analysis.after node (A.expr A.Left e)
++       in
++       (fun node e1 e2 -> Analysis.may (eval node e1) (eval node e2)),
++       (fun node e1 e2 -> Analysis.must (eval node e1) (eval node e2)),
++       lazy (Analysis.DOT.toDOT())
 + 
-+    let may  = may
-+    let must = must
-+    let dot  = dot
++     let may  = may
++     let must = must
++     let dot  = dot
 + 
 +   end
 + 
 + 
 + let start file = 
 +   iterGlobals file (function
-+     | GFun (f, _) -> 
++     | GFun (f, _) ->
 +         if !aliasGraphFile != ""
 +         then ( let och = open_out !aliasGraphFile
 +                in
 +                let module FD = struct let file = file let func = f end
 +                in
 +                let module Result = AnalyseFunction (FD)
-+                in
-+                Printf.fprintf och "%s" Result.dot;
++                in 
++                Printf.fprintf och "%s" (Lazy.force Result.dot);
 +                close_out och
 +               )
 +     | _ -> ()
@@ -918,9 +916,9 @@ diff -r -c -N orig/src/ext/cilPranlibAA.ml patched/src/ext/cilPranlibAA.ml
 + 
 + 
 + 
-diff -r -c -N orig/src/ext/cilPranlibAA.mli patched/src/ext/cilPranlibAA.mli
+diff -r -c -N orig/src/ext/cilPranlibAA.mli LastPatched/src/ext/cilPranlibAA.mli
 *** orig/src/ext/cilPranlibAA.mli	1970-01-01 03:00:00.000000000 +0300
---- patched/src/ext/cilPranlibAA.mli	2009-09-01 19:41:30.000000000 +0400
+--- LastPatched/src/ext/cilPranlibAA.mli	2009-10-18 20:30:30.000000000 +0400
 ***************
 *** 0 ****
 --- 1,20 ----
@@ -944,31 +942,187 @@ diff -r -c -N orig/src/ext/cilPranlibAA.mli patched/src/ext/cilPranlibAA.mli
 + 
 + 
 + 
-diff -r -c -N orig/src/ext/pranlibAliasAsserts.ml patched/src/ext/pranlibAliasAsserts.ml
+diff -r -c -N orig/src/ext/pranlibAliasAsserts.ml LastPatched/src/ext/pranlibAliasAsserts.ml
 *** orig/src/ext/pranlibAliasAsserts.ml	1970-01-01 03:00:00.000000000 +0300
---- patched/src/ext/pranlibAliasAsserts.ml	2009-06-02 19:57:01.000000000 +0400
+--- LastPatched/src/ext/pranlibAliasAsserts.ml	2009-12-09 22:03:48.000000000 +0300
 ***************
 *** 0 ****
---- 1,31 ----
+--- 1,187 ----
 + open Cil
 + open Cil2Pranlib
 + open AliasView
-+ open Printf
++ open Printf 
++ 
++ module PointerDegree = 
++   struct
++     type t = Degree of int
++ 
++     let compare v1 v2 = match (v1, v2) with
++       (Degree d1), (Degree d2) -> d2 - d1
++ 
++     let max v1 v2 = match (v1, v2) with
++       (Degree d1), (Degree d2) -> if d1 > d2 then (Degree d1) else (Degree d2)
++ 
++     let zero = Degree 0
++ 
++     let toInt = function | (Degree d) -> d
++   end
++ 
++ let mkIntegersSeq max = 
++   let rec aux i = 
++     if i == max
++     then [i]
++     else i :: (aux (i + 1))
++   in
++   if max >= 0
++   then aux 0
++   else []
++ 
++ (* performs list multiplication *)
++ let fold_mult op f list1 list2 =
++   List.fold_right
++    (fun elem1 -> List.fold_right (fun elem2 -> f (op elem1 elem2)) list2)
++    list1
++   
++ (* Giving function definition returns function from pointer degree to a list 
++    of lvalues corresponding to variables whose values are interesting to make assertions about
++    having corresponding p.d. and a maximal p.d. *)
++ let functionScopeVariables : Cil.fundec -> (PointerDegree.t -> Cil.lval list) * PointerDegree.t = fun func ->
++   let module PDegreeMap = Map.Make (PointerDegree)
++   in
++   (* All variables declared in function *)
++   let variables = func.sformals @ func.slocals
++   in
++   (* Counts "pointer degree" of a type. *)
++   let rec pointerDegree = function
++   | TPtr (typ, _) -> 1 + (pointerDegree typ)
++   | TNamed (typeinfo, _) -> pointerDegree typeinfo.ttype
++   | _ -> 0
++   in
++   (* unions two maps*)
++   let union map1 map2 = PDegreeMap.fold
++     (fun key value acc ->
++        if PDegreeMap.mem key acc
++        then PDegreeMap.add key (value @ (PDegreeMap.find key acc)) acc
++        else PDegreeMap.add key value acc
++     ) map1 map2
++   in
++   (* traverses variable definition and creates data structure holding all "lvalues of interest" *)
++   let traverseVarDef : Cil.varinfo ->  (Cil.lval list) PDegreeMap.t = 
++     let rec traverseType : Cil.typ -> (Cil.offset list) PDegreeMap.t = function
++     | TComp (cinfo, _) when cinfo.cstruct ->
++        List.fold_right
++          (fun fieldinfo ->
++            union (
++              PDegreeMap.map
++                (List.map (fun offs -> Cil.Field (fieldinfo, offs)))
++                (traverseType fieldinfo.ftype)
++            )
++          )
++          cinfo.cfields
++          PDegreeMap.empty
++     | typ -> 
++       let pdegree = PointerDegree.Degree (pointerDegree typ) in
++         PDegreeMap.add pdegree [Cil.NoOffset] PDegreeMap.empty
++     in function
++     | varinfo ->
++       PDegreeMap.map
++         (List.map (fun offset -> ((Cil.Var varinfo), offset)))
++         (traverseType varinfo.vtype)
++   in
++   let map = List.fold_left union PDegreeMap.empty (List.map traverseVarDef variables)
++   in
++   let maxDegree = PDegreeMap.fold (fun key _ -> max key) map PointerDegree.zero
++   in
++     (fun pd -> if PDegreeMap.mem pd map then PDegreeMap.find pd map else []),
++     maxDegree
++ 
++ let mkDummyLocation () =
++   {line = -1; file = ""; byte = 0}
++ 
++ let mkBlockOneStmt stmt = Cil.mkBlock [stmt]
++ 
++ let mkStubReturnStmt () = Cil.mkStmt (Cil.Return (None, mkDummyLocation ()))
++ 
++ let createEqualityAssertion exp1 exp2 = Cil.mkStmt (
++    Cil.If (
++      Cil.BinOp (Cil.Eq, exp1, exp2, (Cil.TInt (Cil.IBool, []))),
++      (mkBlockOneStmt (Cil.mkEmptyStmt ())),
++      (mkBlockOneStmt (mkStubReturnStmt ()) ),
++      mkDummyLocation ()
++    )
++ )
++ 
++ let rec last = function
++   hd :: [] -> hd
++ | hd :: tl -> last tl
++ 
++ exception MyExcep
 + 
 + let start file = 
 +   iterGlobals file (function
 +     | GFun (f, _) ->
-+       let stubStmt = ...
++       (
++       let out = (open_out_gen [Open_append] 0 "zzz") in
++       Printf.fprintf out "%s: " file.fileName;
++       Printf.fprintf out "%s\n" f.svar.vname; 
++       flush out;
++       try
++         let module AliasAnalysisResults = CilPranlibAA.AnalyseFunction (struct let file = file let func = f end)
++         in ()
++       with Failure s -> 
++         Printf.fprintf out "FAILURE: %s\n" s; 
++         flush out
++       (* must alias analysis relation "after" specified statement *)
++      (* let mustAfter stmt = 
++         let image = AliasAnalysisResults.PG.findPranlibImage stmt
++         in match image with
++           `CFN node -> AliasAnalysisResults.must node
++         | `Ins nodes -> AliasAnalysisResults.must (last nodes)
++       in
++       let pointerVariablesMap, maxDegree = functionScopeVariables f      
++       in
++       let possibleAliasPairs : (Cil.lval * Cil.lval) list = 
++         let fold_m = fold_mult (fun x y -> (x,y)) (fun hd tl -> hd :: tl)
++         in
++         List.fold_left
++          (fun acc i -> 
++            let degree = PointerDegree.Degree i in
++            let nextDegree = PointerDegree.Degree (i + 1) in
++              fold_m (pointerVariablesMap degree) (pointerVariablesMap nextDegree) acc
++          )
++          []
++          (mkIntegersSeq (PointerDegree.toInt maxDegree))
++       in
++       let mkAssertionsAfter stmt = 
++        Printf.fprintf out "\n---\n";
++        Cil.dumpStmt Cil.defaultCilPrinter out 0 stmt;
++        Printf.fprintf out "\n---\n";
++         let assertionStmts = List.fold_left
++           (fun acc (x, px) ->
++              let varExp = (Cil.Lval x) in
++              let pointerExp = (Cil.Lval (Cil.mkMem (Cil.Lval px) Cil.NoOffset))
++              in
++              if mustAfter stmt varExp pointerExp
++              then  (createEqualityAssertion varExp pointerExp) :: acc
++              else acc
++           )
++           []
++           possibleAliasPairs
++         in     
++         Cil.mkStmt (Cil.Block (Cil.mkBlock assertionStmts))
++       in
++        Printf.fprintf out "%d\n" (List.length (pointerVariablesMap (PointerDegree.Degree 0))); 
++        Printf.fprintf out "%d\n" (List.length (pointerVariablesMap (PointerDegree.Degree 1))); 
++       let updatedStmtList = 
++         List.fold_right (fun s acc -> s :: (mkAssertionsAfter s) :: acc) f.sbody.bstmts []
 +       in 
-+       List.iter
-+        (fun s -> match s.skind with
-+                   Instr instrl -> (s.skind <- List.
-+                  | _ -> ()
-+        )
-+        f.sbody.bstmts
++         f.sbody.bstmts <- updatedStmtList *)
++       )
 +     | _ -> ()
 +   )
 +     
++ 
 + 
 + let feature : featureDescr = 
 +   { fd_name = "pranlibAliasAsserts";              
@@ -981,23 +1135,24 @@ diff -r -c -N orig/src/ext/pranlibAliasAsserts.ml patched/src/ext/pranlibAliasAs
 + 
 + 
 + 
-diff -r -c -N orig/src/main.ml patched/src/main.ml
+diff -r -c -N orig/src/main.ml LastPatched/src/main.ml
 *** orig/src/main.ml	2009-04-24 22:50:33.000000000 +0400
---- patched/src/main.ml	2009-09-03 19:29:17.000000000 +0400
+--- LastPatched/src/main.ml	2009-12-12 16:27:11.000000000 +0300
 ***************
 *** 104,109 ****
---- 104,111 ----
+--- 104,112 ----
       Logcalls.feature;
       Ptranal.feature;
       Liveness.feature;
 +     CilCFGPrinter.feature;
 +     CilPranlibAA.feature;
++     PranlibAliasAsserts.feature;
     ] 
     @ Feature_config.features 
   
-diff -r -c -N orig/test/oops/alias/orig/test1.dot patched/test/oops/alias/orig/test1.dot
+diff -r -c -N orig/test/oops/alias/orig/test1.dot LastPatched/test/oops/alias/orig/test1.dot
 *** orig/test/oops/alias/orig/test1.dot	1970-01-01 03:00:00.000000000 +0300
---- patched/test/oops/alias/orig/test1.dot	2009-05-06 13:28:12.000000000 +0400
+--- LastPatched/test/oops/alias/orig/test1.dot	2009-12-12 16:16:51.000000000 +0300
 ***************
 *** 0 ****
 --- 1,192 ----
@@ -1194,9 +1349,9 @@ diff -r -c -N orig/test/oops/alias/orig/test1.dot patched/test/oops/alias/orig/t
 + 
 + }
 \ No newline at end of file
-diff -r -c -N orig/test/oops/alias/orig/test2.dot patched/test/oops/alias/orig/test2.dot
+diff -r -c -N orig/test/oops/alias/orig/test2.dot LastPatched/test/oops/alias/orig/test2.dot
 *** orig/test/oops/alias/orig/test2.dot	1970-01-01 03:00:00.000000000 +0300
---- patched/test/oops/alias/orig/test2.dot	2009-05-06 13:28:12.000000000 +0400
+--- LastPatched/test/oops/alias/orig/test2.dot	2009-12-12 16:16:51.000000000 +0300
 ***************
 *** 0 ****
 --- 1,506 ----
@@ -1707,9 +1862,9 @@ diff -r -c -N orig/test/oops/alias/orig/test2.dot patched/test/oops/alias/orig/t
 + 
 + }
 \ No newline at end of file
-diff -r -c -N orig/test/oops/alias/orig/test3.dot patched/test/oops/alias/orig/test3.dot
+diff -r -c -N orig/test/oops/alias/orig/test3.dot LastPatched/test/oops/alias/orig/test3.dot
 *** orig/test/oops/alias/orig/test3.dot	1970-01-01 03:00:00.000000000 +0300
---- patched/test/oops/alias/orig/test3.dot	2009-05-06 13:28:12.000000000 +0400
+--- LastPatched/test/oops/alias/orig/test3.dot	2009-12-12 16:16:51.000000000 +0300
 ***************
 *** 0 ****
 --- 1,506 ----
@@ -2220,9 +2375,9 @@ diff -r -c -N orig/test/oops/alias/orig/test3.dot patched/test/oops/alias/orig/t
 + 
 + }
 \ No newline at end of file
-diff -r -c -N orig/test/oops/alias/test1.c patched/test/oops/alias/test1.c
+diff -r -c -N orig/test/oops/alias/test1.c LastPatched/test/oops/alias/test1.c
 *** orig/test/oops/alias/test1.c	1970-01-01 03:00:00.000000000 +0300
---- patched/test/oops/alias/test1.c	2009-05-06 13:28:12.000000000 +0400
+--- LastPatched/test/oops/alias/test1.c	2009-12-12 16:16:51.000000000 +0300
 ***************
 *** 0 ****
 --- 1,17 ----
@@ -2243,9 +2398,9 @@ diff -r -c -N orig/test/oops/alias/test1.c patched/test/oops/alias/test1.c
 + 
 +   return 0;
 + }
-diff -r -c -N orig/test/oops/alias/test2.c patched/test/oops/alias/test2.c
+diff -r -c -N orig/test/oops/alias/test2.c LastPatched/test/oops/alias/test2.c
 *** orig/test/oops/alias/test2.c	1970-01-01 03:00:00.000000000 +0300
---- patched/test/oops/alias/test2.c	2009-05-06 13:28:12.000000000 +0400
+--- LastPatched/test/oops/alias/test2.c	2009-12-12 16:16:51.000000000 +0300
 ***************
 *** 0 ****
 --- 1,35 ----
@@ -2285,9 +2440,9 @@ diff -r -c -N orig/test/oops/alias/test2.c patched/test/oops/alias/test2.c
 +   l();
 + }
 \ No newline at end of file
-diff -r -c -N orig/test/oops/alias/test3.c patched/test/oops/alias/test3.c
+diff -r -c -N orig/test/oops/alias/test3.c LastPatched/test/oops/alias/test3.c
 *** orig/test/oops/alias/test3.c	1970-01-01 03:00:00.000000000 +0300
---- patched/test/oops/alias/test3.c	2009-05-19 21:31:54.000000000 +0400
+--- LastPatched/test/oops/alias/test3.c	2009-12-12 16:16:51.000000000 +0300
 ***************
 *** 0 ****
 --- 1,39 ----
@@ -2331,9 +2486,9 @@ diff -r -c -N orig/test/oops/alias/test3.c patched/test/oops/alias/test3.c
 +     *x = &z;
 + }
 \ No newline at end of file
-diff -r -c -N orig/test/oops/alias/test.sh patched/test/oops/alias/test.sh
+diff -r -c -N orig/test/oops/alias/test.sh LastPatched/test/oops/alias/test.sh
 *** orig/test/oops/alias/test.sh	1970-01-01 03:00:00.000000000 +0300
---- patched/test/oops/alias/test.sh	2009-05-11 13:05:16.000000000 +0400
+--- LastPatched/test/oops/alias/test.sh	2009-12-12 16:16:51.000000000 +0300
 ***************
 *** 0 ****
 --- 1,57 ----
@@ -2395,9 +2550,9 @@ diff -r -c -N orig/test/oops/alias/test.sh patched/test/oops/alias/test.sh
 +     done
 + fi
 \ No newline at end of file
-diff -r -c -N orig/test/oops/test.sh patched/test/oops/test.sh
+diff -r -c -N orig/test/oops/test.sh LastPatched/test/oops/test.sh
 *** orig/test/oops/test.sh	1970-01-01 03:00:00.000000000 +0300
---- patched/test/oops/test.sh	2009-09-03 19:29:17.000000000 +0400
+--- LastPatched/test/oops/test.sh	2009-12-12 16:16:51.000000000 +0300
 ***************
 *** 0 ****
 --- 1,3 ----
