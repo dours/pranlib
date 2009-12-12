@@ -361,7 +361,7 @@ module Make (BI: BlockInfo) =
           end = 
           struct
 
-            let create mode aT nextId =
+            let create mode aT nextId =									
               let module T = Block.InfoTree in
               let rec aux aT = match (T.children aT = []) with
                 true  -> let block = Block.Simple (nextId (), mode, T.label aT) in
@@ -770,7 +770,8 @@ module Make (BI: BlockInfo) =
             in function
             | Bottom -> "Bottom"
             | L l    -> View.toString (aux l)
-        
+                
+
             (* semilattice operation *)
             let cap x y = 
              let rec cap' x y = match (x, y) with
@@ -789,7 +790,7 @@ module Make (BI: BlockInfo) =
              in match (x, y) with
              | _, Bottom | Bottom, _ -> Bottom
              | L x, L y -> L (cap' x y) 
-        
+       
             (* equality relation on semilattice element *)
             let equal x y = 
              let rec equal' x y = match (x, y) with
@@ -802,7 +803,7 @@ module Make (BI: BlockInfo) =
              in match (x, y) with
                Bottom, Bottom -> true
              | Bottom, _ | _, Bottom -> false
-             | L x, L y -> equal' x y
+             | L x, L y -> equal' x y        
       
             (* [update m v b l] returns new semilattice element
                  with updated value of block [b].
@@ -849,12 +850,20 @@ module Make (BI: BlockInfo) =
              open SL
 
              let affect s l = 
+               LOG (Printf.printf "StatementEffect.affect entered. \n");
+               LOG (Printf.printf "%s\n" (SL.toString l));
+                LOG (Printf.printf "----------------------------\n");
+               LOG (Printf.printf "%s\n" (SL.toString SL.bottom));
                let addSimple block bl = match block with
                | Block.Compound _ -> bl
                | _                -> block :: bl
                in
                let exprl e = Eval.getExprValue e l
-               in
+               in      
+               if SL.equal l SL.bottom 
+               then 
+                   LOG (Printf.printf "Processing bottom.\n"); l
+               else
                match s with 
                  Start -> initial  
                | Assign (e1, e2) ->
@@ -867,31 +876,37 @@ module Make (BI: BlockInfo) =
                      | [b] when not (Block.dynamic b) -> update `Strong value b l
                      | bl -> List.fold_right (update `Weak value) bl l 
                     )
+                  | Value.Any, Value.Any -> SL.bottom
                   | Value.Any, value -> M.foldAll (update `Weak value) memory l
                  ) 
-               | Black (rl, el) ->
+               | Black (rl, el) -> 
+                 LOG (Printf.printf "Black function entered.\n"); 
                  let rs = List.fold_right (fun r -> RSet.union (M.subregions memory r)) rl RSet.empty
-                 in 
-                 let value = List.fold_left (<@>) (Value.V (BSet.empty, rs, false))
-                                                  (List.map exprl el)
                  in
-                 let rec closure value news =
-                  if Value.isEmpty news
-                  then value 
-                  else
-                    let value' = value <@> news in
-                     let tryAdd block news' = match block with
-                     | Block.Simple _ | Block.Pseudo _ -> (Eval.getValue block l) <@> news' 
-                     | Block.Compound _ -> let subs = Array.to_list (Block.subblocks block) in
-                                            let subv = List.fold_right Value.addBlock subs Value.empty in
-                                             subv <@> news'
-                    in
-                    let news' =  BSet.fold tryAdd (fst (Value.unwrap news)) Value.empty
-                    in
-                    closure value' (news' </> value')
+                 let argValues = List.map exprl el                  
                  in
-                 let clos = closure Value.empty value in
-                   cap (BSet.fold (update `Weak clos) (fst (Value.unwrap clos)) top) l
+                 if List.exists (Value.equal Value.Any) argValues 
+                 then LOG (Printf.printf "Fast black.\n"); SL.bottom
+                 else  LOG (Printf.printf "Sloww black.\n");
+                   let initialValue = List.fold_left (<@>) (Value.V (BSet.empty, rs, false)) argValues
+                   in
+                   let rec closure value news =
+                    if Value.isEmpty news
+                    then value 
+                    else
+                      let value' = value <@> news in
+                       let tryAdd block news' = match block with
+                       | Block.Simple _ | Block.Pseudo _ -> (Eval.getValue block l) <@> news' 
+                       | Block.Compound _ -> let subs = Array.to_list (Block.subblocks block) in
+                                              let subv = List.fold_right Value.addBlock subs Value.empty in
+                                               subv <@> news'
+                      in
+                      let news' =  BSet.fold tryAdd (fst (Value.unwrap news)) Value.empty
+                      in
+                      closure value' (news' </> value')
+                   in
+                   let clos = closure Value.empty initialValue in
+                     cap (BSet.fold (update `Weak clos) (fst (Value.unwrap clos)) top) l
            end
 
         module Adapter = AAdapter (A.Abstract) (SL) (S) (StatementEffect)
@@ -953,7 +968,7 @@ module Make (BI: BlockInfo) =
             module NodeInfo =
               struct
                 (* block * id of graph cluster * may be undefined *)
-                type t = BlockNode of Block.t * int * bool | Invisible of int
+                type t = BlockNode of Block.t * int * bool ref | Invisible of int
 
                 let toString = function
                 | BlockNode (b, i, _) -> Printf.sprintf "%s:%d" (Block.toString b) i
@@ -979,8 +994,8 @@ module Make (BI: BlockInfo) =
                 open NodeInfo
 
                 let color node = match (BG.Node.info node) with
-                  BlockNode (_, _, true)  -> "green"
-                | BlockNode (_, _, false) -> "blue"
+                  BlockNode (_, _, mayBeUndef) when !mayBeUndef = true  -> "green"
+                | BlockNode (_, _, mayBeUndef)  when !mayBeUndef = false -> "blue"
                 | Invisible _             -> "white"
 
                 let attrs node =
@@ -1038,6 +1053,7 @@ module Make (BI: BlockInfo) =
               end
             )
 
+
             (* [addNodeCluster g l i l] adds cluster providing graph representation
                   of semilattice element [l] with id [i] and label [l] to graph [g] *)
             let addNodeCluster graph label id sl =
@@ -1046,7 +1062,7 @@ module Make (BI: BlockInfo) =
                let aux block subs =  
                  try BMap.find block map, (graph, map)
                  with Not_found ->
-                   let (graph, node) = BG.insertNode graph (NodeInfo.BlockNode (block, id, false))
+                   let (graph, node) = BG.insertNode graph (NodeInfo.BlockNode (block, id, ref false))
                    in
                    let map = BMap.add block node map
                    in
@@ -1083,30 +1099,28 @@ module Make (BI: BlockInfo) =
                          ) map ([], [])
              in
             (* adding edges corresponding to a point-to relationship *)
-             let graph = 
-               BMap.fold
-                (fun b n g -> match b with
-                              | Block.Pseudo _ | Block.Simple _ ->
-                                 let (bs, undef) = SL.Value.unwrap (SL.Eval.getExprValue (Expr.Value (Expr.Block b)) sl)
-                                 in
-                                 (match BG.Node.info n with
-                                    NodeInfo.BlockNode (b, i, _) ->
-                                      let (g, n) = BG.replaceNode g n (NodeInfo.BlockNode (b, i, undef))
-                                                   in
-                                                   BSet.fold (fun b' g -> fst
-                                                                          (BG.insertEdge g n (BMap.find b' map) EdgeInfo.Points)
-                                                             )
-                                                             bs g
-                                  | NodeInfo.Invisible _         -> failwith "Unexpected invisible node info in addNodeCluster"
-                                 )
-                              | _ -> g
+             let graph = BMap.fold
+               (fun b n g ->
+                  match b with
+                  | Block.Pseudo _ | Block.Simple _ ->
+                    let (bs, undef) = SL.Value.unwrap (SL.Eval.getExprValue (Expr.Value (Expr.Block b)) sl)
+                    in
+                    (match BG.Node.info n with
+                       NodeInfo.BlockNode (b, i,mayBeUndef) ->
+                         mayBeUndef := undef;
+                         BSet.fold (fun b' g -> fst
+                           (BG.insertEdge g n (BMap.find b' map) EdgeInfo.Points)
+                         ) bs g
+                     | NodeInfo.Invisible _ -> failwith "Unexpected invisible node info in addNodeCluster"
+                    )
+                  | _ -> g
                 ) map graph
              in
              (graph, DOT.Clusters.Node ((name, label, other, []),  clusters)) 
-
+             
             (* [toDOT ()] returns graph representation of the analysis result *)
-            let toDOT () =
-             LOG (Printf.printf "toDOT conversion started%!\n"); 
+            let toDOT () = 
+             LOG (Printf.printf "toDOT conversion started%!\n");
              (** "Control-Flow graph",
                   map from its nodes to pairs of top level cluster and corresponding invisible node,
                   list of top level clusters
