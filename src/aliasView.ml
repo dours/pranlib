@@ -1,6 +1,6 @@
 (*
  * AliasView: Alias analysis implementation.
- * Copyright (C) 2008-2009
+ * Copyright (C) 2008-2010
  * Leonid Chistov, St.Petersburg State University
  * 
  * This software is free software; you can redistribute it and/or
@@ -79,6 +79,7 @@ module type Expr =
     val value  : t -> t
     val region : t -> t
     val some   : Region.t -> t 
+    val oneOf  : t -> t -> t
     val undef  : t
     val any    : t
   end
@@ -158,6 +159,12 @@ module type Sig =
         val after  : G.Node.t -> S.Expr.t -> aliasInfo
         val may    : aliasInfo -> aliasInfo -> bool
         val must   : aliasInfo -> aliasInfo -> bool
+        module Asserts :
+          sig
+            type t = private ValueIsOneOf of M.Block.t * M.Block.t list
+            val before : G.Node.t -> t list
+            val after : G.Node.t -> t list
+          end
         module DOT : 
           sig
             val toDOT : unit -> string
@@ -261,6 +268,8 @@ module Make (BI: BlockInfo) =
     module BSet = Set.Make (Block) (* Set of memory blocks *)
     module BMap = Map.Make (Block) (* Map with memory blocks as keys *)
 
+    let blockSetToList set = BSet.fold (fun block acc -> block :: acc) set []
+
     (* Alias language expression module *)
     module Expr = 
       struct
@@ -273,17 +282,19 @@ module Make (BI: BlockInfo) =
         | Value  of t
         | Region of t 
         | Some   of Region.t
+        | OneOf  of t * t
         | Undef
         | Any
 
-        let alloc t   = New t
-        let block b   = Block b
-        let sub   f e = Sub (f, e)
-        let value e   = Value e
-        let region e  = Region e
-        let some r    = Some r
-        let undef     = Undef
-        let any       = Any
+        let alloc t     = New t
+        let block b     = Block b
+        let sub   f e   = Sub (f, e)
+        let value e     = Value e
+        let region e    = Region e
+        let some r      = Some r
+        let oneOf e1 e2 = OneOf (e1, e2)
+        let undef       = Undef
+        let any         = Any
       end
 
     (* Alias language statement module *)
@@ -547,6 +558,10 @@ module Make (BI: BlockInfo) =
                                  in (m', Expr.Value e')
           | Expr.Region e     -> let (m', e') = expr m e
                                  in (m', Expr.Region e')
+          | Expr.OneOf (e1, e2)
+                              -> let (m', e1') = expr m e1 in
+                                 let (m'', e2') = expr m' e2 in
+                                 (m'', Expr.OneOf (e1', e2'))  
           | e                 -> (m, e)
           in
           let stmt m = function
@@ -635,7 +650,7 @@ module Make (BI: BlockInfo) =
                                         View.list (List.map (fun r -> View.string (Region.name r)) (RSet.elements rs));
                                         View.string " Undefined: ";
                                         View.bool undf
-                                       ]
+                                      ]
                 (* equality relation on semilattice elements *)
                 let equal x y =
                 match (x, y) with
@@ -712,41 +727,42 @@ module Make (BI: BlockInfo) =
                   | simpl -> (getValue simpl l) <@> value
                   in
                   let rec expr = function
-                  | Expr.New typ      -> failwith "Internal: Failure in getExprWidth at E.New"
-                  | Expr.Block b      -> Value.V (BSet.singleton b, RSet.empty, false)
-                  | Expr.Sub (sub, e) -> let addSub' = addSub sub in
-                                         (match expr e with
-                                           Value.V (bs, rs, undf) ->
-                                              Value.V                                        
-                                              ( BSet.union (BSet.fold addSub' bs BSet.empty)
-                                                           (RSet.fold (M.fold addSub' memory) rs BSet.empty),
-                                                RSet.empty,
-                                                undf  
-                                              )
-                                          | Value.Any -> Value.V (M.foldAll addSub' memory BSet.empty, RSet.empty, true)
-                                         )
-                  | Expr.Value e      -> (match expr e with
-                                           Value.V (bs, rs, undf) -> 
-                                             BSet.fold addVal
-                                                       bs
-                                                       (RSet.fold (M.fold addVal memory)
-                                                                  rs
-                                                                  (Value.V (BSet.empty, RSet.empty, undf))
-                                                       )
-                                          | Value.Any -> M.foldAll addVal memory Value.empty 
-                                         )
-                  | Expr.Region e     -> (match expr e with
-                                            Value.V (bs, rs, _) ->
-                                             Value.V 
-                                             ( BSet.empty,
-                                               BSet.fold (fun block -> RSet.union (M.subregions memory (Block.region block))) bs rs,
-                                               false
-                                             )
-                                          | Value.Any -> Value.Any
-                                         )
-                  | Expr.Some r       -> Value.V (BSet.empty, M.subregions memory r, false) 
-                  | Expr.Undef        -> Value.undef
-                  | Expr.Any          -> Value.Any
+                  | Expr.New typ       -> failwith "Internal: Failure in getExprWidth at E.New"
+                  | Expr.Block b       -> Value.V (BSet.singleton b, RSet.empty, false)
+                  | Expr.Sub (sub, e)  -> let addSub' = addSub sub in
+                                          (match expr e with
+                                            Value.V (bs, rs, undf) ->
+                                               Value.V                                        
+                                               ( BSet.union (BSet.fold addSub' bs BSet.empty)
+                                                            (RSet.fold (M.fold addSub' memory) rs BSet.empty),
+                                                 RSet.empty,
+                                                 undf  
+                                               )
+                                           | Value.Any -> Value.V (M.foldAll addSub' memory BSet.empty, RSet.empty, true)
+                                          )
+                  | Expr.Value e       -> (match expr e with
+                                            Value.V (bs, rs, undf) -> 
+                                              BSet.fold addVal
+                                                        bs
+                                                        (RSet.fold (M.fold addVal memory)
+                                                                   rs
+                                                                   (Value.V (BSet.empty, RSet.empty, undf))
+                                                        )
+                                           | Value.Any -> M.foldAll addVal memory Value.empty 
+                                          )
+                  | Expr.Region e      -> (match expr e with
+                                               Value.V (bs, rs, _) ->
+                                                Value.V 
+                                                 ( BSet.empty,
+                                                  BSet.fold (fun block -> RSet.union (M.subregions memory (Block.region block))) bs rs,
+                                                  false
+                                                )
+                                             | Value.Any -> Value.Any
+                                            )
+                  | Expr.Some r          -> Value.V (BSet.empty, M.subregions memory r, false) 
+                  | Expr.OneOf (e1, e2)  -> (expr e1) <@> (expr e2)
+                  | Expr.Undef           -> Value.undef
+                  | Expr.Any             -> Value.Any
                   in expr e
       
               end 
@@ -850,10 +866,6 @@ module Make (BI: BlockInfo) =
              open SL
 
              let affect s l = 
-               LOG (Printf.printf "StatementEffect.affect entered. \n");
-               LOG (Printf.printf "%s\n" (SL.toString l));
-                LOG (Printf.printf "----------------------------\n");
-               LOG (Printf.printf "%s\n" (SL.toString SL.bottom));
                let addSimple block bl = match block with
                | Block.Compound _ -> bl
                | _                -> block :: bl
@@ -861,10 +873,8 @@ module Make (BI: BlockInfo) =
                let exprl e = Eval.getExprValue e l
                in      
                if SL.equal l SL.bottom 
-               then 
-                   LOG (Printf.printf "Processing bottom.\n"); l
-               else
-               match s with 
+               then SL.bottom 
+               else match s with 
                  Start -> initial  
                | Assign (e1, e2) ->
                  (match (exprl e1), (exprl e2) with
@@ -880,14 +890,13 @@ module Make (BI: BlockInfo) =
                   | Value.Any, value -> M.foldAll (update `Weak value) memory l
                  ) 
                | Black (rl, el) -> 
-                 LOG (Printf.printf "Black function entered.\n"); 
                  let rs = List.fold_right (fun r -> RSet.union (M.subregions memory r)) rl RSet.empty
                  in
                  let argValues = List.map exprl el                  
                  in
                  if List.exists (Value.equal Value.Any) argValues 
-                 then LOG (Printf.printf "Fast black.\n"); SL.bottom
-                 else  LOG (Printf.printf "Sloww black.\n");
+                 then SL.bottom
+                 else
                    let initialValue = List.fold_left (<@>) (Value.V (BSet.empty, rs, false)) argValues
                    in
                    let rec closure value news =
@@ -915,20 +924,15 @@ module Make (BI: BlockInfo) =
                         (ProgramView.ForwardAdapter (Adapter))
                         (struct
                            module Concrete = A.Concrete
-      
                            module Abstract = A.Abstract
       
                            let node x =
-                             let stmts = (NodeMap.find x stmtMap)
-                             in
-                             if x == G.start 
-                             then S.start :: stmts
-                             else stmts
+                             let stmts = (NodeMap.find x stmtMap) in
+                             if x == G.start then S.start :: stmts else stmts
       
                            let edge = A.edge
                          end
-                        )      
-                        (G) 
+                        ) (G) 
       
         module Analyse = DFAEngine.RevPost (PView) (DFST.Make (G))
         
@@ -961,6 +965,37 @@ module Make (BI: BlockInfo) =
            in
            not (S.Expr.Block.dynamic b1) && (S.Expr.Block.relation b1 b2 = S.Expr.Block.Same)
           )
+
+        module Asserts = 
+          struct
+            type t = ValueIsOneOf of M.Block.t * M.Block.t list
+
+            let isStaticBlocksSet = BSet.for_all (fun block -> not (Block.dynamic block))
+
+            let getBlockValueAssert block state = match block with
+              Block.Simple (_ , `Static, _) ->
+                   let (blocks, undef) = SL.Value.unwrap (SL.Eval.getValue block state) in
+                   if undef = true || not (isStaticBlocksSet blocks)
+                   then None
+                   else Some (ValueIsOneOf (block, blockSetToList blocks))
+            | _ -> None
+            
+            let addToListOptional opt lst = match opt with
+              Some value -> value :: lst
+            | None       -> lst
+                           
+            let before node = 
+              M.foldAll
+               (fun block -> addToListOptional (getBlockValueAssert block (slBefore node)))
+               MI.memory []
+
+            let after node = 
+              M.foldAll
+               (fun block -> addToListOptional (getBlockValueAssert block (slAfter node)))
+               MI.memory []
+              
+	  end
+
  
         (* Analysis results visualizer *)
         module DOT = 

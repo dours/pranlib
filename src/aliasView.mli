@@ -1,6 +1,6 @@
 (*
  * AliasView: Alias analysis implementation.
- * Copyright (C) 2008
+ * Copyright (C) 2008-2010
  * Leonid Chistov, St.Petersburg State University
  * 
  * This software is free software; you can redistribute it and/or
@@ -121,6 +121,9 @@ module type Expr =
      *)
     val some : Region.t -> t 
 
+    (** [oneOf e1 e2] creates an expression which result is either result of [e1] or of [e2] *)
+    val oneOf : t -> t -> t
+
     (** [undef] creates an expression with undefined element as a value. *)
     val undef  : t
 
@@ -219,8 +222,7 @@ module type Sig =
                                     type Edge.t = A.Concrete.edge ) :
       sig
 
-        (* Abstract type of alias analysis results. *)
-
+        (** Abstract type of alias analysis results. *)
         type aliasInfo 
     
         (** [before n b] returns result of alias analysis for expression [e] before execution of the statement
@@ -228,7 +230,7 @@ module type Sig =
          *)
         val before : G.Node.t -> S.Expr.t -> aliasInfo
     
-        (** [after b] returns result of alias analysis for expression [e] after execution of the statement
+        (** [after n b] returns result of alias analysis for expression [e] after execution of the statement
             settled in node [n]. Expression [e] must not contain dynamic memory allocation.
          *)  
         val after : G.Node.t -> S.Expr.t -> aliasInfo
@@ -239,12 +241,30 @@ module type Sig =
         (** [must a1 a2] is [true] if and only if [a1] and [a2] must alias. *)  
         val must : aliasInfo -> aliasInfo -> bool
 
+        (** Asserts about points-to relationship that can be stated based on analysis results. *)
+        module Asserts :
+          sig
+            (** Assert type *)
+            type t =
+              (** [ValueIsOneOf (b, bs)] corresponds to the assert that value of block [b]
+                  is one of the blocks from [bs] list *)
+              private ValueIsOneOf of M.Block.t * M.Block.t list
+
+            (** [before n] returns a list of asserts that can be made about every possible program state
+                before execution of statement in the node [n] *)
+            val before : G.Node.t -> t list
+
+            (** [after n] returns a list of asserts that can be made about every possible program state
+                after execution of statement in the node [n] *)
+            val after : G.Node.t -> t list
+          end
+          
         (** Analysis results visualizer. *)
         module DOT : 
           sig
 
             (** [toDOT ()] returns graph representation of the analysis result. *)
-            val toDOT : unit -> string
+            val toDOT : unit -> string            
 
           end
 
