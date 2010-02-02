@@ -1,0 +1,9 @@
+Started logging...
+Graph:
+
+digraph X { 
+  label="";
+
+  node0 [label="index=0, info=Loop: TODO"];
+
+}

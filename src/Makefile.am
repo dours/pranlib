@@ -1,6 +1,6 @@
 # type in sources here
-SOURCES = binomialHeap.ml pairMatching.ml dOT.ml tree.ml digraph.ml breakCycles.ml cFG.ml order.ml generate.ml dFST.ml pathCovering.ml cFO.ml dominance.ml region.ml forest.ml loops.ml alts.ml regularCFG.ml semilattice.ml programView.ml dFAEngine.ml hammocks.ml aliasView.ml dFACommon.ml dFATestCommon.ml rd.ml lv.ml
-MLI =  binomialHeap.mli pairMatching.mli dOT.mli tree.mli digraph.mli breakCycles.mli cFG.mli order.mli generate.mli dFST.mli pathCovering.mli cFO.mli dominance.mli region.mli forest.mli loops.mli alts.mli regularCFG.mli semilattice.mli programView.mli dFAEngine.mli hammocks.mli aliasView.mli dFACommon.mli dFATestCommon.mli rd.mli lv.mli
+SOURCES = binomialHeap.ml pairMatching.ml dOT.ml tree.ml digraph.ml breakCycles.ml cFG.ml order.ml generate.ml dFST.ml pathCovering.ml cFO.ml dominance.ml region.ml forest.ml loops.ml alts.ml regularCFG.ml semilattice.ml programView.ml dFAEngine.ml hammocks.ml aliasView.ml dFACommon.ml dFATestCommon.ml rd.ml lv.ml dDG.ml dDAInfo.ml dDGStructure.ml dDA.ml
+MLI =  binomialHeap.mli pairMatching.mli dOT.mli tree.mli digraph.mli breakCycles.mli cFG.mli order.mli generate.mli dFST.mli pathCovering.mli cFO.mli dominance.mli region.mli forest.mli loops.mli alts.mli regularCFG.mli semilattice.mli programView.mli dFAEngine.mli hammocks.mli aliasView.mli dFACommon.mli dFATestCommon.mli rd.mli lv.mli dDG.mli dDAInfo.mli dDGStructure.mli dDA.mli
 
 include $(top_srcdir)/m4/Makefile.am.vars
 
