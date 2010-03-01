@@ -181,16 +181,16 @@ module type Memory =
     (** [empty] denotes empty memory. *)
     val empty : t
 
-    (** [createRegion m n f] creates in memory [m] a new region named [n]
+    (** [createRegion n f m] creates in memory [m] a new region named [n]
         and a set of son-father relationships between it and regions from the [f] list.
         Returns updated memory and created region.
      *)
-    val createRegion : t -> string -> Region.t list -> t * Region.t 
+    val createRegion : name:string -> ?super:(Region.t list) -> t -> t * Region.t 
 
-    (** [allocateBlock m t] allocates in memory [m] a new block of type [t]
+    (** [allocateBlock t m] allocates in memory [m] a new block of type [t]
         and returns updated memory and the allocated block.
      *) 
-    val allocateBlock : t -> Block.InfoTree.t -> t * Block.t
+    val allocateBlock : Block.InfoTree.t -> t -> t * Block.t
 
   end
 
@@ -215,12 +215,33 @@ module type Sig =
 
       end
 
+    (** Asserts about points-to relationship that can be stated based on analysis results. *)
+    module type AssertsSig =
+      sig
+        type node
+
+        (** Assert type *)
+        type t =
+          private ValueIsOneOf of M.Block.t * M.Block.t list (** [ValueIsOneOf (b, bs)] corresponds to the assert that value of block [b]
+                                                                 is one of the blocks from [bs] list *)
+
+       (** [before n] returns a list of asserts that can be made about every possible program state
+            before execution of statement in the node [n] *)
+        val before : node -> t list
+  
+      (** [after n] returns a list of asserts that can be made about every possible program state
+           after execution of statement in the node [n] *)
+       val after : node -> t list
+      end
+
     (** Functor to create and run analyser. *)
     module Analyse (MI : MemoryInstance)
                    (A: ProgramView.Abstractor with type Abstract.node = S.t list) 
                    (G: CFG.Sig with type Node.t = A.Concrete.node and 
                                     type Edge.t = A.Concrete.edge ) :
       sig
+
+
 
         (** Abstract type of alias analysis results. *)
         type aliasInfo 
@@ -241,23 +262,8 @@ module type Sig =
         (** [must a1 a2] is [true] if and only if [a1] and [a2] must alias. *)  
         val must : aliasInfo -> aliasInfo -> bool
 
-        (** Asserts about points-to relationship that can be stated based on analysis results. *)
-        module Asserts :
-          sig
-            (** Assert type *)
-            type t =
-              (** [ValueIsOneOf (b, bs)] corresponds to the assert that value of block [b]
-                  is one of the blocks from [bs] list *)
-              private ValueIsOneOf of M.Block.t * M.Block.t list
-
-            (** [before n] returns a list of asserts that can be made about every possible program state
-                before execution of statement in the node [n] *)
-            val before : G.Node.t -> t list
-
-            (** [after n] returns a list of asserts that can be made about every possible program state
-                after execution of statement in the node [n] *)
-            val after : G.Node.t -> t list
-          end
+        (* Module containing asserts *)
+        module Asserts : AssertsSig with type node = G.Node.t
           
         (** Analysis results visualizer. *)
         module DOT : 

@@ -98,8 +98,8 @@ module type Memory =
     exception RegionNotFound
     type t
     val empty : t
-    val createRegion : t -> string -> Region.t list -> t * Region.t 
-    val allocateBlock : t -> Block.InfoTree.t -> t * Block.t
+    val createRegion : name:string -> ?super:(Region.t list) -> t -> t * Region.t 
+    val allocateBlock : Block.InfoTree.t -> t -> t * Block.t
   end
   
 (* signature to describe an effect of some actions on some states *)
@@ -147,6 +147,13 @@ module type Sig =
     module S : Stmt
     module M : Memory with module Block = S.Expr.Block
     module type MemoryInstance = sig val memory : M.t end
+    module type AssertsSig =
+      sig
+        type node
+        type t = private ValueIsOneOf of M.Block.t * M.Block.t list
+        val before : node -> t list
+        val after : node -> t list
+      end
     module Analyse (MI : MemoryInstance)
                    (A: ProgramView.Abstractor with
                         type Abstract.node = S.t list) 
@@ -159,12 +166,7 @@ module type Sig =
         val after  : G.Node.t -> S.Expr.t -> aliasInfo
         val may    : aliasInfo -> aliasInfo -> bool
         val must   : aliasInfo -> aliasInfo -> bool
-        module Asserts :
-          sig
-            type t = private ValueIsOneOf of M.Block.t * M.Block.t list
-            val before : G.Node.t -> t list
-            val after : G.Node.t -> t list
-          end
+        module Asserts : AssertsSig with type node = G.Node.t
         module DOT : 
           sig
             val toDOT : unit -> string
@@ -464,12 +466,12 @@ module Make (BI: BlockInfo) =
                               in (fun () -> incr mid; !mid)
                     }
 
-        let createRegion mem name fathers =
-          LOG (Printf.printf "Created region %s\n" name); 
+        let createRegion ~name ?(super = []) mem =
+          LOG (Printf.printf "Created region %s\n" regionName); 
           let newRegion = Region.create name mem.rCounter
           in
           ( { mem with map = RMap.fold (fun k v -> RMap.add k 
-                                                            (if List.mem k fathers
+                                                            (if List.mem k super
                                                              then RegionInfo.addChild v newRegion
                                                              else v
                                                             )
@@ -497,14 +499,14 @@ module Make (BI: BlockInfo) =
           in
           RMap.add r (RegionInfo.addBlock ri block) map
 
-        let allocAux mode mem aT =
+        let allocAux mode aT mem =
           let (block, subs) = BlockCreator.create mode aT mem.nextId
           in
           let map' = List.fold_right addBlockToMemoryMap (block :: subs) mem.map 
           in
           ({mem with map = map'}, block)
 
-        let allocateBlock   = allocAux `Static
+        let allocateBlock  = allocAux `Static
 
         let allocateDynamic = allocAux `Dynamic
 
@@ -530,6 +532,14 @@ module Make (BI: BlockInfo) =
       end
 
     module type MemoryInstance = sig val memory : M.t end
+
+    module type AssertsSig =
+      sig
+        type node
+        type t = private ValueIsOneOf of M.Block.t * M.Block.t list
+        val before : node -> t list
+        val after : node -> t list
+      end
     
     module Analyse (MI : MemoryInstance)
                    (A: ProgramView.Abstractor with
@@ -550,7 +560,7 @@ module Make (BI: BlockInfo) =
           let map = NodeMap.empty
           in
           let rec expr m = function 
-          | Expr.New aT       -> let (m', block) = M.allocateDynamic m aT 
+          | Expr.New aT       -> let (m', block) = M.allocateDynamic aT m
                                  in (m', Expr.Block block)
           | Expr.Sub (sub, e) -> let (m', e') = expr m e
                                  in (m', Expr.Sub (sub, e'))
@@ -696,15 +706,12 @@ module Make (BI: BlockInfo) =
                    let rec findr = function
                    | [] -> Value.empty 
                    | (m, r)::tl ->
-                     let d = Region.compare r region  
-                     in
-                     if d = 0 then
-                       try BMap.find block m 
-                       with Not_found -> Value.empty
-                     else
-                     if d < 0
-                       then findr tl
-                       else Value.empty
+                     let d = Region.compare r region in
+                     if d = 0
+                     then try BMap.find block m with Not_found -> Value.empty
+                     else if d < 0
+                          then findr tl
+                          else Value.empty
                    in function
                    | Bottom -> Value.Any
                    | L l'   -> findr l'
@@ -968,6 +975,7 @@ module Make (BI: BlockInfo) =
 
         module Asserts = 
           struct
+            type node = G.Node.t
             type t = ValueIsOneOf of M.Block.t * M.Block.t list
 
             let isStaticBlocksSet = BSet.for_all (fun block -> not (Block.dynamic block))
