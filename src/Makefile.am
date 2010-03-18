@@ -17,6 +17,9 @@ PXFLAGS = $(P5FLAGS)
 CAMLPXLIB = $(CAMLP5LIB)
 MODULE_INCLUDES += -I $(CAMLP5LIB)
 
+OFLAGS += -rectypes
+BFLAGS += -rectypes
+
 include $(top_srcdir)/m4/Makefile.am.targets
 
 # overwrite some targets
