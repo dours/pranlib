@@ -21,15 +21,21 @@ else
   mkdir $CIL_PATCH_VERSION
 fi
 
-#Temporary files location
-TEMPDIR=/tmp/patched_cil2
+SCRIPTDIR=`pwd`
 
-#Copy current CIL to temporary directory
-rm -f -r $TEMPDIR
-cp -r -f $CILHOME $TEMPDIR
+#Temporary files location
+TEMPHOST=/tmp
+TEMPDIR=patched_cil
+TEMPORIGDIR=orig_cil
+
+#Copy current and orig CIL to temporary directory
+rm -f -r $TEMPHOST/$TEMPDIR
+cp -r -f $CILHOME $TEMPHOST/$TEMPDIR
+rm -f -r $TEMPHOST/$TEMPORIGDIR
+cp -r -f $CILORIG $TEMPHOST/$TEMPORIGDIR
 
 #Remove all files that neither belong to original CIL nor are described in MANIFEST
-pushd $TEMPDIR
+pushd $TEMPHOST/$TEMPDIR
 for fl in `find .`; do
   if [ -f $fl ]; then
     FILENAME=`basename $fl`
@@ -37,7 +43,7 @@ for fl in `find .`; do
     MANIFEST=$DIRNAME/.MANIFEST
     if [ ! -e $CILORIG/$fl ]; then
       if [ ! -e $MANIFEST ] || [ -z `grep "$FILENAME" -l $MANIFEST` ]; then
-        sudo rm -f $fl
+        rm -f $fl
       fi
     fi
   fi
@@ -45,7 +51,9 @@ done
 popd
 
 #Create patch
-diff -r -c -N $CILORIG/ $TEMPDIR/ > $CIL_PATCH_VERSION/diff.log
+cd $TEMPHOST
+diff -r -c -N $TEMPORIGDIR/ $TEMPDIR/ > $SCRIPTDIR/$CIL_PATCH_VERSION/diff.log
 
 #Remove temporary files
-rm -f -r $TEMPDIR
+rm -f -r $TEMPHOST/$TEMPDIR
+rm -f -r $TEMPHOST/$TEMPORIGDIR

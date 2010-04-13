@@ -9,11 +9,16 @@
 
  5. Set value of the variable CILHOME to the full path to CIL directory.
 
- 6. To apply OOPS patch to CIL run 'make install'. (To revert made changes run 'make uninstall')
+ 6. To apply OOPS patch to CIL run ./apply-patch.sh
 
  7. Build CIL.
 
- 8. Check pranlib patch running 'make check-oops' from the CIL root folder.
+ 8. Check pranlib patch running '/test/oops/test.sh' from the CIL root folder.
+
+ 9. To create patch from CIL folder set CILHOME and CILORIG (folder containing original CIL) variable.
+    All files that are missing in original CIL but should be added to patch should be mentioned in .MANIFEST file
+    in the directory to which the file belongs.
+
 
 
 

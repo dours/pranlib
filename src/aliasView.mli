@@ -221,17 +221,23 @@ module type Sig =
         type node
 
         (** Assert type *)
-        type t =
-          private ValueIsOneOf of M.Block.t * M.Block.t list (** [ValueIsOneOf (b, bs)] corresponds to the assert that value of block [b]
-                                                                 is one of the blocks from [bs] list *)
+        type t = private
+        (** [ValueIsOneOf (b, bs)] corresponds to the assert that value of block [b]
+            is one of the blocks from [bs] list.
+            Block [b] and blocks [bs] are all user-allocated. *)
+        | ValueIsOneOf of M.Block.t * (M.Block.t list)
+        (** [ValueIsOneOf (b, bs)] corresponds to the assert that 
+            a blocks from [bs] list cannot be a value of [b] block.
+            Block [b] and blocks [bs] are all user-allocated *)
+        | ValueIsNotOneOf of M.Block.t * (M.Block.t list)
 
-       (** [before n] returns a list of asserts that can be made about every possible program state
+        (** [before n] returns a list of asserts that can be made about every possible program state
             before execution of statement in the node [n] *)
         val before : node -> t list
   
-      (** [after n] returns a list of asserts that can be made about every possible program state
-           after execution of statement in the node [n] *)
-       val after : node -> t list
+        (** [after n] returns a list of asserts that can be made about every possible program state
+            after execution of statement in the node [n] *)
+        val after : node -> t list
       end
 
     (** Functor to create and run analyser. *)
@@ -246,23 +252,30 @@ module type Sig =
         (** Abstract type of alias analysis results. *)
         type aliasInfo 
     
-        (** [before n b] returns result of alias analysis for expression [e] before execution of the statement
+        (** [before n e] returns result of alias analysis for expression [e] before execution of the statement
             settled in node [n]. Expression [e] must not contain dynamic memory allocation.
+            Result may be thought as a descriptor of a set of possible values of [e].
          *)
         val before : G.Node.t -> S.Expr.t -> aliasInfo
     
-        (** [after n b] returns result of alias analysis for expression [e] after execution of the statement
+        (** [after n e] returns result of alias analysis for expression [e] after execution of the statement
             settled in node [n]. Expression [e] must not contain dynamic memory allocation.
+            Result may be thought as a descriptor of a set of possible values of [e].
          *)  
         val after : G.Node.t -> S.Expr.t -> aliasInfo
     
-        (** [may a1 a2] is [true] if and only if [a1] and [a2] may alias. *)  
+        (** [may a1 a2] is [true] iff [a1] and [a2] may alias. *)  
         val may : aliasInfo -> aliasInfo -> bool
         
-        (** [must a1 a2] is [true] if and only if [a1] and [a2] must alias. *)  
+        (** [must a1 a2] is [true] iff [a1] and [a2] must alias. *)  
         val must : aliasInfo -> aliasInfo -> bool
 
-        (* Module containing asserts *)
+        (** [undefined a] is Some `May iff [a] may be an undefined value and
+                             Some `Must iff [a] must be an undefined value *)
+        val undefined : aliasInfo -> [ `May | `Must ] option
+
+        (* Module containing asserts about program state.
+           Can be used as a representation of analysis results alternative to may and must functions. *)
         module Asserts : AssertsSig with type node = G.Node.t
           
         (** Analysis results visualizer. *)

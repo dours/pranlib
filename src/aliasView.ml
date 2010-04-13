@@ -150,7 +150,7 @@ module type Sig =
     module type AssertsSig =
       sig
         type node
-        type t = private ValueIsOneOf of M.Block.t * M.Block.t list
+        type t = private ValueIsOneOf of M.Block.t * (M.Block.t list) | ValueIsNotOneOf of M.Block.t * (M.Block.t list)
         val before : node -> t list
         val after : node -> t list
       end
@@ -166,6 +166,7 @@ module type Sig =
         val after  : G.Node.t -> S.Expr.t -> aliasInfo
         val may    : aliasInfo -> aliasInfo -> bool
         val must   : aliasInfo -> aliasInfo -> bool
+        val undefined : aliasInfo -> [ `May | `Must ] option
         module Asserts : AssertsSig with type node = G.Node.t
         module DOT : 
           sig
@@ -247,9 +248,11 @@ module Make (BI: BlockInfo) =
         let id = function
         | Simple (x, _, _) | Compound (x, _, _, _) | Pseudo (x, _) -> x
     
-        let dynamic = function
+        let isDynamic = function
         | Simple (_, `Dynamic, _) | Compound (_, `Dynamic, _, _) | Pseudo _ -> true
         | _ -> false
+
+        let isStatic block = not (isDynamic block)
 
         (* [compare b1 b2] provides order on blocks *)
         let compare x y = (id y) - (id x)
@@ -331,10 +334,7 @@ module Make (BI: BlockInfo) =
         module RMap = 
           struct
             include RMap
-            let find region map =
-              try
-                find region map
-              with Not_found -> raise RegionNotFound
+            let find region map = try find region map with Not_found -> raise RegionNotFound
           end
 
         (* Memory region information representation *)
@@ -536,7 +536,7 @@ module Make (BI: BlockInfo) =
     module type AssertsSig =
       sig
         type node
-        type t = private ValueIsOneOf of M.Block.t * M.Block.t list
+        type t = private ValueIsOneOf of M.Block.t * (M.Block.t list) | ValueIsNotOneOf of M.Block.t * (M.Block.t list)
         val before : node -> t list
         val after : node -> t list
       end
@@ -575,6 +575,7 @@ module Make (BI: BlockInfo) =
           | e                 -> (m, e)
           in
           let stmt m = function
+          | S.Start           -> failwith "Did not expect start statement in user-created CFG"
           | S.Assign (e1, e2) -> let (m', e1')  = expr m e1
                                  in
                                  let (m'', e2') = expr m' e2
@@ -608,7 +609,7 @@ module Make (BI: BlockInfo) =
         
                 (* [V (s, r, u)] stands for: set of blocks [s] + set of regions [r] + undefined flag [u]
                    Note: blocks from set [b] should not be contained in any of regions from [r] *)   
-                type t = V of BSet.t * RSet.t * bool | Any
+                type t = V of BSet.t * RSet.t * bool | Any             
         
                 (* empty value *)
                 let empty = V (BSet.empty, RSet.empty, false)  
@@ -619,7 +620,7 @@ module Make (BI: BlockInfo) =
                 (* checks if value is empty *)
                 let isEmpty = function
                 | Any -> false
-                | V (bs, rs, undf) -> (BSet.is_empty bs) && (RSet.is_empty rs) && (not undf)
+                | V (bs, rs, undf) -> (BSet.is_empty bs) && (RSet.is_empty rs)
         
                 (* unions two values *)
                 let (<@>) x y = match (x, y) with 
@@ -630,8 +631,12 @@ module Make (BI: BlockInfo) =
                   
                 (* counts difference of two values *) 
                 let (</>) x y = 
+                 let toTriple = function
+                 | V (bs, rs, u) -> (bs, rs, u) 
+                 | Any           -> (M.foldAll BSet.add memory BSet.empty, RSet.empty, true)
+                 in
                  let diff x y = match (x, y) with
-                 | V (bs1, rs1, undf1), V (bs2 ,rs2, undf2) ->
+                 | (bs1, rs1, undf1), (bs2 ,rs2, undf2) ->
                    let rs1' = RSet.diff rs1 rs2 in
                    let (rs1Bad, rs1Good) = RSet.partition (fun r -> BSet.exists
                                                                     (fun b -> Region.compare r (Block.region b) = 0)
@@ -646,9 +651,8 @@ module Make (BI: BlockInfo) =
                    V (BSet.diff bs1'' bs2, rs1Good, undf1 & (not undf2))
                  in
                  match (x, y) with
-                   _, Any -> empty
-                 | Any, v -> diff (V (M.foldAll BSet.add memory BSet.empty, RSet.empty, true)) v
-                 | v1, v2 -> diff v1 v2 
+                   _, Any -> empty (* optimization *)
+                 | v1, v2 -> diff (toTriple v1) (toTriple v2)
                  
                 (* conversion to viewer representation *)
                 let toViewer = function  
@@ -661,19 +665,29 @@ module Make (BI: BlockInfo) =
                                         View.string " Undefined: ";
                                         View.bool undf
                                       ]
-                (* equality relation on semilattice elements *)
-                let equal x y =
-                match (x, y) with
-                  Any, Any -> true
+                (* structual equality; TODO: won't simple "=" work? *)
+                let structEqual = function
+                | Any, Any -> true
                 | V (s1, r1, b1), V (s2, r2, b2) when b1 = b2 &&
                                                       BSet.equal s1 s2 &&
                                                       RSet.equal r1 r2 -> true
                 | _, _ -> false
-        
-                (* converts inner represnetation of block value to the list of blocks + undefined flag *)
+                 
+                (* equality relation on semilattice elements *)
+                let equal x y =
+                  if x == y
+                  then true
+                  else structEqual (x, y)    
+                    
+                (* converts inner represnetation of block value to the set of blocks + "can be undefined" flag *)
                 let unwrap = function
                 | V (bs, rs, undf) -> (RSet.fold (M.fold BSet.add memory) rs bs, undf)  
                 | Any -> (M.foldAll BSet.add memory BSet.empty, true)
+
+                (* true if undefined flag is set for value *)
+                let isUndefined = function
+                | V (_, _, u) -> u
+                | Any         -> true
         
                 (* adds block to value *)
                 let addBlock block = function
@@ -799,7 +813,7 @@ module Make (BI: BlockInfo) =
             let cap x y = 
              let rec cap' x y = match (x, y) with
                [], l | l, [] -> l
-             | (m1, r1)::tl1, (m2, r2)::tl2 -> 
+             | (m1, r1) :: tl1, (m2, r2) :: tl2 -> 
                if Region.compare r1 r2 = 0 then
                  let f k v m' = 
                    try
@@ -890,7 +904,7 @@ module Make (BI: BlockInfo) =
                     in
                     (match updtList with
                        [] -> l
-                     | [b] when not (Block.dynamic b) -> update `Strong value b l
+                     | [b] when Block.isStatic b -> update `Strong value b l
                      | bl -> List.fold_right (update `Weak value) bl l 
                     )
                   | Value.Any, Value.Any -> SL.bottom
@@ -907,7 +921,7 @@ module Make (BI: BlockInfo) =
                    let initialValue = List.fold_left (<@>) (Value.V (BSet.empty, rs, false)) argValues
                    in
                    let rec closure value news =
-                    if Value.isEmpty news
+                    if Value.isEmpty news && not (Value.isUndefined news)
                     then value 
                     else
                       let value' = value <@> news in
@@ -970,37 +984,43 @@ module Make (BI: BlockInfo) =
           (BSet.cardinal s1 = 1) && (BSet.cardinal s2 = 1) &&
           (let b1, b2 = BSet.choose s1, BSet.choose s2 
            in
-           not (S.Expr.Block.dynamic b1) && (S.Expr.Block.relation b1 b2 = S.Expr.Block.Same)
+           (S.Expr.Block.isStatic b1) && (S.Expr.Block.relation b1 b2 = S.Expr.Block.Same)
           )
+
+        let undefined a = match SL.Value.isEmpty a, SL.Value.isUndefined a with
+          (true, true)  -> Some `Must
+        | (false, true) -> Some `May
+        | _             -> None
+
+        let allStaticBlocks = M.foldAll (fun block set -> if Block.isStatic block then BSet.add block set else set)
+                                         MI.memory BSet.empty
 
         module Asserts = 
           struct
             type node = G.Node.t
-            type t = ValueIsOneOf of M.Block.t * M.Block.t list
+            type t = ValueIsOneOf of M.Block.t * (M.Block.t list) | ValueIsNotOneOf of M.Block.t * (M.Block.t list)
 
-            let isStaticBlocksSet = BSet.for_all (fun block -> not (Block.dynamic block))
+            let isStaticBlocksSet = BSet.for_all Block.isStatic
 
             let getBlockValueAssert block state = match block with
-              Block.Simple (_ , `Static, _) ->
-                   let (blocks, undef) = SL.Value.unwrap (SL.Eval.getValue block state) in
-                   if undef = true || not (isStaticBlocksSet blocks)
-                   then None
-                   else Some (ValueIsOneOf (block, blockSetToList blocks))
-            | _ -> None
+              Block.Simple (_ , `Static, _) ->                    
+                   let (values, undef) = SL.Value.unwrap (SL.Eval.getValue block state) in
+                   let isNotValueAssert = ValueIsNotOneOf (block, blockSetToList (BSet.diff allStaticBlocks values)) in
+                   if undef = true || not (isStaticBlocksSet values)
+                   then [isNotValueAssert]
+                   else [ValueIsOneOf (block, blockSetToList values); isNotValueAssert]
+            | _ -> []
             
-            let addToListOptional opt lst = match opt with
-              Some value -> value :: lst
-            | None       -> lst
                            
-            let before node = 
-              M.foldAll
-               (fun block -> addToListOptional (getBlockValueAssert block (slBefore node)))
-               MI.memory []
+            let before node =
+              let sl = slBefore node
+              in
+              M.foldAll (fun block -> List.rev_append (getBlockValueAssert block sl)) MI.memory []
 
             let after node = 
-              M.foldAll
-               (fun block -> addToListOptional (getBlockValueAssert block (slAfter node)))
-               MI.memory []
+              let sl = slAfter node
+              in
+              M.foldAll (fun block -> List.rev_append (getBlockValueAssert block sl)) MI.memory []
               
 	  end
 
@@ -1038,7 +1058,7 @@ module Make (BI: BlockInfo) =
 
                 let color node = match (BG.Node.info node) with
                   BlockNode (_, _, mayBeUndef) when !mayBeUndef = true  -> "green"
-                | BlockNode (_, _, mayBeUndef)  when !mayBeUndef = false -> "blue"
+                | BlockNode (_, _, mayBeUndef) -> "blue"
                 | Invisible _             -> "white"
 
                 let attrs node =
@@ -1047,7 +1067,7 @@ module Make (BI: BlockInfo) =
                   ("color", color node) ::
                   (match (BG.Node.info node) with
                      BlockNode ((Block.Pseudo _), _, _) -> [("shape", "diamond")]
-                   | BlockNode (b, _, _) when not (Block.dynamic b)
+                   | BlockNode (b, _, _) when Block.isStatic b
                                               -> [("shape", "box")]
                    | Invisible _              -> [("style","invis"); ("width", "0")]
                    | _                        -> [])

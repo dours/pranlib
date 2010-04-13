@@ -18,11 +18,15 @@ PATCH_FLAGS="$PATCH_FLAGS -p1"
 patch $PATCH_FLAGS -d $CILHOME -i $PATCHFILE
 
 for t in `find $CILHOME -name "*.sh"` ; do
-  sudo chmod +x $t
+  chmod +x $t
+  #if [ -n `which sudo` ]; then
+  #  sudo chmod +x $t
+  #else
+  #fi
 done
 
 NEWFILES=`awk '/diff -r -c -N/ { path = $6 } /\*\*\* 0 \*\*\*\*/ { print(path) }' $PATCHFILE |
-          sed "s/[a-zA-Z]*\///"`
+          sed "s/[a-zA-Z0-9_-]*\///"`
 
 for nf in $NEWFILES; do
   WAY=`echo $nf | tr "/" "\n"`
@@ -30,11 +34,18 @@ for nf in $NEWFILES; do
   cd $CILHOME  
   for x in $WAY
   do
-    touch .MANIFEST
-    if [ -z `grep "$x\$" -l .MANIFEST` ] && [ -f "./$x" ]; then
-      echo $x >> .MANIFEST
-    fi
-    if [ -d $x ]; then
+    if [ -f "./$x" ]; then
+      touch .MANIFEST
+      if [ -z `grep "$x\$" -l .MANIFEST` ]; then
+        if [ ! -s .MANIFEST ]; then
+          echo $x >> .MANIFEST      
+        else
+          cp .MANIFEST .MANIFEST.TMP
+          sed "\$a$x" .MANIFEST.TMP > .MANIFEST
+          rm .MANIFEST.TMP
+        fi
+      fi 
+    elif [ -d $x ]; then
       cd $x
     fi 
   done
