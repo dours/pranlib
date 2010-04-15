@@ -1,5 +1,5 @@
 if [ -z "$CILHOME" ]; then 
-  echo "CILHOME variable is not set." 
+  echo "CILHOME variable should be set to a reference on folder containing CIL." 
   exit 
 fi
 
@@ -19,12 +19,9 @@ patch $PATCH_FLAGS -d $CILHOME -i $PATCHFILE
 
 for t in `find $CILHOME -name "*.sh"` ; do
   chmod +x $t
-  #if [ -n `which sudo` ]; then
-  #  sudo chmod +x $t
-  #else
-  #fi
 done
 
+#List of files that are not present in the original CIL, but are delivered with patch
 NEWFILES=`awk '/diff -r -c -N/ { path = $6 } /\*\*\* 0 \*\*\*\*/ { print(path) }' $PATCHFILE |
           sed "s/[a-zA-Z0-9_-]*\///"`
 
@@ -35,6 +32,7 @@ for nf in $NEWFILES; do
   for x in $WAY
   do
     if [ -f "./$x" ]; then
+      # Create record in MANIFEST file describing new file delivered with patch
       touch .MANIFEST
       if [ -z `grep "$x\$" -l .MANIFEST` ]; then
         if [ ! -s .MANIFEST ]; then

@@ -1,27 +1,12 @@
 if [ -z "$CILHOME" ]; then 
-  echo "CILHOME variable is not set." 
+  echo "CILHOME variable should be set to a reference on folder containing CIL." 
   exit 
 fi
 
 if [ -z "$CILORIG" ]; then 
-  echo "CILORIG variable is not set." 
+  echo "CILORIG variable should be set to a reference on folder containing original version of CIL." 
   exit 
 fi
-
-CIL_PATCH_VERSION="`grep CIL_VERSION_MAJOR= $CILHOME/configure | awk -F= '{print $2}'`.`grep CIL_VERSION_MINOR= $CILHOME/configure | awk -F= '{print $2}'`.`grep CIL_VERSION_REV= $CILHOME/configure | awk -F= '{print $2}'`"
-
-if [ -z "$CIL_PATCH_VERSION" ]; then 
- echo "Cannot determine version of CIL."
- exit
-fi
-
-if [ -d "$CIL_PATCH_VERSION" ]; then 
-  sleep 0
-else
-  mkdir $CIL_PATCH_VERSION
-fi
-
-SCRIPTDIR=`pwd`
 
 #Temporary files location
 TEMPHOST=/tmp
@@ -35,7 +20,7 @@ rm -f -r $TEMPHOST/$TEMPORIGDIR
 cp -r -f $CILORIG $TEMPHOST/$TEMPORIGDIR
 
 #Remove all files that neither belong to original CIL nor are described in MANIFEST
-pushd $TEMPHOST/$TEMPDIR
+pushd $TEMPHOST/$TEMPDIR > /dev/null
 for fl in `find .`; do
   if [ -f $fl ]; then
     FILENAME=`basename $fl`
@@ -48,11 +33,11 @@ for fl in `find .`; do
     fi
   fi
 done
-popd
+popd > /dev/null
 
 #Create patch
 cd $TEMPHOST
-diff -r -c -N $TEMPORIGDIR/ $TEMPDIR/ > $SCRIPTDIR/$CIL_PATCH_VERSION/diff.log
+diff -r -c -N $TEMPORIGDIR/ $TEMPDIR/ 
 
 #Remove temporary files
 rm -f -r $TEMPHOST/$TEMPDIR

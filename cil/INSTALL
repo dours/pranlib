@@ -10,18 +10,12 @@
  5. Set value of the variable CILHOME to the full path to CIL directory.
 
  6. To apply OOPS patch to CIL run ./apply-patch.sh
+    A bunch of .MANIFEST files is automatically created within patching.
+    Every manifest contains list of files in folder containing it, that are missing in the original CIL and are delivered with patch.
 
  7. Build CIL.
 
- 8. Check pranlib patch running '/test/oops/test.sh' from the CIL root folder.
+ 8. Check pranlib patch running 'test/oops/test.sh' from the CIL root folder.
 
- 9. To create patch from CIL folder set CILHOME and CILORIG (folder containing original CIL) variable.
-    All files that are missing in original CIL but should be added to patch should be mentioned in .MANIFEST file
-    in the directory to which the file belongs.
-
-
-
-
-
-
-    
+ 9. To create patch from CIL folder set both CILHOME and CILORIG (folder containing original CIL) variables.
+    All files that are missing in original CIL and should be added to patch should be mentioned in .MANIFEST file
