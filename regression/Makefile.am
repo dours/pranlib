@@ -10,6 +10,9 @@ MODULE_INCLUDES += -I $(top_srcdir)/src
 EXTRA_CMA += ostap.cmo $(PACKAGE).cma
 
 # OCaml parser call with flags
+OFLAGS += -rectypes
+BFLAGS += -rectypes
+
 AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_log.cmo -LOG"
 
 # overwrite some variables
