@@ -19,6 +19,8 @@ sig
   module SimpleVariable :
   sig
     include DFACommon.Variable
+		
+		val make : string -> t
   end
 
   

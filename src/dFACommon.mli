@@ -21,17 +21,19 @@ sig
   val equals : t -> t -> bool
   
   val toString : t -> string
-    
-  val make : string -> t
 end
 
 module type Sig=
 sig
+	val print_time : unit -> string
+	
   module V : Variable
   
   module Statement:
   sig
       type t = V.t list * V.t list
+			
+			val make : V.t list -> V.t list -> t
     
       val makeAssign : V.t -> V.t list -> t
     
@@ -155,7 +157,4 @@ sig
   end
 end
 
-module Make(V : Variable) :
-sig
-  include Sig
-end
+module Make(V : Variable) : Sig with module V = V

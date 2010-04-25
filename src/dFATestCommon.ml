@@ -22,6 +22,8 @@ sig
   module SimpleVariable :
   sig
     include DFACommon.Variable
+		
+		val make : string -> t
   end
   
   module DFAC : DFACommon.Sig
@@ -113,6 +115,6 @@ struct
 	
 	module StatementConstructor=
 	struct
-	  let construct lp rp = DFAC.Statement.makeAssign (DFAC.V.make lp)  (List.map DFAC.V.make rp)
+	  let construct lp rp = DFAC.Statement.makeAssign (SimpleVariable.make lp)  (List.map SimpleVariable.make rp)
 	end
 end

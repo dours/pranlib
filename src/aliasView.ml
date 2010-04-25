@@ -467,7 +467,7 @@ module Make (BI: BlockInfo) =
                     }
 
         let createRegion ~name ?(super = []) mem =
-          LOG (Printf.printf "Created region %s\n" regionName); 
+(*          LOG (Printf.printf "Created region %s\n" regionName); *)
           let newRegion = Region.create name mem.rCounter
           in
           ( { mem with map = RMap.fold (fun k v -> RMap.add k 

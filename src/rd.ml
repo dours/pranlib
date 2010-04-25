@@ -42,7 +42,9 @@ module RDSemilattice
     let equal x y = match (x, y) with
   		| (L (bv_x), L(bv_y)) -> DFAC.RBitVector.equal bv_x bv_y
     
-    let toString x = ""
+    let toString = function
+			| L rbv -> DFAC.RBitVector.toString rbv
+			| _ -> ""
     end
     
     module Repr (DFAC : DFACommon.Sig)=
@@ -76,16 +78,16 @@ module RDSemilattice
   
 	let flow node l = 
 		let statements = node in (* Node statements *)
-        printf "Calculating flow for node %s\n" (DFAC.NodeInfo.toString node);
+        printf "%s: Calculating flow for node %s\n" (DFAC.print_time ()) (DFAC.NodeInfo.toString node);
 		let gen_bv = gen statements in
 		let prsv_bv = prsv statements in
 		let rec process_recursively input gen_v prsv_v result =
       match (input, gen_v, prsv_v) with
 			| ([], [], []) ->
-        printf "Empty lists case matched\n"; 
+        printf "%s: Empty lists case matched\n" (DFAC.print_time ()); 
         result
       | (input_hd::input_tl, gen_hd::gen_tl, prsv_hd::prsv_tl) ->
-        printf "Full case matched\n";
+        printf "%s: Full case matched\n" (DFAC.print_time ());
         printf "Input: %s\n" (BV.toString input);
         printf "Gen: %s\n" (BV.toString gen_v);
         printf "Prsv: %s\n" (BV.toString prsv_v);
@@ -95,7 +97,7 @@ module RDSemilattice
 		in
 		match l with
 		| RDSemilattice'.L (l_vector) ->
-        printf "Flow calculated to lattice element\n";	
+        printf "%s: Flow calculated to lattice element\n" (DFAC.print_time ());	
         RDSemilattice'.L(process_recursively l_vector gen_bv prsv_bv [])
 	
 	let init _ = L.top 
@@ -118,20 +120,20 @@ module RDSemilattice
     	
     	let before n = match G.ins n with
     		| [] ->
-          printf "No incoming edges\n"; []
+          printf "%s: No incoming edges\n" (DFAC.print_time ()); []
     		| hd::_ ->
-          printf "Calling Analyze.get\n"; 
+          printf "%s: Calling Analyze.get\n" (DFAC.print_time ()); 
           match Analyze.get hd with
     			| RDSemilattice'.L v ->
-            printf "Lattice element encountered\n"; 
+            printf "%s: Lattice element encountered\n" (DFAC.print_time ()); 
             reachable_statements v
     	let after n = match G.outs n with
     		| [] ->
-          printf "No outgoing edges\n"; []
+          printf "%s: No outgoing edges\n" (DFAC.print_time ()); []
     		| hd::_ ->
-          printf "Calling Analyze.get\n"; 
+          printf "%s: Calling Analyze.get\n" (DFAC.print_time ()); 
           match Analyze.get hd with
     			| RDSemilattice'.L v ->
-            printf "Lattice element encountered\n"; 
+            printf "%s: Analyze.get: Lattice element encountered\n" (DFAC.print_time ()); 
             reachable_statements v
   end

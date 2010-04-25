@@ -21,17 +21,19 @@ sig
   val equals : t -> t -> bool
   
   val toString : t -> string
-    
-  val make : string -> t
 end
 
 module type Sig=
 sig
+	val print_time : unit -> string
+	
   module V : Variable
   
   module Statement:
   sig
       type t = V.t list * V.t list
+			
+			val make : V.t list -> V.t list -> t
     
       val makeAssign : V.t -> V.t list -> t
     
@@ -157,11 +159,17 @@ end
 
 module Make(Var : Variable)=
 struct
+	let print_time _ = 
+		let now = Unix.localtime (Unix.time ()) in
+		Printf.sprintf "%s\n" ((string_of_int now.Unix.tm_hour)^":"^(string_of_int now.Unix.tm_min)^":"^(string_of_int now.Unix.tm_sec));
+	
   module V = Var
   
   module Statement=
   struct
     type t = V.t list * V.t list
+		
+		let make lp rp = (rp, lp)
     
     let makeAssign lp rp = ([lp], rp)
     
@@ -210,7 +218,7 @@ struct
     let toString n =
       let print_statement_list statements = 
         List.fold_right (fun x y -> (Statement.toString x)^";"^y) statements "" in 
-      Printf.sprintf "[Node=%s]" (print_statement_list n)
+      Printf.sprintf "[Node=[StatementCount=%s][Statements=%s]" (string_of_int (List.length n)) (print_statement_list n)
   end
   
   module EdgeInfo=
