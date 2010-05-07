@@ -161,7 +161,7 @@ module Make(Var : Variable)=
 struct
 	let print_time _ = 
 		let now = Unix.localtime (Unix.time ()) in
-		Printf.sprintf "%s\n" ((string_of_int now.Unix.tm_hour)^":"^(string_of_int now.Unix.tm_min)^":"^(string_of_int now.Unix.tm_sec));
+		Printf.sprintf "%s" ((string_of_int now.Unix.tm_hour)^":"^(string_of_int now.Unix.tm_min)^":"^(string_of_int now.Unix.tm_sec));
 	
   module V = Var
   
@@ -169,7 +169,7 @@ struct
   struct
     type t = V.t list * V.t list
 		
-		let make lp rp = (rp, lp)
+		let make lp rp = (lp, rp)
     
     let makeAssign lp rp = ([lp], rp)
     
@@ -202,13 +202,14 @@ struct
       | _ -> false
 
     let toString (s : t) =
-      let print_variable_list vars = 
-        List.fold_right 
-        (fun x y -> (V.toString x)^";"^y)
-         vars 
-        "" in
+      let print_variable_list vars delim = List.fold_right (fun x y -> (V.toString x)^delim^y) vars "" in
       match s with  
-      | (reads, writes) -> Printf.sprintf "[Reads=%s; Writes=%s]" (print_variable_list reads) (print_variable_list writes) 
+      | (reads, writes) -> 
+				let reads_string = (print_variable_list reads ",") in
+				let writes_string = (print_variable_list writes "+") in
+				let reads_length = String.length reads_string in
+				let writes_length = String.length writes_string in
+				Printf.sprintf "[%s=%s]" (String.sub reads_string	0	(reads_length))	(String.sub	writes_string	0	(writes_length)) 
   end
   
   module NodeInfo=

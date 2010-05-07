@@ -78,27 +78,34 @@ module RDSemilattice
   
 	let flow node l = 
 		let statements = node in (* Node statements *)
-        printf "%s: Calculating flow for node %s\n" (DFAC.print_time ()) (DFAC.NodeInfo.toString node);
+        LOG(printf "%s: Calculating flow for node %s\n" (DFAC.print_time ()) (DFAC.NodeInfo.toString node));
 		let gen_bv = gen statements in
 		let prsv_bv = prsv statements in
 		let rec process_recursively input gen_v prsv_v result =
       match (input, gen_v, prsv_v) with
 			| ([], [], []) ->
-        printf "%s: Empty lists case matched\n" (DFAC.print_time ()); 
+        LOG(printf "%s: Empty lists case matched\n" (DFAC.print_time ())); 
         result
       | (input_hd::input_tl, gen_hd::gen_tl, prsv_hd::prsv_tl) ->
-        printf "%s: Full case matched\n" (DFAC.print_time ());
-        printf "Input: %s\n" (BV.toString input);
-        printf "Gen: %s\n" (BV.toString gen_v);
-        printf "Prsv: %s\n" (BV.toString prsv_v);
-				let new_result = (BVE.statement input_hd, (BVE.state gen_hd	|| (BVE.state input_hd && BVE.state prsv_hd)))::result
-				in process_recursively input_tl	gen_tl	prsv_tl new_result
+        LOG(printf "%s: Full case matched\n" (DFAC.print_time ()));
+        LOG(printf "Input: %s\n" (BV.toString input));
+        LOG(printf "Gen: %s\n" (BV.toString gen_v));
+        LOG(printf "Prsv: %s\n" (BV.toString prsv_v));
+				let new_result = List.concat [result;[(BVE.statement input_hd, (BVE.state gen_hd	|| (BVE.state input_hd && BVE.state prsv_hd)))]]
+				in
+				LOG(printf "New result: %s\n" (BV.toString new_result)); 
+				process_recursively input_tl	gen_tl	prsv_tl new_result
 	  | _ -> result
 		in
 		match l with
 		| RDSemilattice'.L (l_vector) ->
-        printf "%s: Flow calculated to lattice element\n" (DFAC.print_time ());	
-        RDSemilattice'.L(process_recursively l_vector gen_bv prsv_bv [])
+        LOG(printf "%s: Calculating flow for lattice element: %s\n" (DFAC.print_time ()) (BV.toString l_vector));
+				let new_vector = process_recursively l_vector gen_bv prsv_bv [] in
+				LOG(printf "%s: Calculated flow to element: %s\n" (DFAC.print_time()) (BV.toString new_vector));
+(*				let f b = b+1 in 
+				let r = Scanf.bscanf Scanf.Scanning.stdib "%d" f in
+				LOG(printf "%s\n" (Pervasives.string_of_int r));*) 	
+        RDSemilattice'.L(new_vector)
 	
 	let init _ = L.top 
     end
@@ -120,20 +127,22 @@ module RDSemilattice
     	
     	let before n = match G.ins n with
     		| [] ->
-          printf "%s: No incoming edges\n" (DFAC.print_time ()); []
+          LOG(printf "%s: No incoming edges\n" (DFAC.print_time ())); 
+					[]
     		| hd::_ ->
-          printf "%s: Calling Analyze.get\n" (DFAC.print_time ()); 
+          LOG(printf "%s: Calling Analyze.get\n" (DFAC.print_time ())); 
           match Analyze.get hd with
     			| RDSemilattice'.L v ->
-            printf "%s: Lattice element encountered\n" (DFAC.print_time ()); 
+            LOG(printf "%s: Lattice element encountered\n" (DFAC.print_time ())); 
             reachable_statements v
     	let after n = match G.outs n with
     		| [] ->
-          printf "%s: No outgoing edges\n" (DFAC.print_time ()); []
+          LOG(printf "%s: No outgoing edges\n" (DFAC.print_time ()));
+					 []
     		| hd::_ ->
-          printf "%s: Calling Analyze.get\n" (DFAC.print_time ()); 
+          LOG(printf "%s: Calling Analyze.get\n" (DFAC.print_time ())); 
           match Analyze.get hd with
     			| RDSemilattice'.L v ->
-            printf "%s: Analyze.get: Lattice element encountered\n" (DFAC.print_time ()); 
+            LOG(printf "%s: Analyze.get: Lattice element encountered\n" (DFAC.print_time ())); 
             reachable_statements v
   end
