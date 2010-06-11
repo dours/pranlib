@@ -56,8 +56,8 @@ diff -r -c -N orig/Makefile.in patched/Makefile.in
 ! PROJECT_MODULES    = $(CILLY_MODULES)
 ! PROJECT_CMODULES   = perfcount $(CILLY_CMODULES)
 ! PROJECT_LIBS       = $(CILLY_LIBS)
-! OOPS_LIBS_NAMES    = typeutil ostap checked urray BinomialHeap PM pranlib ocamlgraph
-! OOPS_LIBS          = typeutil.cma checked.cma urray.cma BinomialHeap.cma PM.cma ostap.cmo pranlib.cma graph.cma
+! OOPS_LIBS_NAMES    = typeutil ostap checked urray pranlib 
+! OOPS_LIBS          = typeutil.cma checked.cma urray.cma ostap.cmo pranlib.cma 
 ! cilly: $(PROJECT_EXECUTABLE)
 ! include ocamlutil/Makefile.ocaml.build
   
