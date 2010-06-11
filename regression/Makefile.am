@@ -7,7 +7,8 @@ include $(top_srcdir)/m4/Makefile.am.vars
 #PARSER_INCLUDES += -I $(top_srcdir)/src
 MODULE_INCLUDES += -I $(top_srcdir)/src
 
-EXTRA_CMA += ostap.cmo $(PACKAGE).cma
+EXTRA_CMA += unix.cma ostap.cmo $(PACKAGE).cma
+EXTRA_CMXA += unix.cmxa ostap.cmo $(PACKAGE).cmxa
 
 # OCaml parser call with flags
 OFLAGS += -rectypes
