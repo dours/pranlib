@@ -7,14 +7,14 @@ include $(top_srcdir)/m4/Makefile.am.vars
 #PARSER_INCLUDES += -I $(top_srcdir)/src
 MODULE_INCLUDES += -I $(top_srcdir)/src
 
-EXTRA_CMA += unix.cma ostap.cmo $(PACKAGE).cma
-EXTRA_CMXA += unix.cmxa ostap.cmo $(PACKAGE).cmxa
+EXTRA_CMA += unix.cma $(PACKAGE).cma
+EXTRA_CMXA += unix.cmxa $(PACKAGE).cmxa
 
 # OCaml parser call with flags
 OFLAGS += -rectypes
 BFLAGS += -rectypes
 
-AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_log.cmo -LOG"
+AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_log.cmo pr_o.cmo -LOG"
 
 # overwrite some variables
 PXFLAGS = $(P5FLAGS)
