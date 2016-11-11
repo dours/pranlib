@@ -1,0 +1,7 @@
+
+true : package(unix), package(str), package(num), package(ocamlgraph), package(typeutil), package(settings), package(checked), package(urray), package(ostap)
+
+<**/*.ml> or <**/*.mli> : rectypes
+
+true: debug
+
