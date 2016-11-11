@@ -1,0 +1,48 @@
+CAMLP5O = camlp5o
+PARSER_INCLUDES = 
+LOG = 
+
+OCB_FLAGS = -use-ocamlfind -I src -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_checked.cmo pa_ostap.cmo pa_log.cmo $(LOG)"
+ 
+OCB = 		ocamlbuild $(OCB_FLAGS)
+
+all: 		 sanity native byte 
+
+clean:
+		$(OCB) -clean
+
+sanity:
+		ocamlfind query str && \
+		ocamlfind query ocamlgraph && \
+		ocamlfind query typeutil && \
+		ocamlfind query settings && \
+		ocamlfind query num && \
+		ocamlfind query checked && \
+		ocamlfind query ostap && \
+		ocamlfind query BinomialHeap && \
+		ocamlfind query PM && \
+		ocamlfind query urray && \
+		ocamlfind query camlp4.extend && \
+		[ -x `which camlp5` ] && \
+		[ -r `camlp5 -where`/pa_log.cmo ]
+#		ocamlfind query logger && \
+# checks for asdl2caml and ocamlcc are removed
+# ghdl and lcc are also not checked for 
+
+
+byte: 
+		$(OCB) pranlib.cma  
+
+install: all
+		echo "version = \"`svn info | grep Revision`\"" > META
+		echo 'description = ""' >> META
+		echo 'requires = ""' >> META
+		echo 'archive(byte) = "pranlib.cma"' >> META
+		echo 'archive(native) = "pranlib.cmxa"' >> META
+		ocamlfind install pranlib META _build/src/*.cmi _build/pranlib.cma 
+
+uninstall:
+		ocamlfind remove pranlib 
+ 
+
+.PHONY: all clean byte native profile debug sanity 
