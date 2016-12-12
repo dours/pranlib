@@ -33,13 +33,16 @@ sanity:
 byte: 
 		$(OCB) pranlib.cma  
 
+native:
+		$(OCB) pranlib.cmxa
+
 install: all
 		echo "version = \"`svn info | grep Revision`\"" > META
 		echo 'description = ""' >> META
 		echo 'requires = ""' >> META
 		echo 'archive(byte) = "pranlib.cma"' >> META
 		echo 'archive(native) = "pranlib.cmxa"' >> META
-		ocamlfind install pranlib META _build/src/*.cmi _build/pranlib.cma 
+		ocamlfind install pranlib META _build/src/*.cmi _build/pranlib.cma _build/pranlib.cmxa _build/pranlib.a 
 
 uninstall:
 		ocamlfind remove pranlib 
